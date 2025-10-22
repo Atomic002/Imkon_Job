@@ -15,8 +15,7 @@ class HomeScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            _buildAppBar(),
-            // ❌ Category filter olib tashlandi
+            _buildAppBar(controller), // ✅ CONTROLLER O'TKAZILDI
             Expanded(
               child: Obx(() {
                 // Loading state
@@ -51,7 +50,6 @@ class HomeScreen extends StatelessWidget {
                   scrollDirection: Axis.vertical,
                   onPageChanged: (index) {
                     controller.currentPostIndex.value = index;
-                    // ✅ View recording qo'shildi
                     if (index < controller.posts.length) {
                       controller.recordPostView(controller.posts[index].id);
                     }
@@ -63,7 +61,6 @@ class HomeScreen extends StatelessWidget {
                       post: post,
                       onLike: () => controller.toggleLike(post.id),
                       isLiked: controller.likedPosts[post.id] ?? false,
-                      // ✅ Post detail-ga o'tish
                       onTap: () {
                         Get.toNamed('/post_detail', arguments: post);
                       },
@@ -79,7 +76,9 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAppBar() {
+  // ==================== APP BAR ====================
+  Widget _buildAppBar(HomeController controller) {
+    // ✅ CONTROLLER PARAMETER QO'SHILDI
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: 20,
@@ -120,39 +119,36 @@ class HomeScreen extends StatelessWidget {
               IconButton(
                 icon: const Icon(Icons.notifications_outlined, size: 28),
                 onPressed: () {
-                  try {
-                    Get.toNamed('/notifications');
-                  } catch (e) {
-                    Get.snackbar(
-                      'Xato',
-                      'Bildirishnomalar sahifasi topilmadi',
-                      backgroundColor: Colors.orange,
-                      colorText: Colors.white,
-                      duration: const Duration(seconds: 2),
-                    );
-                  }
+                  Get.toNamed('/notifications');
                 },
                 color: AppConstants.textSecondary,
               ),
-              Positioned(
-                right: 8,
-                top: 8,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: AppConstants.errorColor,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Text(
-                    '3',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
+              // ✅ REAL NOTIFICATION COUNT
+              Obx(() {
+                final count = controller.notificationCount.value;
+                if (count == 0) {
+                  return const SizedBox.shrink();
+                }
+                return Positioned(
+                  right: 8,
+                  top: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: AppConstants.errorColor,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Text(
+                      count > 99 ? '99+' : '$count',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-              ),
+                );
+              }),
             ],
           ),
         ],
@@ -160,6 +156,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  // ==================== BOTTOM NAV ====================
   Widget _buildBottomNav(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
@@ -246,6 +243,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  // ==================== NAV ITEM ====================
   Widget _buildNavItem({
     required IconData icon,
     required String label,
@@ -287,6 +285,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  // ==================== ADD BUTTON ====================
   Widget _buildAddButton() {
     return Container(
       decoration: BoxDecoration(

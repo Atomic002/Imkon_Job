@@ -4,7 +4,8 @@ import 'package:version1/Screens/auth/otp_screen.dart';
 import 'package:version1/Screens/auth/register_screen.dart';
 import 'package:version1/Screens/home/chat_screen.dart';
 import 'package:version1/Screens/home/home_screen.dart';
-import 'package:version1/Screens/home/post_screen.dart';
+import 'package:version1/Screens/home/notification_screen.dart';
+import 'package:version1/Screens/home/create_post_screen.dart';
 import 'package:version1/Screens/home/profile_screen.dart';
 import 'package:version1/Screens/home/search_screen.dart';
 import 'package:version1/Screens/language/language_screen.dart';
@@ -40,5 +41,7 @@ class AppRoutes {
 
     // ✅ QO'SHISH KERAK BO'LGAN PAGES:
     GetPage(name: createPost, page: () => const CreatePostScreen()),
+
+    GetPage(name: '/notifications', page: () => const NotificationsScreen()),
   ];
 }
