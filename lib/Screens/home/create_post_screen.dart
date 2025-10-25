@@ -1,8 +1,45 @@
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+// ==================== NUMBER FORMATTER ====================
+class ThousandsSeparatorInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.isEmpty) {
+      return newValue;
+    }
+
+    // Remove all non-digit characters
+    String digitsOnly = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
+
+    // Limit to 18 digits
+    if (digitsOnly.length > 18) {
+      digitsOnly = digitsOnly.substring(0, 18);
+    }
+
+    // Format with spaces every 3 digits
+    String formatted = '';
+    for (int i = 0; i < digitsOnly.length; i++) {
+      if (i > 0 && (digitsOnly.length - i) % 3 == 0) {
+        formatted += ' ';
+      }
+      formatted += digitsOnly[i];
+    }
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
 
 // ==================== CONTROLLER ====================
 class CreatePostController extends GetxController {
@@ -13,7 +50,7 @@ class CreatePostController extends GetxController {
   final currentStep = 0.obs;
   final isLoading = false.obs;
   final isLoadingCategories = false.obs;
-  final userType = Rxn<String>();
+  final postType = Rxn<String>();
   final selectedImages = <File>[].obs;
   final categories = <Map<String, dynamic>>[].obs;
   final subCategories = <Map<String, dynamic>>[].obs;
@@ -25,26 +62,30 @@ class CreatePostController extends GetxController {
   final salaryMaxController = TextEditingController();
   final requirementsMainController = TextEditingController();
   final requirementsBasicController = TextEditingController();
-  final applicationMessageController = TextEditingController();
+  final durationDaysController = TextEditingController();
+  final skillsController = TextEditingController();
+  final experienceController = TextEditingController();
 
   // Form data
   final formData = {
-    'userType': '',
+    'postType': '',
     'title': '',
     'description': '',
-    'country': 'Uzbekiston',
     'region': '',
     'district': '',
+    'village': '',
     'categoryId': null,
     'subCategoryId': null,
+    'salaryType': '',
     'salaryMin': 0,
     'salaryMax': 0,
     'requirementsMain': '',
     'requirementsBasic': '',
-    'applicationMessage': '',
+    'durationDays': null,
+    'skills': '',
+    'experience': '',
   }.obs;
 
-  // O'zbekistonning barcha viloyatlari
   final Map<String, List<String>> regions = {
     'Uzbekiston': [
       'Toshkent shahri',
@@ -64,37 +105,251 @@ class CreatePostController extends GetxController {
     ],
   };
 
-  // Har bir viloyatning tumanlari
-  final Map<String, List<String>> districts = {
-    'Toshkent shahri': [
-      'Bektemir',
-      'Chilonzor',
-      'Mirobod',
-      'Mirzo Ulug\'bek',
-      'Olmazor',
-      'Sergeli',
-      'Shayhontohur',
-      'Uchtepa',
-      'Yashnobod',
-      'Yakkasaroy',
-      'Yunusobod',
-    ],
-    'Toshkent viloyati': [
-      'Angren',
-      'Bekobod',
-      'Bo\'ka',
-      'Bo\'stonliq',
-      'Chinoz',
-      'Ohangaron',
-      'Oqqo\'rg\'on',
-      'Parkent',
-      'Piskent',
-      'Qibray',
-      'Quyi Chirchiq',
-      'O\'rta Chirchiq',
-      'Yuqori Chirchiq',
-      'Zangiota',
-    ],
+  final Map<String, Map<String, List<String>>> districts = {
+    'Toshkent shahri': {
+      'Bektemir': ['Sergeli', 'Qoyliq', 'Salar', 'Yashnobod'],
+      'Chilonzor': ['Chilonzor', 'Navbahor', 'Qatortol', 'Minor'],
+      'Mirobod': ['Mirobod', 'Yakkasaroy', 'Sebzor', 'Paxtakor'],
+      'Mirzo Ulug\'bek': ['Ulug\'bek', 'Qorasu', 'Salar', 'Shayxontohur'],
+      'Olmazor': ['Olmazor', 'Zarqaynar', 'Bodomzor', 'Temir yo\'l'],
+      'Sergeli': ['Sergeli', 'Qibray', 'Halqabad', 'Yangiobod'],
+      'Shayhontohur': ['Shayhontohur', 'Chorsu', 'Eski shahar', 'Ipak yo\'li'],
+      'Uchtepa': ['Uchtepa', 'Sabirabad', 'Qorasaroy', 'Minor'],
+      'Yashnobod': ['Yashnobod', 'Parkent yo\'li', 'Choshtepa', 'Qoraqamish'],
+      'Yakkasaroy': ['Yakkasaroy', 'Uzbekiston', 'Amir Temur', 'Minor'],
+      'Yunusobod': ['Yunusobod', 'TTZ', 'Chilonzor', 'Minor'],
+    },
+    'Toshkent viloyati': {
+      'Angren': ['Angren shahri', 'Shakar', 'Akhangaron', 'Dustlik'],
+      'Bekobod': ['Bekobod shahri', 'Keles', 'Dustlik', 'Chinor'],
+      'Bo\'ka': ['Bo\'ka', 'Xonobod', 'Guliston', 'Chinobod'],
+      'Bo\'stonliq': ['Bo\'stonliq', 'Gazalkent', 'Humsan', 'Parkent'],
+      'Chinoz': ['Chinoz', 'Toytepa', 'Qibray', 'Yangibozor'],
+      'Ohangaron': [
+        'Ohangaron shahri',
+        'Quyi Ohangaron',
+        'Yangiobod',
+        'Teshiktosh',
+      ],
+      'Oqqo\'rg\'on': ['Oqqo\'rg\'on', 'Keles', 'Chinobod', 'Navbahor'],
+      'Parkent': ['Parkent', 'Teshiktosh', 'Shodi', 'Guliston'],
+      'Piskent': ['Piskent', 'Ulug\'bek', 'Toyloq', 'Chinobod'],
+      'Qibray': ['Qibray', 'Quyi tepa', 'Halqabad', 'Sergeli'],
+      'Quyi Chirchiq': ['Quyi Chirchiq', 'Tuyabog\'iz', 'Dustlik', 'Keles'],
+      'O\'rta Chirchiq': ['Toytepa', 'Arnasoy', 'Yangiqo\'rg\'on', 'Chinor'],
+      'Yuqori Chirchiq': [
+        'Yuqori Chirchiq',
+        'Bustonliq',
+        'Burchmulla',
+        'Parkent',
+      ],
+      'Zangiota': ['Zangiota', 'Qoraqamish', 'Yangibozor', 'Navbahor'],
+    },
+    'Andijon': {
+      'Andijon shahri': ['Markaz', 'Bog\'ishamol', 'Yangi shahar', 'Paxtaobod'],
+      'Andijon tumani': [
+        'Andijon qishlog\'i',
+        'Asaka',
+        'Xo\'jaobod',
+        'Oltinko\'l',
+      ],
+      'Asaka': ['Asaka shahri', 'Paxtakor', 'Guliston', 'Navbahor'],
+      'Baliqchi': ['Baliqchi', 'Navbahor', 'Qo\'rg\'ontepa', 'Dustlik'],
+      'Bo\'z': ['Bo\'z', 'Vodil', 'Xalqobod', 'Paxtakor'],
+      'Buloqboshi': ['Buloqboshi', 'Chinobod', 'Guliston', 'Navbahor'],
+      'Izboskan': ['Izboskan', 'Navbahor', 'Paxtaobod', 'Chinor'],
+      'Jalolquduq': ['Jalolquduq', 'Quva', 'Oqtepa', 'Guliston'],
+      'Xo\'jaobod': ['Xo\'jaobod shahri', 'Oltinko\'l', 'Paxtaobod', 'Dustlik'],
+      'Marhamat': ['Marhamat', 'Navbahor', 'Bulung\'ur', 'Chinobod'],
+      'Oltinko\'l': ['Oltinko\'l', 'Qo\'rg\'ontepa', 'Guliston', 'Navbahor'],
+      'Paxtaobod': ['Paxtaobod shahri', 'Dustlik', 'Yangiobod', 'Chinor'],
+      'Qo\'rg\'ontepa': [
+        'Qo\'rg\'ontepa shahri',
+        'Vodil',
+        'Novkent',
+        'Paxtakor',
+      ],
+      'Shahrixon': ['Shahrixon', 'Oqtepa', 'Beshko\'prik', 'Guliston'],
+      'Ulug\'nor': ['Ulug\'nor', 'Navbahor', 'Chinobod', 'Paxtakor'],
+    },
+    'Buxoro': {
+      'Buxoro shahri': ['Markaz', 'Kogon', 'Eski shahar', 'Yangi shahar'],
+      'Buxoro tumani': ['Gazli', 'Romitan', 'Vobkent', 'Shofirkon'],
+      'Olot': ['Olot', 'Navbahor', 'Guliston', 'Paxtakor'],
+      'G\'ijduvon': ['G\'ijduvon', 'Yangibozor', 'Chinobod', 'Dustlik'],
+      'Jondor': ['Jondor', 'Qorako\'l', 'Navbahor', 'Chinor'],
+      'Kogon': ['Kogon shahri', 'Vobkent', 'Romitan', 'Shofirkon'],
+      'Peshku': ['Peshku', 'Yangibozor', 'Guliston', 'Navbahor'],
+      'Qorako\'l': ['Qorako\'l', 'Jondor', 'Yangiobod', 'Chinobod'],
+      'Qorovulbozor': ['Qorovulbozor', 'Navbahor', 'Paxtakor', 'Dustlik'],
+      'Romitan': ['Romitan', 'Kogon', 'Vobkent', 'Yangibozor'],
+      'Shofirkon': ['Shofirkon', 'Romitan', 'Kogon', 'Navbahor'],
+      'Vobkent': ['Vobkent', 'Kogon', 'Romitan', 'Guliston'],
+    },
+    'Farg\'ona': {
+      'Farg\'ona shahri': ['Markaz', 'Yangi shahar', 'Eski shahar', 'Minor'],
+      'Farg\'ona tumani': ['Vodil', 'Yozyovon', 'Qo\'shtepa', 'Rishton'],
+      'Beshariq': ['Beshariq', 'Navbahor', 'Paxtakor', 'Guliston'],
+      'Bog\'dod': ['Bog\'dod', 'Yangibozor', 'Chinobod', 'Dustlik'],
+      'Buvayda': ['Buvayda', 'Navbahor', 'Guliston', 'Paxtakor'],
+      'Dang\'ara': ['Dang\'ara', 'Yangibozor', 'Chinobod', 'Navbahor'],
+      'Farg\'ona': ['Vodil', 'Yozyovon', 'Qo\'shtepa', 'Rishton'],
+      'Furqat': ['Furqat', 'Navbahor', 'Paxtakor', 'Guliston'],
+      'Marg\'ilon': [
+        'Marg\'ilon shahri',
+        'Ipakchi',
+        'Yangi Marg\'ilon',
+        'Qo\'qon yo\'li',
+      ],
+      'Oltiariq': ['Oltiariq', 'Yangibozor', 'Chinobod', 'Dustlik'],
+      'Quva': ['Quva', 'Navbahor', 'Guliston', 'Paxtakor'],
+      'Qo\'qon': ['Qo\'qon shahri', 'Markaz', 'Yangi shahar', 'Minor'],
+      'Qo\'shtepa': ['Qo\'shtepa', 'Vodil', 'Yangibozor', 'Navbahor'],
+      'Rishton': ['Rishton', 'Chinobod', 'Paxtakor', 'Guliston'],
+      'So\'x': ['So\'x', 'Navbahor', 'Yangibozor', 'Chinobod'],
+      'Toshloq': ['Toshloq', 'Guliston', 'Paxtakor', 'Dustlik'],
+      'O\'zbekiston': ['O\'zbekiston', 'Navbahor', 'Chinobod', 'Yangibozor'],
+      'Yozyovon': ['Yozyovon', 'Vodil', 'Qo\'shtepa', 'Navbahor'],
+    },
+    'Jizzax': {
+      'Jizzax shahri': ['Markaz', 'Yangi shahar', 'Eski shahar', 'Minor'],
+      'Arnasoy': ['Arnasoy', 'Navbahor', 'Paxtakor', 'Guliston'],
+      'Baxmal': ['Baxmal', 'Yangibozor', 'Chinobod', 'Dustlik'],
+      'Do\'stlik': ['Do\'stlik', 'Navbahor', 'Guliston', 'Paxtakor'],
+      'Forish': ['Forish', 'Yangibozor', 'Chinobod', 'Navbahor'],
+      'G\'allaorol': ['G\'allaorol', 'Paxtakor', 'Guliston', 'Dustlik'],
+      'Mirzacho\'l': ['Mirzacho\'l', 'Navbahor', 'Yangibozor', 'Chinobod'],
+      'Paxtakor': ['Paxtakor', 'Guliston', 'Navbahor', 'Dustlik'],
+      'Yangiobod': ['Yangiobod', 'Chinobod', 'Paxtakor', 'Yangibozor'],
+      'Zafarobod': ['Zafarobod', 'Navbahor', 'Guliston', 'Dustlik'],
+      'Zomin': ['Zomin', 'Yangibozor', 'Chinobod', 'Paxtakor'],
+      'Zarbdor': ['Zarbdor', 'Navbahor', 'Guliston', 'Yangibozor'],
+    },
+    'Xorazm': {
+      'Urganch shahri': ['Markaz', 'Yangi shahar', 'Eski shahar', 'Minor'],
+      'Bog\'ot': ['Bog\'ot', 'Navbahor', 'Paxtakor', 'Guliston'],
+      'Gurlan': ['Gurlan', 'Yangibozor', 'Chinobod', 'Dustlik'],
+      'Xonqa': ['Xonqa', 'Navbahor', 'Guliston', 'Paxtakor'],
+      'Xazorasp': ['Xazorasp', 'Yangibozor', 'Chinobod', 'Navbahor'],
+      'Xiva': ['Xiva shahri', 'Ichon qal\'a', 'Dishan qal\'a', 'Yangi shahar'],
+      'Qo\'shko\'pir': ['Qo\'shko\'pir', 'Navbahor', 'Paxtakor', 'Guliston'],
+      'Shovot': ['Shovot', 'Yangibozor', 'Chinobod', 'Dustlik'],
+      'Urganch': ['Urganch tumani', 'Navbahor', 'Guliston', 'Paxtakor'],
+      'Yangiariq': ['Yangiariq', 'Chinobod', 'Yangibozor', 'Navbahor'],
+      'Yangibozor': ['Yangibozor', 'Paxtakor', 'Guliston', 'Dustlik'],
+    },
+    'Namangan': {
+      'Namangan shahri': ['Markaz', 'Yangi shahar', 'Eski shahar', 'Minor'],
+      'Chortoq': ['Chortoq', 'Navbahor', 'Paxtakor', 'Guliston'],
+      'Chust': ['Chust', 'Yangibozor', 'Chinobod', 'Dustlik'],
+      'Kosonsoy': ['Kosonsoy', 'Navbahor', 'Guliston', 'Paxtakor'],
+      'Mingbuloq': ['Mingbuloq', 'Yangibozor', 'Chinobod', 'Navbahor'],
+      'Namangan': ['Namangan tumani', 'Vodil', 'Paxtakor', 'Guliston'],
+      'Norin': ['Norin', 'Navbahor', 'Yangibozor', 'Chinobod'],
+      'Pop': ['Pop', 'Chinobod', 'Paxtakor', 'Guliston'],
+      'To\'raqo\'rg\'on': [
+        'To\'raqo\'rg\'on',
+        'Navbahor',
+        'Yangibozor',
+        'Dustlik',
+      ],
+      'Uchqo\'rg\'on': ['Uchqo\'rg\'on', 'Guliston', 'Paxtakor', 'Chinobod'],
+      'Uychi': ['Uychi', 'Navbahor', 'Yangibozor', 'Paxtakor'],
+      'Yangiqo\'rg\'on': ['Yangiqo\'rg\'on', 'Chinobod', 'Guliston', 'Dustlik'],
+    },
+    'Navoiy': {
+      'Navoiy shahri': ['Markaz', 'Yangi shahar', 'Karmana', 'Minor'],
+      'Konimex': ['Konimex', 'Navbahor', 'Paxtakor', 'Guliston'],
+      'Karmana': ['Karmana', 'Yangibozor', 'Chinobod', 'Dustlik'],
+      'Navbahor': ['Navbahor', 'Guliston', 'Paxtakor', 'Chinobod'],
+      'Nurota': ['Nurota', 'Yangibozor', 'Navbahor', 'Paxtakor'],
+      'Qiziltepa': ['Qiziltepa', 'Chinobod', 'Guliston', 'Dustlik'],
+      'Tomdi': ['Tomdi', 'Navbahor', 'Yangibozor', 'Paxtakor'],
+      'Uchquduq': ['Uchquduq', 'Guliston', 'Chinobod', 'Navbahor'],
+      'Xatirchi': ['Xatirchi', 'Paxtakor', 'Yangibozor', 'Dustlik'],
+      'Zarafshon': ['Zarafshon shahri', 'Navbahor', 'Guliston', 'Minor'],
+    },
+    'Qashqadaryo': {
+      'Qarshi shahri': ['Markaz', 'Yangi shahar', 'Eski shahar', 'Minor'],
+      'Chiroqchi': ['Chiroqchi', 'Navbahor', 'Paxtakor', 'Guliston'],
+      'Dehqonobod': ['Dehqonobod', 'Yangibozor', 'Chinobod', 'Dustlik'],
+      'G\'uzor': ['G\'uzor', 'Navbahor', 'Guliston', 'Paxtakor'],
+      'Kasbi': ['Kasbi', 'Yangibozor', 'Chinobod', 'Navbahor'],
+      'Kitob': ['Kitob', 'Paxtakor', 'Guliston', 'Dustlik'],
+      'Koson': ['Koson', 'Navbahor', 'Yangibozor', 'Chinobod'],
+      'Mirishkor': ['Mirishkor', 'Guliston', 'Paxtakor', 'Navbahor'],
+      'Muborak': ['Muborak', 'Chinobod', 'Yangibozor', 'Dustlik'],
+      'Nishon': ['Nishon', 'Navbahor', 'Paxtakor', 'Guliston'],
+      'Qarshi': ['Qarshi tumani', 'Vodil', 'Chinobod', 'Yangibozor'],
+      'Qamashi': ['Qamashi', 'Guliston', 'Navbahor', 'Paxtakor'],
+      'Shahrisabz': ['Shahrisabz shahri', 'Markaz', 'Yangi shahar', 'Minor'],
+      'Yakkabog\'': ['Yakkabog\'', 'Navbahor', 'Chinobod', 'Guliston'],
+    },
+    'Qoraqalpog\'iston Respublikasi': {
+      'Nukus shahri': ['Markaz', 'Yangi shahar', 'Eski shahar', 'Minor'],
+      'Amudaryo': ['Amudaryo', 'Navbahor', 'Paxtakor', 'Guliston'],
+      'Beruniy': ['Beruniy', 'Yangibozor', 'Chinobod', 'Dustlik'],
+      'Kegeyli': ['Kegeyli', 'Navbahor', 'Guliston', 'Paxtakor'],
+      'Qonliko\'l': ['Qonliko\'l', 'Yangibozor', 'Chinobod', 'Navbahor'],
+      'Qorao\'zak': ['Qorao\'zak', 'Paxtakor', 'Guliston', 'Dustlik'],
+      'Mo\'ynoq': ['Mo\'ynoq', 'Navbahor', 'Yangibozor', 'Chinobod'],
+      'Nukus': ['Nukus tumani', 'Guliston', 'Paxtakor', 'Navbahor'],
+      'Taxtako\'pir': ['Taxtako\'pir', 'Chinobod', 'Yangibozor', 'Dustlik'],
+      'To\'rtko\'l': ['To\'rtko\'l', 'Navbahor', 'Paxtakor', 'Guliston'],
+      'Xo\'jayli': ['Xo\'jayli', 'Guliston', 'Chinobod', 'Yangibozor'],
+      'Chimboy': ['Chimboy', 'Navbahor', 'Paxtakor', 'Dustlik'],
+      'Shumanay': ['Shumanay', 'Chinobod', 'Guliston', 'Navbahor'],
+      'Ellikqal\'a': ['Ellikqal\'a', 'Paxtakor', 'Yangibozor', 'Dustlik'],
+    },
+    'Samarqand': {
+      'Samarqand shahri': ['Markaz', 'Registon', 'Yangi shahar', 'Minor'],
+      'Bulung\'ur': ['Bulung\'ur', 'Navbahor', 'Paxtakor', 'Guliston'],
+      'Jomboy': ['Jomboy', 'Yangibozor', 'Chinobod', 'Dustlik'],
+      'Ishtixon': ['Ishtixon', 'Navbahor', 'Guliston', 'Paxtakor'],
+      'Kattaqo\'rg\'on': [
+        'Kattaqo\'rg\'on shahri',
+        'Markaz',
+        'Yangibozor',
+        'Minor',
+      ],
+      'Narpay': ['Narpay', 'Chinobod', 'Paxtakor', 'Guliston'],
+      'Nurobod': ['Nurobod', 'Navbahor', 'Yangibozor', 'Dustlik'],
+      'Oqdaryo': ['Oqdaryo', 'Guliston', 'Chinobod', 'Paxtakor'],
+      'Paxtachi': ['Paxtachi', 'Navbahor', 'Yangibozor', 'Chinobod'],
+      'Payariq': ['Payariq', 'Paxtakor', 'Guliston', 'Dustlik'],
+      'Pastdarg\'om': ['Pastdarg\'om', 'Navbahor', 'Chinobod', 'Yangibozor'],
+      'Qo\'shrabot': ['Qo\'shrabot', 'Guliston', 'Paxtakor', 'Navbahor'],
+      'Samarqand': ['Samarqand tumani', 'Vodil', 'Chinobod', 'Yangibozor'],
+      'Toyloq': ['Toyloq', 'Paxtakor', 'Guliston', 'Dustlik'],
+      'Urgut': ['Urgut', 'Navbahor', 'Yangibozor', 'Chinobod'],
+    },
+    'Sirdaryo': {
+      'Guliston shahri': ['Markaz', 'Yangi shahar', 'Eski shahar', 'Minor'],
+      'Boyovut': ['Boyovut', 'Navbahor', 'Paxtakor', 'Guliston'],
+      'Guliston': ['Guliston tumani', 'Vodil', 'Chinobod', 'Yangibozor'],
+      'Mirzaobod': ['Mirzaobod', 'Navbahor', 'Paxtakor', 'Dustlik'],
+      'Oqoltin': ['Oqoltin', 'Guliston', 'Yangibozor', 'Chinobod'],
+      'Sardoba': ['Sardoba', 'Navbahor', 'Paxtakor', 'Guliston'],
+      'Sayxunobod': ['Sayxunobod', 'Chinobod', 'Yangibozor', 'Dustlik'],
+      'Sirdaryo': ['Sirdaryo', 'Paxtakor', 'Guliston', 'Navbahor'],
+      'Xovos': ['Xovos', 'Yangibozor', 'Chinobod', 'Paxtakor'],
+    },
+    'Surxondaryo': {
+      'Termiz shahri': ['Markaz', 'Yangi shahar', 'Eski shahar', 'Minor'],
+      'Angor': ['Angor', 'Navbahor', 'Paxtakor', 'Guliston'],
+      'Boysun': ['Boysun', 'Yangibozor', 'Chinobod', 'Dustlik'],
+      'Denov': ['Denov', 'Navbahor', 'Guliston', 'Paxtakor'],
+      'Jarqo\'rg\'on': ['Jarqo\'rg\'on', 'Yangibozor', 'Chinobod', 'Navbahor'],
+      'Qiziriq': ['Qiziriq', 'Paxtakor', 'Guliston', 'Dustlik'],
+      'Qumqo\'rg\'on': ['Qumqo\'rg\'on', 'Navbahor', 'Yangibozor', 'Chinobod'],
+      'Muzrabot': ['Muzrabot', 'Guliston', 'Paxtakor', 'Navbahor'],
+      'Oltinsoy': ['Oltinsoy', 'Chinobod', 'Yangibozor', 'Dustlik'],
+      'Sariosiyo': ['Sariosiyo', 'Navbahor', 'Paxtakor', 'Guliston'],
+      'Sherobod': ['Sherobod', 'Guliston', 'Chinobod', 'Yangibozor'],
+      'Sho\'rchi': ['Sho\'rchi', 'Paxtakor', 'Navbahor', 'Dustlik'],
+      'Termiz': ['Termiz tumani', 'Vodil', 'Yangibozor', 'Chinobod'],
+      'Uzun': ['Uzun', 'Navbahor', 'Guliston', 'Paxtakor'],
+    },
   };
 
   @override
@@ -111,11 +366,12 @@ class CreatePostController extends GetxController {
     salaryMaxController.dispose();
     requirementsMainController.dispose();
     requirementsBasicController.dispose();
-    applicationMessageController.dispose();
+    durationDaysController.dispose();
+    skillsController.dispose();
+    experienceController.dispose();
     super.onClose();
   }
 
-  // ==================== METHODS ====================
   Future<void> loadCategories() async {
     isLoadingCategories.value = true;
     try {
@@ -123,16 +379,13 @@ class CreatePostController extends GetxController {
           .from('categories')
           .select('id, name, icon_url')
           .order('name');
-
       categories.value = List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      print('Kategoriyalarni yuklashda xato: $e');
       Get.snackbar(
-        'Xato',
-        'Kategoriyalarni yuklab bo\'lmadi',
+        'error'.tr,
+        'failed_to_load_categories'.tr,
         backgroundColor: Colors.red.withOpacity(0.1),
         colorText: Colors.red,
-        icon: const Icon(Icons.error_outline, color: Colors.red),
       );
     } finally {
       isLoadingCategories.value = false;
@@ -141,27 +394,19 @@ class CreatePostController extends GetxController {
 
   Future<void> loadSubCategories(dynamic categoryId) async {
     try {
-      print('Sub-kategoriya yuklanyapti: $categoryId');
-
       final response = await supabase
           .from('sub_categories')
           .select('id, name')
           .eq('category_id', categoryId)
           .order('name');
-
-      print('Sub-kategoriya javob: $response');
-
       subCategories.value = List<Map<String, dynamic>>.from(response);
       formData['subCategoryId'] = null;
-      print('Sub-kategoriyalar o\'zlashtirildi: ${subCategories.length} ta');
     } catch (e) {
-      print('Sub-kategoriyalarni yuklashda xato: $e');
       Get.snackbar(
-        'Xato',
-        'Sub-kategoriyalarni yuklab bo\'lmadi',
+        'error'.tr,
+        'failed_to_load_subcategories'.tr,
         backgroundColor: Colors.red.withOpacity(0.1),
         colorText: Colors.red,
-        icon: const Icon(Icons.error_outline, color: Colors.red),
       );
     }
   }
@@ -169,69 +414,63 @@ class CreatePostController extends GetxController {
   Future<void> pickImages() async {
     if (selectedImages.length >= 3) {
       Get.snackbar(
-        'Diqqat',
-        'Maksimal 3 ta rasm qo\'shish mumkin',
+        'warning'.tr,
+        'max_3_images'.tr,
         backgroundColor: Colors.orange.withOpacity(0.1),
         colorText: Colors.orange.shade900,
-        icon: const Icon(Icons.warning_amber, color: Colors.orange),
       );
       return;
     }
-
     final pickedFiles = await _imagePicker.pickMultiImage();
-
     for (var file in pickedFiles) {
-      if (selectedImages.length < 3) {
-        selectedImages.add(File(file.path));
-      }
+      if (selectedImages.length < 3) selectedImages.add(File(file.path));
     }
   }
 
-  void removeImage(int index) {
-    selectedImages.removeAt(index);
+  void removeImage(int index) => selectedImages.removeAt(index);
+
+  void setPostType(String type) {
+    postType.value = type;
+    formData['postType'] = type;
   }
 
-  void setUserType(String type) {
-    userType.value = type;
-    formData['userType'] = type;
-  }
-
-  void nextStep() {
-    currentStep.value++;
-  }
-
-  void previousStep() {
-    currentStep.value--;
-  }
+  void nextStep() => currentStep.value++;
+  void previousStep() => currentStep.value--;
 
   bool validateStep1() {
     if (titleController.text.trim().isEmpty) {
       Get.snackbar(
-        'Diqqat',
-        'Iltimos, sarlavha yoki nomni kiriting',
+        'warning'.tr,
+        'title_required'.tr,
         backgroundColor: Colors.orange.withOpacity(0.1),
         colorText: Colors.orange.shade900,
-        icon: const Icon(Icons.warning_amber, color: Colors.orange),
       );
       return false;
     }
     if (descriptionController.text.trim().isEmpty) {
       Get.snackbar(
-        'Diqqat',
-        'Iltimos, tasnifni kiriting',
+        'warning'.tr,
+        'description_required'.tr,
         backgroundColor: Colors.orange.withOpacity(0.1),
         colorText: Colors.orange.shade900,
-        icon: const Icon(Icons.warning_amber, color: Colors.orange),
       );
       return false;
     }
     if (formData['categoryId'] == null) {
       Get.snackbar(
-        'Diqqat',
-        'Iltimos, kategoriyani tanlang',
+        'warning'.tr,
+        'category_required'.tr,
         backgroundColor: Colors.orange.withOpacity(0.1),
         colorText: Colors.orange.shade900,
-        icon: const Icon(Icons.warning_amber, color: Colors.orange),
+      );
+      return false;
+    }
+    if (formData['subCategoryId'] == null && subCategories.isNotEmpty) {
+      Get.snackbar(
+        'warning'.tr,
+        'subcategory_required'.tr,
+        backgroundColor: Colors.orange.withOpacity(0.1),
+        colorText: Colors.orange.shade900,
       );
       return false;
     }
@@ -241,19 +480,95 @@ class CreatePostController extends GetxController {
   bool validateStep2() {
     if ((formData['region'] as String?)?.isEmpty ?? true) {
       Get.snackbar(
-        'Diqqat',
-        'Iltimos, viloyatni tanlang',
+        'warning'.tr,
+        'region_required'.tr,
         backgroundColor: Colors.orange.withOpacity(0.1),
         colorText: Colors.orange.shade900,
-        icon: const Icon(Icons.warning_amber, color: Colors.orange),
+      );
+      return false;
+    }
+    if ((formData['district'] as String?)?.isEmpty ?? true) {
+      Get.snackbar(
+        'warning'.tr,
+        'district_required'.tr,
+        backgroundColor: Colors.orange.withOpacity(0.1),
+        colorText: Colors.orange.shade900,
       );
       return false;
     }
     return true;
   }
 
+  bool validateStep3() {
+    // Employee Needed (Hodim kerak)
+    if (formData['postType'] == 'employee_needed') {
+      if ((formData['salaryType'] as String?)?.isEmpty ?? true) {
+        Get.snackbar(
+          'warning'.tr,
+          'salary_type_required'.tr,
+          backgroundColor: Colors.orange.withOpacity(0.1),
+          colorText: Colors.orange.shade900,
+        );
+        return false;
+      }
+      if (requirementsMainController.text.trim().isEmpty) {
+        Get.snackbar(
+          'warning'.tr,
+          'requirements_required'.tr,
+          backgroundColor: Colors.orange.withOpacity(0.1),
+          colorText: Colors.orange.shade900,
+        );
+        return false;
+      }
+      if (formData['salaryType'] == 'freelance') {
+        if (durationDaysController.text.trim().isEmpty) {
+          Get.snackbar(
+            'warning'.tr,
+            'duration_required'.tr,
+            backgroundColor: Colors.orange.withOpacity(0.1),
+            colorText: Colors.orange.shade900,
+          );
+          return false;
+        }
+      }
+    }
+    // Job Needed (Ish kerak)
+    else if (formData['postType'] == 'job_needed') {
+      if (skillsController.text.trim().isEmpty) {
+        Get.snackbar(
+          'warning'.tr,
+          'skills_required'.tr,
+          backgroundColor: Colors.orange.withOpacity(0.1),
+          colorText: Colors.orange.shade900,
+        );
+        return false;
+      }
+      if (experienceController.text.trim().isEmpty) {
+        Get.snackbar(
+          'warning'.tr,
+          'experience_required'.tr,
+          backgroundColor: Colors.orange.withOpacity(0.1),
+          colorText: Colors.orange.shade900,
+        );
+        return false;
+      }
+    }
+    // One-time Job (Bir martalik ish)
+    else if (formData['postType'] == 'one_time_job') {
+      if (durationDaysController.text.trim().isEmpty) {
+        Get.snackbar(
+          'warning'.tr,
+          'duration_required'.tr,
+          backgroundColor: Colors.orange.withOpacity(0.1),
+          colorText: Colors.orange.shade900,
+        );
+        return false;
+      }
+    }
+    return true;
+  }
+
   Future<void> submitPost() async {
-    // Show loading dialog
     Get.dialog(
       WillPopScope(
         onWillPop: () async => false,
@@ -269,9 +584,12 @@ class CreatePostController extends GetxController {
               children: [
                 const CircularProgressIndicator(),
                 const SizedBox(height: 16),
-                const Text(
-                  'E\'lon yuklanmoqda...',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                Text(
+                  'uploading_post'.tr,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -284,33 +602,62 @@ class CreatePostController extends GetxController {
     try {
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) {
-        Get.back(); // Close loading dialog
+        Get.back();
         Get.snackbar(
-          'Xato',
-          'Iltimos, tizimga kiring',
+          'error'.tr,
+          'please_login'.tr,
           backgroundColor: Colors.red.withOpacity(0.1),
           colorText: Colors.red.shade900,
-          icon: const Icon(Icons.error_outline, color: Colors.red),
         );
         return;
       }
 
-      // E'lonni yaratish
+      String fullLocation = formData['region'] as String;
+      if ((formData['district'] as String?)?.isNotEmpty ?? false)
+        fullLocation += ', ${formData['district']}';
+      if ((formData['village'] as String?)?.isNotEmpty ?? false)
+        fullLocation += ', ${formData['village']}';
+
+      String postTypeDb = formData['postType'] as String;
+
+      // Parse salary values (remove spaces)
+      int salaryMin =
+          int.tryParse(
+            salaryMinController.text.replaceAll(RegExp(r'\s'), ''),
+          ) ??
+          0;
+      int salaryMax =
+          int.tryParse(
+            salaryMaxController.text.replaceAll(RegExp(r'\s'), ''),
+          ) ??
+          0;
+
       final postResponse = await supabase.from('posts').insert({
         'user_id': userId,
+        'post_type': postTypeDb,
         'title': titleController.text.trim(),
         'description': descriptionController.text.trim(),
         'category_id': formData['categoryId'],
         'sub_category_id': formData['subCategoryId'],
-        'location': '${formData['region']}, ${formData['district']}'.trim(),
-        'salary_min': formData['salaryMin'] ?? 0,
-        'salary_max': formData['salaryMax'] ?? 0,
+        'location': fullLocation,
+        'salary_type': formData['salaryType'],
+        'salary_min': salaryMin,
+        'salary_max': salaryMax,
         'requirements_main': requirementsMainController.text.trim().isEmpty
             ? null
             : requirementsMainController.text.trim(),
         'requirements_basic': requirementsBasicController.text.trim().isEmpty
             ? null
             : requirementsBasicController.text.trim(),
+        'duration_days': durationDaysController.text.trim().isEmpty
+            ? null
+            : int.tryParse(durationDaysController.text),
+        'skills': skillsController.text.trim().isEmpty
+            ? null
+            : skillsController.text.trim(),
+        'experience': experienceController.text.trim().isEmpty
+            ? null
+            : experienceController.text.trim(),
         'status': 'pending',
         'is_active': true,
         'created_at': DateTime.now().toIso8601String(),
@@ -319,13 +666,11 @@ class CreatePostController extends GetxController {
       if (postResponse.isNotEmpty) {
         final postId = postResponse[0]['id'];
 
-        // Rasmlarni yuklash
         if (selectedImages.isNotEmpty) {
           for (var i = 0; i < selectedImages.length; i++) {
             final image = selectedImages[i];
             final fileName =
                 'post_${postId}_${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
-
             await supabase.storage
                 .from('post-images')
                 .upload(
@@ -336,11 +681,9 @@ class CreatePostController extends GetxController {
                     upsert: false,
                   ),
                 );
-
             final imageUrl = supabase.storage
                 .from('post-images')
                 .getPublicUrl(fileName);
-
             await supabase.from('post_images').insert({
               'post_id': postId,
               'image_url': imageUrl,
@@ -349,9 +692,7 @@ class CreatePostController extends GetxController {
           }
         }
 
-        Get.back(); // Close loading dialog
-
-        // Success dialog
+        Get.back();
         await Get.dialog(
           WillPopScope(
             onWillPop: () async => false,
@@ -386,16 +727,16 @@ class CreatePostController extends GetxController {
                       ),
                     ),
                     const SizedBox(height: 24),
-                    const Text(
-                      'Muvaffaqiyatli!',
-                      style: TextStyle(
+                    Text(
+                      'success'.tr,
+                      style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'E\'loningiz muvaffaqiyatli yuborildi',
+                      'post_submitted_success'.tr,
                       style: TextStyle(fontSize: 16, color: Colors.grey[700]),
                       textAlign: TextAlign.center,
                     ),
@@ -418,9 +759,9 @@ class CreatePostController extends GetxController {
                                 color: Colors.blue.shade700,
                               ),
                               const SizedBox(width: 8),
-                              const Text(
-                                'Keyingi qadamlar',
-                                style: TextStyle(
+                              Text(
+                                'next_steps'.tr,
+                                style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 15,
                                 ),
@@ -428,20 +769,11 @@ class CreatePostController extends GetxController {
                             ],
                           ),
                           const SizedBox(height: 12),
-                          _buildDialogStep(
-                            '1',
-                            'Moderatorlar e\'loningizni ko\'rib chiqadi',
-                          ),
+                          _buildDialogStep('1', 'moderators_will_review'.tr),
                           const SizedBox(height: 8),
-                          _buildDialogStep(
-                            '2',
-                            'Tasdiqlangandan keyin ommaga ko\'rinadi',
-                          ),
+                          _buildDialogStep('2', 'visible_after_approval'.tr),
                           const SizedBox(height: 8),
-                          _buildDialogStep(
-                            '3',
-                            'Jarayon 24 soatgacha davom etishi mumkin',
-                          ),
+                          _buildDialogStep('3', 'process_24_hours'.tr),
                         ],
                       ),
                     ),
@@ -451,8 +783,8 @@ class CreatePostController extends GetxController {
                       height: 50,
                       child: ElevatedButton(
                         onPressed: () {
-                          Get.back(); // Close dialog
-                          Get.offAllNamed('/home'); // Go to home
+                          Get.back();
+                          Get.offAllNamed('/home');
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
@@ -462,9 +794,9 @@ class CreatePostController extends GetxController {
                           ),
                           elevation: 0,
                         ),
-                        child: const Text(
-                          'Bosh Sahifaga',
-                          style: TextStyle(
+                        child: Text(
+                          'home'.tr,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
@@ -480,15 +812,12 @@ class CreatePostController extends GetxController {
         );
       }
     } catch (e) {
-      print('Xato: $e');
-      Get.back(); // Close loading dialog
-
+      Get.back();
       Get.snackbar(
-        'Xato',
-        'E\'lon yaratishda xatolik: ${e.toString()}',
+        'error'.tr,
+        '${'post_creation_error'.tr}: ${e.toString()}',
         backgroundColor: Colors.red.withOpacity(0.1),
         colorText: Colors.red.shade900,
-        icon: const Icon(Icons.error_outline, color: Colors.red),
         duration: const Duration(seconds: 4),
       );
     }
@@ -524,44 +853,16 @@ class CreatePostController extends GetxController {
 
   String getCategoryEmoji(String categoryName) {
     final name = categoryName.toLowerCase();
-
-    if (name.contains('dasturlash') ||
-        name.contains('it') ||
-        name.contains('coding') ||
-        name.contains('developer')) {
-      return '💻';
-    } else if (name.contains('flutter') || name.contains('mobil')) {
-      return '📱';
-    } else if (name.contains('design') || name.contains('dizayn')) {
-      return '🎨';
-    } else if (name.contains('marketing') || name.contains('bozor')) {
-      return '📊';
-    } else if (name.contains('video') || name.contains('montaj')) {
-      return '🎬';
-    } else if (name.contains('tutor') ||
-        name.contains('o\'qitish') ||
-        name.contains('ta\'lim')) {
-      return '👨‍🏫';
-    } else if (name.contains('musiqa') || name.contains('music')) {
-      return '🎵';
-    } else if (name.contains('sport') || name.contains('fitness')) {
-      return '⚽';
-    } else if (name.contains('sog\'liq') ||
-        name.contains('health') ||
-        name.contains('tibbiyot')) {
-      return '🏥';
-    } else if (name.contains('qurilish') || name.contains('construction')) {
-      return '🏗️';
-    } else if (name.contains('transport') || name.contains('haydovchi')) {
-      return '🚗';
-    } else if (name.contains('savdo') || name.contains('sotuvchi')) {
-      return '🛒';
-    } else if (name.contains('moliya') || name.contains('finance')) {
-      return '💰';
-    } else if (name.contains('ish') || name.contains('vakansiya')) {
-      return '💼';
-    }
-
+    if (name.contains('dasturlash') || name.contains('it')) return '💻';
+    if (name.contains('qurilish')) return '🏗️';
+    if (name.contains('ta\'lim') || name.contains('talim')) return '📚';
+    if (name.contains('transport')) return '🚗';
+    if (name.contains('savdo')) return '🛒';
+    if (name.contains('tibbiyot') || name.contains('sog\'liq')) return '🏥';
+    if (name.contains('marketing')) return '📊';
+    if (name.contains('dizayn') || name.contains('design')) return '🎨';
+    if (name.contains('moliya') || name.contains('finance')) return '💰';
+    if (name.contains('xizmat') || name.contains('service')) return '🛎️';
     return '📁';
   }
 }
@@ -572,15 +873,13 @@ class CreatePostScreen extends GetView<CreatePostController> {
 
   @override
   Widget build(BuildContext context) {
-    // Initialize controller
     Get.put(CreatePostController());
-
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text(
-          'E\'lon Yaratish',
-          style: TextStyle(fontWeight: FontWeight.w600),
+        title: Text(
+          'create_post'.tr,
+          style: const TextStyle(fontWeight: FontWeight.w600),
         ),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
@@ -600,28 +899,27 @@ class CreatePostScreen extends GetView<CreatePostController> {
       body: Obx(() {
         switch (controller.currentStep.value) {
           case 0:
-            return _Step0UserType(controller: controller);
+            return _Step0PostType(controller: controller);
           case 1:
             return _Step1BasicInfo(controller: controller);
           case 2:
             return _Step2Location(controller: controller);
           case 3:
-            return _Step3Salary(controller: controller);
+            return _Step3Details(controller: controller);
           case 4:
             return _Step4Images(controller: controller);
           default:
-            return _Step5Application(controller: controller);
+            return const SizedBox();
         }
       }),
     );
   }
 }
 
-// ==================== STEP 0: USER TYPE ====================
-class _Step0UserType extends StatelessWidget {
+// ==================== STEP 0: POST TYPE ====================
+class _Step0PostType extends StatelessWidget {
   final CreatePostController controller;
-
-  const _Step0UserType({required this.controller});
+  const _Step0PostType({required this.controller});
 
   @override
   Widget build(BuildContext context) {
@@ -646,14 +944,14 @@ class _Step0UserType extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  Icons.person_pin_circle,
+                  Icons.work_outline,
                   size: 64,
                   color: Colors.blue.shade700,
                 ),
               ),
               const SizedBox(height: 24),
               Text(
-                'Siz kimsiniz?',
+                'select_post_type'.tr,
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.bold,
                   color: Colors.grey[900],
@@ -662,41 +960,51 @@ class _Step0UserType extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'E\'lon turini tanlang',
+                'what_is_your_purpose'.tr,
                 style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),
               Obx(
-                () => _UserTypeCard(
-                  icon: Icons.work_outline_rounded,
-                  title: 'Ish Qidiruvchi',
-                  subtitle:
-                      'Men ish izlayapman va o\'zimni taqdim qilmoqchiman',
-                  value: 'job_seeker',
-                  isSelected: controller.userType.value == 'job_seeker',
-                  color: Colors.green,
-                  onTap: () => controller.setUserType('job_seeker'),
+                () => _PostTypeCard(
+                  icon: Icons.person_add_alt_1,
+                  title: 'employee_needed'.tr,
+                  subtitle: 'looking_for_permanent_employee'.tr,
+                  value: 'employee_needed',
+                  isSelected: controller.postType.value == 'employee_needed',
+                  color: Colors.blue,
+                  onTap: () => controller.setPostType('employee_needed'),
                 ),
               ),
               const SizedBox(height: 16),
               Obx(
-                () => _UserTypeCard(
-                  icon: Icons.business_center_rounded,
-                  title: 'Ish Beruvchi',
-                  subtitle:
-                      'Men xodim qabul qilyapman va vakansiya e\'lon qilmoqchiman',
-                  value: 'employer',
-                  isSelected: controller.userType.value == 'employer',
-                  color: Colors.blue,
-                  onTap: () => controller.setUserType('employer'),
+                () => _PostTypeCard(
+                  icon: Icons.work_outline,
+                  title: 'job_needed'.tr,
+                  subtitle: 'looking_for_job_myself'.tr,
+                  value: 'job_needed',
+                  isSelected: controller.postType.value == 'job_needed',
+                  color: Colors.green,
+                  onTap: () => controller.setPostType('job_needed'),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Obx(
+                () => _PostTypeCard(
+                  icon: Icons.handyman_outlined,
+                  title: 'one_time_job'.tr,
+                  subtitle: 'short_term_project_specialist'.tr,
+                  value: 'one_time_job',
+                  isSelected: controller.postType.value == 'one_time_job',
+                  color: Colors.orange,
+                  onTap: () => controller.setPostType('one_time_job'),
                 ),
               ),
               const SizedBox(height: 40),
               Obx(
                 () => _PrimaryButton(
-                  text: 'Davom Etish',
-                  onPressed: controller.userType.value == null
+                  text: 'continue'.tr,
+                  onPressed: controller.postType.value == null
                       ? null
                       : controller.nextStep,
                 ),
@@ -709,16 +1017,14 @@ class _Step0UserType extends StatelessWidget {
   }
 }
 
-class _UserTypeCard extends StatelessWidget {
+class _PostTypeCard extends StatelessWidget {
   final IconData icon;
-  final String title;
-  final String subtitle;
-  final String value;
+  final String title, subtitle, value;
   final bool isSelected;
   final Color color;
   final VoidCallback onTap;
 
-  const _UserTypeCard({
+  const _PostTypeCard({
     required this.icon,
     required this.title,
     required this.subtitle,
@@ -739,8 +1045,6 @@ class _UserTypeCard extends StatelessWidget {
           gradient: isSelected
               ? LinearGradient(
                   colors: [color.withOpacity(0.1), color.withOpacity(0.05)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
                 )
               : null,
           color: isSelected ? null : Colors.white,
@@ -827,7 +1131,6 @@ class _UserTypeCard extends StatelessWidget {
 // ==================== STEP 1: BASIC INFO ====================
 class _Step1BasicInfo extends StatelessWidget {
   final CreatePostController controller;
-
   const _Step1BasicInfo({required this.controller});
 
   @override
@@ -837,42 +1140,32 @@ class _Step1BasicInfo extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _StepIndicator(current: 1, total: 5),
+          _StepIndicator(current: 1, total: 4),
           const SizedBox(height: 32),
           _SectionHeader(
             icon: Icons.info_outline,
-            title: 'Asosiy Ma\'lumot',
-            subtitle: 'E\'lon haqida umumiy ma\'lumotlarni kiriting',
+            title: 'basic_info'.tr,
+            subtitle: 'enter_general_information'.tr,
           ),
           const SizedBox(height: 24),
-          Obx(
-            () => _ModernTextField(
-              controller: controller.titleController,
-              label: controller.userType.value == 'job_seeker'
-                  ? 'Sizning F.I.O'
-                  : 'E\'lon Sarlavhasi',
-              hint: controller.userType.value == 'job_seeker'
-                  ? 'Aziz Aliyev'
-                  : 'Masalan: Senior Flutter Developer kerak',
-              icon: Icons.title,
-              onChanged: (value) => controller.formData['title'] = value,
-            ),
+          _ModernTextField(
+            controller: controller.titleController,
+            label: 'title'.tr,
+            hint: 'title_hint'.tr,
+            icon: Icons.title,
+            onChanged: (value) => controller.formData['title'] = value,
           ),
           const SizedBox(height: 20),
-          Obx(
-            () => _ModernTextField(
-              controller: controller.descriptionController,
-              label: 'Batafsil Tasnif',
-              hint: controller.userType.value == 'job_seeker'
-                  ? 'O\'zingiz, tajribangiz va ko\'nikmalaringiz haqida yozing...'
-                  : 'Ish vazifasi, talablar va imkoniyatlar haqida yozing...',
-              icon: Icons.description,
-              maxLines: 5,
-              onChanged: (value) => controller.formData['description'] = value,
-            ),
+          _ModernTextField(
+            controller: controller.descriptionController,
+            label: 'description'.tr,
+            hint: 'description_hint'.tr,
+            icon: Icons.description,
+            maxLines: 5,
+            onChanged: (value) => controller.formData['description'] = value,
           ),
           const SizedBox(height: 24),
-          _Label('Kategoriya', Icons.category),
+          _Label('category'.tr, Icons.category),
           const SizedBox(height: 12),
           Obx(
             () => controller.isLoadingCategories.value
@@ -891,7 +1184,10 @@ class _Step1BasicInfo extends StatelessWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _Label('Sub-kategoriya', Icons.subdirectory_arrow_right),
+                  _Label(
+                    '${'subcategory'.tr} *',
+                    Icons.subdirectory_arrow_right,
+                  ),
                   const SizedBox(height: 12),
                   _SubCategorySelector(controller: controller),
                   const SizedBox(height: 20),
@@ -902,11 +1198,9 @@ class _Step1BasicInfo extends StatelessWidget {
           }),
           const SizedBox(height: 40),
           _PrimaryButton(
-            text: 'Keyingi',
+            text: 'next'.tr,
             onPressed: () {
-              if (controller.validateStep1()) {
-                controller.nextStep();
-              }
+              if (controller.validateStep1()) controller.nextStep();
             },
           ),
         ],
@@ -918,7 +1212,6 @@ class _Step1BasicInfo extends StatelessWidget {
 // ==================== STEP 2: LOCATION ====================
 class _Step2Location extends StatelessWidget {
   final CreatePostController controller;
-
   const _Step2Location({required this.controller});
 
   @override
@@ -928,65 +1221,84 @@ class _Step2Location extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _StepIndicator(current: 2, total: 5),
+          _StepIndicator(current: 2, total: 4),
           const SizedBox(height: 32),
           _SectionHeader(
             icon: Icons.location_on_outlined,
-            title: 'Manzil',
-            subtitle: 'Ish joyingizni ko\'rsating',
+            title: 'location'.tr,
+            subtitle: 'specify_job_location'.tr,
           ),
           const SizedBox(height: 24),
-          // Viloyat dropdown
           Obx(() {
             final regionList = controller.regions['Uzbekiston'] ?? [];
             final currentRegion = controller.formData['region'] as String?;
-
             return _ModernDropdown(
-              label: 'Viloyat',
+              label: '${'region'.tr} *',
               value: (currentRegion?.isEmpty ?? true) ? null : currentRegion,
-              hint: 'Viloyatni tanlang',
+              hint: 'select_region'.tr,
               icon: Icons.location_city,
               items: regionList,
               onChanged: (value) {
                 controller.formData['region'] = value ?? '';
                 controller.formData['district'] = '';
-                controller.formData.refresh(); // Bu muhim!
+                controller.formData['village'] = '';
+                controller.formData.refresh();
               },
             );
           }),
           const SizedBox(height: 20),
-          // Tuman dropdown
           Obx(() {
             final currentRegion = controller.formData['region'] as String?;
             final currentDistrict = controller.formData['district'] as String?;
-
-            final districtList = (currentRegion?.isNotEmpty ?? false)
-                ? controller.districts[currentRegion] ?? []
-                : <String>[];
-
+            final districtMap = (currentRegion?.isNotEmpty ?? false)
+                ? controller.districts[currentRegion] ?? {}
+                : <String, List<String>>{};
+            final districtList = districtMap.keys.toList();
             if (districtList.isEmpty) return const SizedBox.shrink();
-
             return _ModernDropdown(
-              label: 'Tuman',
+              label: '${'district'.tr} *',
               value: (currentDistrict?.isEmpty ?? true)
                   ? null
                   : currentDistrict,
-              hint: 'Tumanni tanlang',
+              hint: 'select_district'.tr,
               icon: Icons.place,
               items: districtList,
               onChanged: (value) {
                 controller.formData['district'] = value ?? '';
-                controller.formData.refresh(); // Bu muhim!
+                controller.formData['village'] = '';
+                controller.formData.refresh();
+              },
+            );
+          }),
+          const SizedBox(height: 20),
+          Obx(() {
+            final currentRegion = controller.formData['region'] as String?;
+            final currentDistrict = controller.formData['district'] as String?;
+            final currentVillage = controller.formData['village'] as String?;
+            final districtMap = (currentRegion?.isNotEmpty ?? false)
+                ? controller.districts[currentRegion] ?? {}
+                : <String, List<String>>{};
+            final villageList = (currentDistrict?.isNotEmpty ?? false)
+                ? districtMap[currentDistrict] ?? []
+                : <String>[];
+            if (villageList.isEmpty) return const SizedBox.shrink();
+            return _ModernDropdown(
+              label: 'village_optional'.tr,
+              value: (currentVillage?.isEmpty ?? true) ? null : currentVillage,
+              hint: 'select_village'.tr,
+              icon: Icons.home_outlined,
+              items: villageList,
+              onChanged: (value) {
+                controller.formData['village'] = value ?? '';
+                controller.formData.refresh();
               },
             );
           }),
           const SizedBox(height: 40),
           _PrimaryButton(
-            text: 'Keyingi',
+            text: 'next'.tr,
             onPressed: () {
-              if (controller.validateStep2()) {
-                controller.nextStep();
-              }
+              if (controller.validateStep2()) controller.nextStep();
             },
           ),
         ],
@@ -995,11 +1307,33 @@ class _Step2Location extends StatelessWidget {
   }
 }
 
-// ==================== STEP 3: SALARY ====================
-class _Step3Salary extends StatelessWidget {
+// ==================== STEP 3: DETAILS (Different for each post type) ====================
+class _Step3Details extends StatelessWidget {
   final CreatePostController controller;
+  const _Step3Details({required this.controller});
 
-  const _Step3Salary({required this.controller});
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final postType = controller.postType.value;
+
+      if (postType == 'employee_needed') {
+        return _EmployeeNeededForm(controller: controller);
+      } else if (postType == 'job_needed') {
+        return _JobNeededForm(controller: controller);
+      } else if (postType == 'one_time_job') {
+        return _OneTimeJobForm(controller: controller);
+      }
+
+      return const SizedBox();
+    });
+  }
+}
+
+// EMPLOYEE NEEDED FORM (Hodim kerak)
+class _EmployeeNeededForm extends StatelessWidget {
+  final CreatePostController controller;
+  const _EmployeeNeededForm({required this.controller});
 
   @override
   Widget build(BuildContext context) {
@@ -1008,112 +1342,368 @@ class _Step3Salary extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _StepIndicator(current: 3, total: 5),
+          _StepIndicator(current: 3, total: 4),
           const SizedBox(height: 32),
+          _SectionHeader(
+            icon: Icons.work_history_outlined,
+            title: 'job_details'.tr,
+            subtitle: 'employee_needed_details'.tr,
+          ),
+          const SizedBox(height: 24),
+          _Label('${'salary_type'.tr} *', Icons.account_balance_wallet),
+          const SizedBox(height: 12),
           Obx(
-            () => _SectionHeader(
-              icon: Icons.payments_outlined,
-              title: controller.userType.value == 'employer'
-                  ? 'Maosh va Talablar'
-                  : 'Kutayotgan Maosh',
-              subtitle: controller.userType.value == 'employer'
-                  ? 'Maosh va talablarni belgilang'
-                  : 'Kutayotgan maoshingizni kiriting',
+            () => Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _SalaryTypeChip(
+                  label: 'daily'.tr,
+                  value: 'daily',
+                  isSelected: controller.formData['salaryType'] == 'daily',
+                  onTap: () {
+                    controller.formData['salaryType'] = 'daily';
+                    controller.formData.refresh();
+                  },
+                ),
+                _SalaryTypeChip(
+                  label: 'monthly'.tr,
+                  value: 'monthly',
+                  isSelected: controller.formData['salaryType'] == 'monthly',
+                  onTap: () {
+                    controller.formData['salaryType'] = 'monthly';
+                    controller.formData.refresh();
+                  },
+                ),
+                _SalaryTypeChip(
+                  label: 'freelance'.tr,
+                  value: 'freelance',
+                  isSelected: controller.formData['salaryType'] == 'freelance',
+                  onTap: () {
+                    controller.formData['salaryType'] = 'freelance';
+                    controller.formData.refresh();
+                  },
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: _ModernTextField(
+                  controller: controller.salaryMinController,
+                  label: 'salary_min'.tr,
+                  hint: '1 000 000',
+                  icon: Icons.attach_money,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [ThousandsSeparatorInputFormatter()],
+                  suffix: 'UZS',
+                  onChanged: (value) {
+                    controller.formData['salaryMin'] =
+                        int.tryParse(value.replaceAll(RegExp(r'\s'), '')) ?? 0;
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _ModernTextField(
+                  controller: controller.salaryMaxController,
+                  label: 'salary_max'.tr,
+                  hint: '3 000 000',
+                  icon: Icons.trending_up,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [ThousandsSeparatorInputFormatter()],
+                  suffix: 'UZS',
+                  onChanged: (value) {
+                    controller.formData['salaryMax'] =
+                        int.tryParse(value.replaceAll(RegExp(r'\s'), '')) ?? 0;
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
           Obx(() {
-            if (controller.userType.value == 'employer') {
-              return Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _ModernTextField(
-                          controller: controller.salaryMinController,
-                          label: 'Minimum Maosh',
-                          hint: '1000000',
-                          icon: Icons.attach_money,
-                          keyboardType: TextInputType.number,
-                          suffix: 'UZS',
-                          onChanged: (value) {
-                            controller.formData['salaryMin'] =
-                                int.tryParse(value) ?? 0;
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _ModernTextField(
-                          controller: controller.salaryMaxController,
-                          label: 'Maksimum Maosh',
-                          hint: '3000000',
-                          icon: Icons.trending_up,
-                          keyboardType: TextInputType.number,
-                          suffix: 'UZS',
-                          onChanged: (value) {
-                            controller.formData['salaryMax'] =
-                                int.tryParse(value) ?? 0;
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  _ModernTextField(
-                    controller: controller.requirementsMainController,
-                    label: 'Asosiy Talablar',
-                    hint: '3+ yil tajriba, Flutter, Dart, State Management...',
-                    icon: Icons.checklist,
-                    maxLines: 3,
-                    onChanged: (value) =>
-                        controller.formData['requirementsMain'] = value,
-                  ),
-                  const SizedBox(height: 20),
-                  _ModernTextField(
-                    controller: controller.requirementsBasicController,
-                    label: 'Qo\'shimcha Talablar',
-                    hint: 'Ingliz tili, Git, REST API, Firebase...',
-                    icon: Icons.add_circle_outline,
-                    maxLines: 3,
-                    onChanged: (value) =>
-                        controller.formData['requirementsBasic'] = value,
-                  ),
-                ],
-              );
-            } else {
+            if (controller.formData['salaryType'] == 'freelance') {
               return Column(
                 children: [
                   _ModernTextField(
-                    controller: controller.salaryMinController,
-                    label: 'Kutayotgan Oylik (UZS)',
-                    hint: '2000000',
-                    icon: Icons.payments_outlined,
+                    controller: controller.durationDaysController,
+                    label: '${'duration_days'.tr} *',
+                    hint: '30',
+                    icon: Icons.calendar_today,
                     keyboardType: TextInputType.number,
-                    suffix: 'UZS',
                     onChanged: (value) {
-                      controller.formData['salaryMin'] =
-                          int.tryParse(value) ?? 0;
+                      controller.formData['durationDays'] = int.tryParse(value);
                     },
                   ),
                   const SizedBox(height: 20),
-                  _ModernTextField(
-                    controller: controller.requirementsMainController,
-                    label: 'Tajribangiz va Ko\'nikmalaringiz',
-                    hint:
-                        '5 yil Flutter development, Clean Architecture, BLoC...',
-                    icon: Icons.psychology_outlined,
-                    maxLines: 4,
-                    onChanged: (value) =>
-                        controller.formData['requirementsMain'] = value,
-                  ),
                 ],
               );
             }
+            return const SizedBox.shrink();
           }),
+          _ModernTextField(
+            controller: controller.requirementsMainController,
+            label: '${'main_requirements'.tr} *',
+            hint: 'main_requirements_hint'.tr,
+            icon: Icons.checklist,
+            maxLines: 4,
+            onChanged: (value) =>
+                controller.formData['requirementsMain'] = value,
+          ),
+          const SizedBox(height: 20),
+          _ModernTextField(
+            controller: controller.requirementsBasicController,
+            label: 'additional_requirements_optional'.tr,
+            hint: 'additional_requirements_hint'.tr,
+            icon: Icons.add_circle_outline,
+            maxLines: 3,
+            onChanged: (value) =>
+                controller.formData['requirementsBasic'] = value,
+          ),
           const SizedBox(height: 40),
-          _PrimaryButton(text: 'Keyingi', onPressed: controller.nextStep),
+          _PrimaryButton(
+            text: 'next'.tr,
+            onPressed: () {
+              if (controller.validateStep3()) controller.nextStep();
+            },
+          ),
         ],
+      ),
+    );
+  }
+}
+
+// JOB NEEDED FORM (Ish kerak)
+class _JobNeededForm extends StatelessWidget {
+  final CreatePostController controller;
+  const _JobNeededForm({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _StepIndicator(current: 3, total: 4),
+          const SizedBox(height: 32),
+          _SectionHeader(
+            icon: Icons.person_search_outlined,
+            title: 'your_profile'.tr,
+            subtitle: 'job_needed_details'.tr,
+          ),
+          const SizedBox(height: 24),
+          _ModernTextField(
+            controller: controller.skillsController,
+            label: '${'skills'.tr} *',
+            hint: 'skills_hint'.tr,
+            icon: Icons.star_outline,
+            maxLines: 4,
+            onChanged: (value) => controller.formData['skills'] = value,
+          ),
+          const SizedBox(height: 20),
+          _ModernTextField(
+            controller: controller.experienceController,
+            label: '${'experience'.tr} *',
+            hint: 'experience_hint'.tr,
+            icon: Icons.work_history_outlined,
+            maxLines: 4,
+            onChanged: (value) => controller.formData['experience'] = value,
+          ),
+          const SizedBox(height: 24),
+          _Label('expected_salary'.tr, Icons.account_balance_wallet),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _ModernTextField(
+                  controller: controller.salaryMinController,
+                  label: 'salary_min'.tr,
+                  hint: '1 000 000',
+                  icon: Icons.attach_money,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [ThousandsSeparatorInputFormatter()],
+                  suffix: 'UZS',
+                  onChanged: (value) {
+                    controller.formData['salaryMin'] =
+                        int.tryParse(value.replaceAll(RegExp(r'\s'), '')) ?? 0;
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _ModernTextField(
+                  controller: controller.salaryMaxController,
+                  label: 'salary_max'.tr,
+                  hint: '3 000 000',
+                  icon: Icons.trending_up,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [ThousandsSeparatorInputFormatter()],
+                  suffix: 'UZS',
+                  onChanged: (value) {
+                    controller.formData['salaryMax'] =
+                        int.tryParse(value.replaceAll(RegExp(r'\s'), '')) ?? 0;
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 40),
+          _PrimaryButton(
+            text: 'next'.tr,
+            onPressed: () {
+              if (controller.validateStep3()) controller.nextStep();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ONE-TIME JOB FORM (Bir martalik ish)
+class _OneTimeJobForm extends StatelessWidget {
+  final CreatePostController controller;
+  const _OneTimeJobForm({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _StepIndicator(current: 3, total: 4),
+          const SizedBox(height: 32),
+          _SectionHeader(
+            icon: Icons.build_circle_outlined,
+            title: 'project_details'.tr,
+            subtitle: 'one_time_job_details'.tr,
+          ),
+          const SizedBox(height: 24),
+          _ModernTextField(
+            controller: controller.durationDaysController,
+            label: '${'duration_days'.tr} *',
+            hint: '30',
+            icon: Icons.calendar_today,
+            keyboardType: TextInputType.number,
+            onChanged: (value) {
+              controller.formData['durationDays'] = int.tryParse(value);
+            },
+          ),
+          const SizedBox(height: 20),
+          _Label('project_budget'.tr, Icons.account_balance_wallet),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _ModernTextField(
+                  controller: controller.salaryMinController,
+                  label: 'budget_min'.tr,
+                  hint: '1 000 000',
+                  icon: Icons.attach_money,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [ThousandsSeparatorInputFormatter()],
+                  suffix: 'UZS',
+                  onChanged: (value) {
+                    controller.formData['salaryMin'] =
+                        int.tryParse(value.replaceAll(RegExp(r'\s'), '')) ?? 0;
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _ModernTextField(
+                  controller: controller.salaryMaxController,
+                  label: 'budget_max'.tr,
+                  hint: '5 000 000',
+                  icon: Icons.trending_up,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [ThousandsSeparatorInputFormatter()],
+                  suffix: 'UZS',
+                  onChanged: (value) {
+                    controller.formData['salaryMax'] =
+                        int.tryParse(value.replaceAll(RegExp(r'\s'), '')) ?? 0;
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _ModernTextField(
+            controller: controller.requirementsMainController,
+            label: 'project_requirements'.tr,
+            hint: 'project_requirements_hint'.tr,
+            icon: Icons.assignment_outlined,
+            maxLines: 5,
+            onChanged: (value) =>
+                controller.formData['requirementsMain'] = value,
+          ),
+          const SizedBox(height: 40),
+          _PrimaryButton(
+            text: 'next'.tr,
+            onPressed: () {
+              if (controller.validateStep3()) controller.nextStep();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SalaryTypeChip extends StatelessWidget {
+  final String label, value;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _SalaryTypeChip({
+    required this.label,
+    required this.value,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        decoration: BoxDecoration(
+          gradient: isSelected
+              ? LinearGradient(
+                  colors: [Colors.blue.shade400, Colors.blue.shade600],
+                )
+              : null,
+          color: isSelected ? null : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? Colors.blue.shade700 : Colors.grey[300]!,
+            width: isSelected ? 2 : 1,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.blue.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : [],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+            color: isSelected ? Colors.white : Colors.black87,
+          ),
+        ),
       ),
     );
   }
@@ -1122,7 +1712,6 @@ class _Step3Salary extends StatelessWidget {
 // ==================== STEP 4: IMAGES ====================
 class _Step4Images extends StatelessWidget {
   final CreatePostController controller;
-
   const _Step4Images({required this.controller});
 
   @override
@@ -1132,12 +1721,12 @@ class _Step4Images extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _StepIndicator(current: 4, total: 5),
+          _StepIndicator(current: 4, total: 4),
           const SizedBox(height: 32),
           _SectionHeader(
             icon: Icons.add_photo_alternate_outlined,
-            title: 'Rasmlar',
-            subtitle: 'E\'loningizga rasmlar qo\'shing (ixtiyoriy)',
+            title: 'images'.tr,
+            subtitle: 'add_images_optional'.tr,
           ),
           const SizedBox(height: 24),
           GestureDetector(
@@ -1150,14 +1739,8 @@ class _Step4Images extends StatelessWidget {
                     Colors.blue.shade50,
                     Colors.blue.shade100.withOpacity(0.3),
                   ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
                 ),
-                border: Border.all(
-                  color: Colors.blue.shade200,
-                  width: 2,
-                  style: BorderStyle.solid,
-                ),
+                border: Border.all(color: Colors.blue.shade200, width: 2),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -1177,7 +1760,7 @@ class _Step4Images extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Rasm qo\'shish uchun bosing',
+                    'tap_to_add_image'.tr,
                     style: TextStyle(
                       color: Colors.blue.shade900,
                       fontSize: 16,
@@ -1186,7 +1769,7 @@ class _Step4Images extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Maksimal 3 ta rasm',
+                    'max_3_images'.tr,
                     style: TextStyle(color: Colors.grey[600], fontSize: 13),
                   ),
                 ],
@@ -1196,7 +1779,6 @@ class _Step4Images extends StatelessWidget {
           Obx(() {
             if (controller.selectedImages.isEmpty)
               return const SizedBox.shrink();
-
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1210,7 +1792,7 @@ class _Step4Images extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      'Tanlangan rasmlar: ${controller.selectedImages.length}/3',
+                      '${'selected_images'.tr}: ${controller.selectedImages.length}/3',
                       style: const TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 15,
@@ -1284,81 +1866,7 @@ class _Step4Images extends StatelessWidget {
           }),
           const SizedBox(height: 40),
           _PrimaryButton(
-            text: 'Keyingi',
-            icon: Icons.arrow_forward,
-            onPressed: controller.nextStep,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ==================== STEP 5: APPLICATION MESSAGE ====================
-class _Step5Application extends StatelessWidget {
-  final CreatePostController controller;
-
-  const _Step5Application({required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _StepIndicator(current: 5, total: 5),
-          const SizedBox(height: 32),
-          Obx(
-            () => _SectionHeader(
-              icon: Icons.message_outlined,
-              title: 'Qo\'shimcha Ma\'lumot',
-              subtitle: controller.userType.value == 'job_seeker'
-                  ? 'O\'zingiz haqida qo\'shimcha ma\'lumot bering'
-                  : 'Nomzodlarga ish haqida qo\'shimcha ma\'lumot',
-            ),
-          ),
-          const SizedBox(height: 24),
-          Obx(
-            () => _ModernTextField(
-              controller: controller.applicationMessageController,
-              label: 'Xabar',
-              hint: controller.userType.value == 'job_seeker'
-                  ? 'Mening tajribam, ko\'nikmalarim va nega men ushbu lavozim uchun to\'g\'ri nomzod ekanligim haqida...'
-                  : 'Kompaniya, jamoa, ish sharoitlari va imkoniyatlar haqida qo\'shimcha ma\'lumotlar...',
-              icon: Icons.edit_note,
-              maxLines: 8,
-              onChanged: (value) =>
-                  controller.formData['applicationMessage'] = value,
-            ),
-          ),
-          const SizedBox(height: 32),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.amber.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.amber.withOpacity(0.3)),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.lightbulb_outline, color: Colors.amber.shade700),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Bu qism ixtiyoriy, lekin to\'ldirish tavsiya etiladi',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.amber.shade900,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 40),
-          _PrimaryButton(
-            text: 'E\'lon Yaratish',
+            text: 'create_post'.tr,
             icon: Icons.send_rounded,
             onPressed: controller.submitPost,
           ),
@@ -1370,9 +1878,7 @@ class _Step5Application extends StatelessWidget {
 
 // ==================== REUSABLE WIDGETS ====================
 class _StepIndicator extends StatelessWidget {
-  final int current;
-  final int total;
-
+  final int current, total;
   const _StepIndicator({required this.current, required this.total});
 
   @override
@@ -1402,9 +1908,7 @@ class _StepIndicator extends StatelessWidget {
 
 class _SectionHeader extends StatelessWidget {
   final IconData icon;
-  final String title;
-  final String subtitle;
-
+  final String title, subtitle;
   const _SectionHeader({
     required this.icon,
     required this.title,
@@ -1418,8 +1922,6 @@ class _SectionHeader extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [Colors.blue.shade50, Colors.blue.shade100.withOpacity(0.3)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(12),
       ),
@@ -1462,7 +1964,6 @@ class _SectionHeader extends StatelessWidget {
 class _Label extends StatelessWidget {
   final String label;
   final IconData icon;
-
   const _Label(this.label, this.icon);
 
   @override
@@ -1482,12 +1983,12 @@ class _Label extends StatelessWidget {
 
 class _ModernTextField extends StatelessWidget {
   final TextEditingController controller;
-  final String label;
-  final String hint;
+  final String label, hint;
   final IconData icon;
   final TextInputType keyboardType;
   final int maxLines;
   final String? suffix;
+  final List<TextInputFormatter>? inputFormatters;
   final Function(String) onChanged;
 
   const _ModernTextField({
@@ -1498,6 +1999,7 @@ class _ModernTextField extends StatelessWidget {
     this.keyboardType = TextInputType.text,
     this.maxLines = 1,
     this.suffix,
+    this.inputFormatters,
     required this.onChanged,
   });
 
@@ -1532,6 +2034,7 @@ class _ModernTextField extends StatelessWidget {
             keyboardType: keyboardType,
             maxLines: maxLines,
             onChanged: onChanged,
+            inputFormatters: inputFormatters,
             style: const TextStyle(fontSize: 15),
             decoration: InputDecoration(
               hintText: hint,
@@ -1566,9 +2069,8 @@ class _ModernTextField extends StatelessWidget {
 }
 
 class _ModernDropdown extends StatelessWidget {
-  final String label;
+  final String label, hint;
   final String? value;
-  final String hint;
   final IconData icon;
   final List<String> items;
   final Function(String?) onChanged;
@@ -1643,61 +2145,48 @@ class _ModernDropdown extends StatelessWidget {
 
 class _CategorySelector extends StatelessWidget {
   final CreatePostController controller;
-
   const _CategorySelector({required this.controller});
 
   @override
   Widget build(BuildContext context) {
     return Obx(
-      () => GridView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 1.1,
-        ),
-        itemCount: controller.categories.length,
-        itemBuilder: (context, index) {
-          final cat = controller.categories[index];
+      () => Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: controller.categories.map((cat) {
           final isSelected = controller.formData['categoryId'] == cat['id'];
           final emoji = controller.getCategoryEmoji(
             cat['name'] ?? 'Kategoriya',
           );
-
           return GestureDetector(
             onTap: () {
               controller.formData['categoryId'] = cat['id'];
               controller.formData['subCategoryId'] = null;
               controller.subCategories.clear();
               controller.loadSubCategories(cat['id']);
+              controller.formData.refresh();
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 300),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 gradient: isSelected
                     ? LinearGradient(
                         colors: [Colors.blue.shade400, Colors.blue.shade600],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
                       )
-                    : LinearGradient(
-                        colors: [Colors.white, Colors.grey.shade50],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
+                    : null,
+                color: isSelected ? null : Colors.white,
                 border: Border.all(
                   color: isSelected ? Colors.blue.shade700 : Colors.grey[300]!,
-                  width: isSelected ? 2.5 : 1,
+                  width: isSelected ? 2 : 1,
                 ),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(12),
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
                           color: Colors.blue.withOpacity(0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
                         ),
                       ]
                     : [
@@ -1708,32 +2197,26 @@ class _CategorySelector extends StatelessWidget {
                         ),
                       ],
               ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(emoji, style: TextStyle(fontSize: isSelected ? 44 : 40)),
-                  const SizedBox(height: 12),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                    child: Text(
-                      cat['name'] ?? 'Kategoriya',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: isSelected
-                            ? FontWeight.w700
-                            : FontWeight.w600,
-                        color: isSelected ? Colors.white : Colors.black87,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                  Text(emoji, style: TextStyle(fontSize: isSelected ? 24 : 20)),
+                  const SizedBox(width: 8),
+                  Text(
+                    cat['name'] ?? 'Kategoriya',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w600,
+                      color: isSelected ? Colors.white : Colors.black87,
                     ),
                   ),
                 ],
               ),
             ),
           );
-        },
+        }).toList(),
       ),
     );
   }
@@ -1741,79 +2224,58 @@ class _CategorySelector extends StatelessWidget {
 
 class _SubCategorySelector extends StatelessWidget {
   final CreatePostController controller;
-
   const _SubCategorySelector({required this.controller});
 
   @override
   Widget build(BuildContext context) {
     return Obx(
-      () => Container(
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          color: Colors.grey[100],
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: controller.subCategories.map((subCat) {
-              final isSelected =
-                  controller.formData['subCategoryId'] == subCat['id'];
-              return Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: GestureDetector(
-                  onTap: () {
-                    controller.formData['subCategoryId'] = subCat['id'];
-                  },
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      gradient: isSelected
-                          ? LinearGradient(
-                              colors: [
-                                Colors.blue.shade400,
-                                Colors.blue.shade600,
-                              ],
-                            )
-                          : null,
-                      color: isSelected ? null : Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: isSelected
-                            ? Colors.blue.shade700
-                            : Colors.grey[300]!,
-                        width: isSelected ? 2 : 1,
-                      ),
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: Colors.blue.withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ]
-                          : [],
-                    ),
-                    child: Text(
-                      subCat['name'],
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: isSelected
-                            ? FontWeight.w700
-                            : FontWeight.w600,
-                        color: isSelected ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                  ),
+      () => Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: controller.subCategories.map((subCat) {
+          final isSelected =
+              controller.formData['subCategoryId'] == subCat['id'];
+          return GestureDetector(
+            onTap: () {
+              controller.formData['subCategoryId'] = subCat['id'];
+              controller.formData.refresh();
+            },
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                gradient: isSelected
+                    ? LinearGradient(
+                        colors: [Colors.blue.shade400, Colors.blue.shade600],
+                      )
+                    : null,
+                color: isSelected ? null : Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: isSelected ? Colors.blue.shade700 : Colors.grey[300]!,
+                  width: isSelected ? 2 : 1,
                 ),
-              );
-            }).toList(),
-          ),
-        ),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: Colors.blue.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                    : [],
+              ),
+              child: Text(
+                subCat['name'],
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                  color: isSelected ? Colors.white : Colors.black87,
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }

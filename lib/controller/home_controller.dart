@@ -40,8 +40,13 @@ class HomeController extends GetxController {
     pageController.addListener(_onPageScroll);
   }
 
-  // 🔥 SCROLL LISTENER
+  // 🔥 SCROLL LISTENER - currentPostIndex ni update qilish qo'shildi
   void _onPageScroll() {
+    final page = pageController.page?.round() ?? 0;
+    if (page != currentPostIndex.value) {
+      currentPostIndex.value = page;
+    }
+
     if (currentPostIndex.value >= posts.length - 5 &&
         !isLoadingMore &&
         hasMorePosts) {
@@ -61,41 +66,55 @@ class HomeController extends GetxController {
           .eq('user_id', userId)
           .eq('is_read', false);
 
-      if (response != null) {
-        notificationCount.value = response.length;
-      }
+      notificationCount.value = response.length;
     } catch (e) {
       print('Error loading notification count: $e');
     }
   }
 
   // ==================== HELPER: Convert Image URLs ====================
-  List<String>? _convertImageUrls(List? images) {
+  Future<List<String>?> _convertImageUrls(List? images) async {
     if (images == null || images.isEmpty) {
-      print('⚠️ Images bo\'sh yoki null');
       return null;
     }
 
-    print('📦 Raw images data: $images');
+    final List<Future<String>> urlFutures = images.map<Future<String>>((
+      img,
+    ) async {
+      String imagePath = img['image_url'] as String? ?? '';
+      if (imagePath.isEmpty) return '';
 
-    return images.map((img) {
-      String imageUrl = img['image_url'] as String;
-
-      print('🔍 Original URL: $imageUrl');
-
-      // ✅ Agar URL to'liq bo'lmasa, Supabase Storage'dan public URL yasash
-      if (!imageUrl.startsWith('http')) {
-        imageUrl = supabase.storage
-            .from('posts') // Bucket nomi
-            .getPublicUrl(imageUrl);
-
-        print('✅ Converted URL: $imageUrl');
-      } else {
-        print('✅ URL allaqachon to\'liq: $imageUrl');
+      String path = imagePath;
+      if (imagePath.startsWith('http')) {
+        final uri = Uri.parse(imagePath);
+        if (uri.pathSegments.length > 2) {
+          path = uri.pathSegments.sublist(2).join('/');
+        }
       }
 
-      return imageUrl;
+      try {
+        final signedUrl = await supabase.storage
+            .from('post-images')
+            .createSignedUrl(path, 86400);
+        return signedUrl;
+      } catch (e) {
+        print('⚠️ Signed URL yaratishda xato: $e');
+        try {
+          final publicUrl = supabase.storage
+              .from('post-images')
+              .getPublicUrl(path);
+          return publicUrl;
+        } catch (e2) {
+          print('⚠️ Public URL olishda xato: $e2');
+          return '';
+        }
+      }
     }).toList();
+
+    final allUrls = await Future.wait(urlFutures);
+    return allUrls
+        .where((url) => url.isNotEmpty && url.startsWith('http'))
+        .toList();
   }
 
   // ==================== LOAD POSTS FROM SUPABASE (INITIAL) ====================
@@ -118,6 +137,7 @@ class HomeController extends GetxController {
             sub_category_id,
             location,
             status,
+            salary_type,
             salary_min,
             salary_max,
             requirements_main,
@@ -128,7 +148,10 @@ class HomeController extends GetxController {
             duration_days,
             is_active,
             created_at,
-            users!inner(first_name, last_name, profile_photo_url),
+            post_type,
+            skills,
+            experience,
+            users!inner(first_name, last_name, profile_photo_url, username),
             post_images(image_url)
           ''')
           .eq('status', 'approved')
@@ -148,45 +171,14 @@ class HomeController extends GetxController {
 
       for (var item in response) {
         try {
-          // ✅ Image URL'larni to'g'ri formatga o'tkazish
           final images = item['post_images'] as List?;
-          final imageUrls = _convertImageUrls(images);
+          final imageUrls = await _convertImageUrls(images);
 
           if (imageUrls != null && imageUrls.isNotEmpty) {
             print('🖼️ Post ${item['id']}: ${imageUrls.length} ta image');
           }
 
-          // ✅ users dan ma'lumot olish
-          final user = item['users'] as Map<String, dynamic>?;
-          final firstName = user?['first_name'] as String? ?? '';
-          final lastName = user?['last_name'] as String? ?? '';
-          final fullName = '$firstName $lastName'.trim();
-
-          final post = JobPost(
-            id: item['id'] as String,
-            title: item['title'] as String? ?? 'Sarlavha yo\'q',
-            description: item['description'] as String? ?? '',
-            categoryIdNum: item['category_id'] as int? ?? 0,
-            subCategoryId: item['sub_category_id'] as int?,
-            location:
-                item['location'] as String? ?? 'Joylashuv ko\'rsatilmagan',
-            salaryMin: item['salary_min'] as int? ?? 0,
-            salaryMax: item['salary_max'] as int? ?? 0,
-            company: fullName.isEmpty ? 'Kompaniya' : fullName,
-            companyLogo: user?['profile_photo_url'] as String?,
-            userId: item['user_id'] as String? ?? '',
-            views: item['views_count'] as int? ?? 0,
-            likes: item['likes_count'] as int? ?? 0,
-            createdAt: DateTime.parse(item['created_at'] as String),
-            imageUrls: imageUrls,
-            requirementsMain: item['requirements_main'] as String?,
-            requirementsBasic: item['requirements_basic'] as String?,
-            status: item['status'] as String? ?? 'approved',
-            isActive: item['is_active'] as bool? ?? true,
-            sharesCount: item['shares_count'] as int?,
-            durationDays: item['duration_days'] as int?,
-          );
-
+          final post = JobPost.fromJson(item);
           loadedPosts.add(post);
         } catch (e) {
           print('❌ Post convert error: $e');
@@ -200,6 +192,7 @@ class HomeController extends GetxController {
 
       print('✅ ${posts.length} ta post yuklandi');
 
+      // Initialize liked posts
       for (var post in posts) {
         likedPosts[post.id] = false;
       }
@@ -210,11 +203,11 @@ class HomeController extends GetxController {
       posts.value = [];
       Get.snackbar(
         'Xato',
-        'E\'lonlarni yuklashda xato',
+        'E\'lonlarni yuklashda xato: ${e.toString()}',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.redAccent,
         colorText: Colors.white,
-        duration: const Duration(seconds: 2),
+        duration: const Duration(seconds: 3),
       );
     } finally {
       isLoading.value = false;
@@ -223,7 +216,7 @@ class HomeController extends GetxController {
 
   // ==================== LOAD MORE POSTS (PAGINATION) ====================
   Future<void> loadMorePosts() async {
-    if (isLoadingMore || !hasMorePosts) return;
+    if (isLoadingMore || !hasMorePosts || isLoading.value) return;
 
     isLoadingMore = true;
     print('📥 Qo\'shimcha postlar yuklanmoqda... (offset: $currentOffset)');
@@ -240,6 +233,7 @@ class HomeController extends GetxController {
             sub_category_id,
             location,
             status,
+            salary_type,
             salary_min,
             salary_max,
             requirements_main,
@@ -250,7 +244,10 @@ class HomeController extends GetxController {
             duration_days,
             is_active,
             created_at,
-            users!inner(first_name, last_name, profile_photo_url),
+            post_type,
+            skills,
+            experience,
+            users!inner(first_name, last_name, profile_photo_url, username),
             post_images(image_url)
           ''')
           .eq('status', 'approved')
@@ -270,40 +267,10 @@ class HomeController extends GetxController {
 
       for (var item in response) {
         try {
-          // ✅ Image URL'larni to'g'ri formatga o'tkazish
           final images = item['post_images'] as List?;
-          final imageUrls = _convertImageUrls(images);
+          final imageUrls = await _convertImageUrls(images);
 
-          final user = item['users'] as Map<String, dynamic>?;
-          final firstName = user?['first_name'] as String? ?? '';
-          final lastName = user?['last_name'] as String? ?? '';
-          final fullName = '$firstName $lastName'.trim();
-
-          final post = JobPost(
-            id: item['id'] as String,
-            title: item['title'] as String? ?? 'Sarlavha yo\'q',
-            description: item['description'] as String? ?? '',
-            categoryIdNum: item['category_id'] as int? ?? 0,
-            subCategoryId: item['sub_category_id'] as int?,
-            location:
-                item['location'] as String? ?? 'Joylashuv ko\'rsatilmagan',
-            salaryMin: item['salary_min'] as int? ?? 0,
-            salaryMax: item['salary_max'] as int? ?? 0,
-            company: fullName.isEmpty ? 'Kompaniya' : fullName,
-            companyLogo: user?['profile_photo_url'] as String?,
-            userId: item['user_id'] as String? ?? '',
-            views: item['views_count'] as int? ?? 0,
-            likes: item['likes_count'] as int? ?? 0,
-            createdAt: DateTime.parse(item['created_at'] as String),
-            imageUrls: imageUrls,
-            requirementsMain: item['requirements_main'] as String?,
-            requirementsBasic: item['requirements_basic'] as String?,
-            status: item['status'] as String? ?? 'approved',
-            isActive: item['is_active'] as bool? ?? true,
-            sharesCount: item['shares_count'] as int?,
-            durationDays: item['duration_days'] as int?,
-          );
-
+          final post = JobPost.fromJson(item);
           newPosts.add(post);
           likedPosts[post.id] = false;
         } catch (e) {
@@ -353,10 +320,106 @@ class HomeController extends GetxController {
 
   // ==================== SELECT CATEGORY ====================
   void selectCategory(String categoryId) {
-    selectedCategory.value = categoryId;
+    if (selectedCategory.value != categoryId) {
+      selectedCategory.value = categoryId;
+      filterPostsByCategory();
+    }
+  }
+
+  // ==================== FILTER POSTS BY CATEGORY ====================
+  Future<void> filterPostsByCategory() async {
+    if (selectedCategory.value == 'all') {
+      await loadPosts();
+      return;
+    }
+
+    try {
+      isLoading.value = true;
+
+      // Category ID mapping
+      final categoryMap = {
+        'it': 1,
+        'construction': 2,
+        'education': 3,
+        'service': 4,
+        'transport': 5,
+      };
+
+      final categoryId = categoryMap[selectedCategory.value];
+      if (categoryId == null) {
+        await loadPosts();
+        return;
+      }
+
+      final response = await supabase
+          .from('posts')
+          .select('''
+            id,
+            user_id,
+            title,
+            description,
+            category_id,
+            sub_category_id,
+            location,
+            status,
+            salary_type,
+            salary_min,
+            salary_max,
+            requirements_main,
+            requirements_basic,
+            views_count,
+            likes_count,
+            shares_count,
+            duration_days,
+            is_active,
+            created_at,
+            post_type,
+            skills,
+            experience,
+            users!inner(first_name, last_name, profile_photo_url, username),
+            post_images(image_url)
+          ''')
+          .eq('status', 'approved')
+          .eq('is_active', true)
+          .eq('category_id', categoryId)
+          .order('created_at', ascending: false)
+          .limit(INITIAL_BATCH);
+
+      final filteredPosts = <JobPost>[];
+      for (var item in response) {
+        try {
+          final images = item['post_images'] as List?;
+          final imageUrls = await _convertImageUrls(images);
+          filteredPosts.add(JobPost.fromJson(item));
+        } catch (e) {
+          print('Filter parse error: $e');
+        }
+      }
+
+      posts.value = filteredPosts;
+      currentOffset = filteredPosts.length;
+      hasMorePosts = filteredPosts.length >= INITIAL_BATCH;
+
+      for (var post in posts) {
+        likedPosts[post.id] = false;
+      }
+      await checkUserLikes();
+    } catch (e) {
+      print('Filter error: $e');
+      Get.snackbar(
+        'Xato',
+        'Kategoriya bo\'yicha filtrlashda xato',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   // ==================== TOGGLE LIKE ====================
+  // ==================== TOGGLE LIKE (IMPROVED) ====================
   Future<void> toggleLike(String postId) async {
     try {
       final userId = supabase.auth.currentUser?.id;
@@ -368,39 +431,57 @@ class HomeController extends GetxController {
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.orange,
           colorText: Colors.white,
+          duration: const Duration(seconds: 2),
         );
         return;
       }
 
       final wasLiked = likedPosts[postId] ?? false;
+
+      // Optimistic update
       likedPosts[postId] = !wasLiked;
 
       final postIndex = posts.indexWhere((p) => p.id == postId);
       if (postIndex != -1) {
         if (!wasLiked) {
-          posts[postIndex].likes++;
+          posts[postIndex] = posts[postIndex].copyWith(
+            likes: posts[postIndex].likes + 1,
+          );
 
-          await supabase
-              .from('post_likes')
-              .insert({'post_id': postId, 'user_id': userId})
-              .catchError((error) {
-                likedPosts[postId] = wasLiked;
-                posts[postIndex].likes--;
-                print('Like insert error: $error');
-              });
+          try {
+            await supabase.from('post_likes').upsert({
+              'post_id': postId,
+              'user_id': userId,
+              'created_at': DateTime.now().toIso8601String(),
+            }, onConflict: 'post_id,user_id');
+          } catch (e) {
+            print('❌ Like insert error: $e');
+            // Revert changes
+            likedPosts[postId] = wasLiked;
+            posts[postIndex] = posts[postIndex].copyWith(
+              likes: posts[postIndex].likes - 1,
+            );
+            rethrow;
+          }
         } else {
-          posts[postIndex].likes--;
+          posts[postIndex] = posts[postIndex].copyWith(
+            likes: posts[postIndex].likes - 1,
+          );
 
-          await supabase
-              .from('post_likes')
-              .delete()
-              .eq('post_id', postId)
-              .eq('user_id', userId)
-              .catchError((error) {
-                likedPosts[postId] = wasLiked;
-                posts[postIndex].likes++;
-                print('Like delete error: $error');
-              });
+          try {
+            await supabase.from('post_likes').delete().match({
+              'post_id': postId,
+              'user_id': userId,
+            });
+          } catch (e) {
+            print('❌ Like delete error: $e');
+            // Revert changes
+            likedPosts[postId] = wasLiked;
+            posts[postIndex] = posts[postIndex].copyWith(
+              likes: posts[postIndex].likes + 1,
+            );
+            rethrow;
+          }
         }
       }
 
@@ -408,12 +489,14 @@ class HomeController extends GetxController {
       likedPosts.refresh();
     } catch (e) {
       print('❌ Toggle like error: $e');
+
       Get.snackbar(
         'Xato',
-        'Like qilishda xato',
+        'Like qilishda xato. Iltimos, qayta urinib ko\'ring',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.redAccent,
         colorText: Colors.white,
+        duration: const Duration(seconds: 2),
       );
     }
   }
@@ -431,7 +514,9 @@ class HomeController extends GetxController {
 
       final postIndex = posts.indexWhere((p) => p.id == postId);
       if (postIndex != -1 && !isClosed) {
-        posts[postIndex].views++;
+        posts[postIndex] = posts[postIndex].copyWith(
+          views: posts[postIndex].views + 1,
+        );
         posts.refresh();
       }
 
@@ -441,10 +526,18 @@ class HomeController extends GetxController {
     }
   }
 
-  // ==================== REFRESH POSTS ====================
+  // ==================== REFRESH POSTS (PULL TO REFRESH) ====================
   Future<void> refreshPosts() async {
     await loadPosts();
     await loadNotificationCount();
+    Get.snackbar(
+      '✅ Yangilandi',
+      'E\'lonlar muvaffaqiyatli yangilandi',
+      snackPosition: SnackPosition.TOP,
+      backgroundColor: Colors.green.withOpacity(0.8),
+      colorText: Colors.white,
+      duration: const Duration(seconds: 2),
+    );
   }
 
   // ==================== SEARCH POSTS ====================
@@ -460,56 +553,65 @@ class HomeController extends GetxController {
       final response = await supabase
           .from('posts')
           .select('''
-            *,
-            users!inner(first_name, last_name, profile_photo_url),
+            id,
+            user_id,
+            title,
+            description,
+            category_id,
+            sub_category_id,
+            location,
+            status,
+            salary_type,
+            salary_min,
+            salary_max,
+            requirements_main,
+            requirements_basic,
+            views_count,
+            likes_count,
+            shares_count,
+            duration_days,
+            is_active,
+            created_at,
+            post_type,
+            skills,
+            experience,
+            users!inner(first_name, last_name, profile_photo_url, username),
             post_images(image_url)
           ''')
           .eq('status', 'approved')
           .eq('is_active', true)
-          .ilike('title', '%$query%')
+          .or('title.ilike.%$query%,description.ilike.%$query%')
           .order('created_at', ascending: false);
 
       final searchResults = <JobPost>[];
       for (var item in response) {
         try {
-          // ✅ Image URL'larni to'g'ri formatga o'tkazish
           final images = item['post_images'] as List?;
-          final imageUrls = _convertImageUrls(images);
+          final imageUrls = await _convertImageUrls(images);
 
-          final user = item['users'] as Map<String, dynamic>?;
-          final firstName = user?['first_name'] as String? ?? '';
-          final lastName = user?['last_name'] as String? ?? '';
-          final fullName = '$firstName $lastName'.trim();
-
-          searchResults.add(
-            JobPost(
-              id: item['id'] as String,
-              title: item['title'] as String? ?? '',
-              description: item['description'] as String? ?? '',
-              categoryIdNum: item['category_id'] as int? ?? 0,
-              subCategoryId: item['sub_category_id'] as int?,
-              location: item['location'] as String? ?? '',
-              salaryMin: item['salary_min'] as int? ?? 0,
-              salaryMax: item['salary_max'] as int? ?? 0,
-              company: fullName.isEmpty ? 'Kompaniya' : fullName,
-              companyLogo: user?['profile_photo_url'] as String?,
-              userId: item['user_id'] as String? ?? '',
-              views: item['views_count'] as int? ?? 0,
-              likes: item['likes_count'] as int? ?? 0,
-              createdAt: DateTime.parse(item['created_at'] as String),
-              imageUrls: imageUrls,
-              requirementsMain: item['requirements_main'] as String?,
-              requirementsBasic: item['requirements_basic'] as String?,
-            ),
-          );
+          searchResults.add(JobPost.fromJson(item));
         } catch (e) {
           print('Search result parse error: $e');
         }
       }
 
       posts.value = searchResults;
+      currentOffset = searchResults.length;
+      hasMorePosts = false; // Search results don't have pagination
+
+      for (var post in posts) {
+        likedPosts[post.id] = false;
+      }
+      await checkUserLikes();
     } catch (e) {
       print('Search error: $e');
+      Get.snackbar(
+        'Xato',
+        'Qidirishda xato',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
     } finally {
       isLoading.value = false;
     }

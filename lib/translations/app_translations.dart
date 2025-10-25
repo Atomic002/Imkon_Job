@@ -75,6 +75,7 @@ class AppTranslations extends Translations {
       'save': 'Saqlash',
       'cancel': 'Bekor qilish',
       'submit': 'Yuborish',
+      'close': 'Yopish',
 
       // OTP
       'phone_verification': 'Telefon tasdiqlash',
@@ -96,7 +97,26 @@ class AppTranslations extends Translations {
       'service': 'Xizmat',
       'transport': 'Transport',
 
-      // Post
+      // Profile
+      'my_profile': 'Mening profilim',
+      'edit_profile': 'Profilni tahrirlash',
+      'basic_edit': 'Oddiy tahrirlash',
+      'advanced_edit': 'Kengaytirilgan tahrirlash',
+      'account_settings': 'Akkount sozlamalari',
+      'change_password': 'Parolni o\'zgartirish',
+      'security': 'Xavfsizlik',
+      'privacy': 'Maxfiylik',
+      'language': 'Til',
+      'change_language': 'Tilni o\'zgartirish',
+      'settings': 'Sozlamalar',
+      'menu': 'Menyu',
+      'my_posts': 'Mening e\'lonlarim',
+      'saved_posts': 'Saqlangan e\'lonlar',
+      'confirm_logout': 'Chiqishni tasdiqlaysizmi?',
+      'yes_logout': 'Ha, chiqish',
+
+      // Stats
+      'posts': 'Postlar',
       'views': 'Ko\'rishlar',
       'likes': 'Yoqtirishlar',
       'share': 'Ulashish',
@@ -104,116 +124,169 @@ class AppTranslations extends Translations {
       'apply': 'Ariza yuborish',
 
       // Messages
-      'success': 'Muvaffaqiyatli!',
-      'error': 'Xatolik!',
+      'success': 'Muvaffaqiyatli',
+      'error': 'Xatolik',
+      'warning': 'Diqqat',
       'account_created': 'Akkauntingiz yaratildi',
       'code_sent': 'Telefon raqamingizga yangi kod yuborildi',
-    },
-    'uz_UZ_CYRILLIC': {
-      // App
-      'app_name': 'Job Hunter',
-      'welcome': 'Хуш келибсиз!',
+      'user_not_found': 'Foydalanuvchi topilmadi',
+      'profile_updated': 'Profil yangilandi',
+      'update_failed': 'Yangilanmadi',
+      'photo_updated': 'Rasm yangilandi',
+      'photo_upload_failed': 'Rasm yuklanmadi',
+      'photo_deleted': 'Rasm o\'chirildi',
+      'post_updated': 'E\'lon yangilandi',
+      'post_update_failed': 'E\'lon yangilanmadi',
+      'post_deleted': 'E\'lon o\'chirildi',
+      'post_delete_failed': 'E\'lon o\'chirilmadi',
+      'post_saved': 'E\'lon saqlandi',
+      'post_unsaved': 'E\'lon o\'chirildi',
+      'language_changed': 'Til o\'zgartirildi',
+      'logout_success': 'Tizimdan chiqdingiz',
+      'logout_failed': 'Chiqishda xatolik',
+      'coming_soon': 'Tez kunda',
+      'feature_coming_soon': 'Bu funksiya tez orada qo\'shiladi',
 
-      // Onboarding
-      'onboarding_title_1': 'Иш топиш осон!',
-      'onboarding_desc_1':
-          'Минглаб иш эълонлари орасидан ўзингизга мос бўлган ишни топинг. Кўчаларда арсон бўлишга ҳожат йўқ!',
-      'onboarding_title_2': 'Тўғридан-тўғри мулоқот',
-      'onboarding_desc_2':
-          'Иш берувчилар билан chat орқали бевосита гаплашинг. Тез ва қулай!',
-      'onboarding_title_3': 'Бепул ва ишончли',
-      'onboarding_desc_3':
-          'Барча хизматлар мутлақо бепул! Хавфсиз ва ишончли платформада иш топинг!',
-      'skip': 'Ўтказиб юбориш',
-      'next': 'Кейингиси',
-      'get_started': 'Бошлаш',
+      // Photo
+      'change_photo': 'Rasmni o\'zgartirish',
+      'take_photo': 'Kamera',
+      'choose_from_gallery': 'Galereya',
+      'delete_photo': 'Rasmni o\'chirish',
+      'confirm_delete_photo': 'Profil rasmini o\'chirmoqchimisiz?',
+      'confirm_delete_post': 'Bu e\'lonni o\'chirmoqchimisiz?',
 
-      // Language
-      'select_language': 'Тилни танланг',
-
-      // Auth
-      'login': 'Кириш',
-      'register': 'Рўйхатдан ўтиш',
-      'logout': 'Чиқиш',
-      'username': 'Username',
-      'password': 'Парол',
-      'forgot_password': 'Паролни унутдингизми?',
-      'dont_have_account': 'Аккаунтингиз йўқми?',
-      'already_have_account': 'Аккаунтингиз борми?',
-      'login_now': 'Кириш',
-      'register_now': 'Рўйхатдан ўтинг',
-
-      // Register Steps
-      'step': 'Босқич',
-      'personal_info': 'Шахсий маълумотлар',
-      'personal_info_desc': 'Исм ва фамиляңизни киритинг',
-      'contact_info': 'Алоқа маълумотлари',
-      'contact_info_desc': 'Телефон рақам ва emailингиз',
-      'account_info': 'Аккаунт яратиш',
-      'account_info_desc': 'Username ва парол ўйлаб топинг',
-      'account_type': 'Аккаунт тури',
-      'account_type_desc': 'Сиз ким сифатида рўйхатдан ўтяпсиз?',
-
-      // Form Fields
-      'first_name': 'Исм',
-      'last_name': 'Фамиля',
-      'phone': 'Телефон рақам',
-      'email': 'Email',
-      'bio': 'Bio (ихтиёрий)',
-      'enter_first_name': 'Исмингиз',
-      'enter_last_name': 'Фамиляңиз',
-      'enter_phone': '+998 90 123 45 67',
-      'enter_email': 'example@mail.com',
-      'enter_username': 'Нойоб username танланг',
-      'enter_password': 'Кучли парол киритинг',
-      'enter_bio': 'Ўзингиз ҳақингизда қисқача',
-
-      // Account Types
-      'individual': 'Шахс',
-      'individual_desc': 'Иш қидирувчи ёки freelancer',
-      'company': 'Компания',
-      'company_desc': 'Ходим қидирувчи ташкилот',
-
-      // Buttons
-      'back': 'Орқага',
-      'continue': 'Давом етиш',
-      'confirm': 'Тасдиқлаш',
-      'save': 'Сақлаш',
-      'cancel': 'Бекор қилиш',
-      'submit': 'Юбориш',
-
-      // OTP
-      'phone_verification': 'Телефон тасдиқлаш',
-      'otp_desc': 'Телефон рақамингизга юборилган\n6 рақамли кодни киритинг',
-      'code_not_received': 'Код келмадими?',
-      'resend_code': 'Қайта юбориш',
-      'verify': 'Тасдиқлаш',
-
-      // Home
-      'home': 'Бош',
-      'search': 'Қидирув',
-      'add_post': 'Post қўшиш',
-      'messages': 'Chat',
-      'profile': 'Профил',
-      'all_categories': 'Барчаси',
-      'it': 'IT',
-      'construction': 'Қурилиш',
-      'education': 'Таълим',
-      'service': 'Хизмат',
-      'transport': 'Транспорт',
+      // Edit
+      'save_changes': 'O\'zgarishlarni saqlash',
+      'delete': 'O\'chirish',
+      'edit': 'Tahrirlash',
 
       // Post
-      'views': 'Кўришлар',
-      'likes': 'Йоқтиришлар',
-      'share': 'Улашиш',
-      'chat_button': 'Chat',
-      'apply': 'Ариза юбориш',
+      'title': 'Sarlavha',
+      'description': 'Tavsif',
+      'salary': 'Maosh',
+      'salary_min': 'Min maosh',
+      'salary_max': 'Max maosh',
+      'location': 'Joylashuv',
 
-      // Messages
-      'success': 'Муваффақиятли!',
-      'error': 'Хатолик!',
-      'account_created': 'Аккаунтингиз яратилди',
-      'code_sent': 'Телефон рақамингизга янги код юборилди',
+      // Empty states
+      'no_posts': 'E\'lonlar yo\'q',
+      'no_posts_desc': 'Hozircha e\'lon yaratmaganmisiz',
+      'no_saved_posts': 'Saqlangan e\'lonlar yo\'q',
+      'no_saved_posts_desc': 'E\'lonlarni bookmark qilib saqlang',
+
+      // About
+      'about_haqida': 'Haqida',
+      'about_app': 'Ilova haqida',
+      'no_bio': 'Haqida ma\'lumot yo\'q',
+      'creators': 'Yaratuvchilar',
+      'release_date': 'Chiqarilgan sana',
+      'app_description':
+          'JobHub - ish izlash va ish berish uchun eng qulay platforma.',
+
+      // Privacy & Security
+      'notifications': 'Bildirishnomalar',
+      'notifications_enabled': 'Bildirishnomalar yoqildi',
+      'notifications_disabled': 'Bildirishnomalar o\'chirildi',
+      'privacy_info': 'JobHub sizning ma\'lumotlaringizni himoya qiladi',
+      'data_encrypted': 'Ma\'lumotlar shifrlangan',
+      'personal_data_safe': 'Shaxsiy ma\'lumotlar maxfiy',
+      'no_spam': 'Email spam qilinmaydi',
+      'secure_auth': 'Xavfsiz autentifikatsiya',
+      'set_new_password': 'Yangi parol o\'rnatish',
+      'two_factor_auth': 'Ikki bosqichli autentifikatsiya',
+      'extra_security': 'Qo\'shimcha xavfsizlik',
+
+      // ==================== CREATE POST ====================
+      'create_post': 'E\'lon yaratish',
+      'select_post_type': 'E\'lon turini tanlang',
+      'what_is_your_purpose': 'Qaysi maqsadda e\'lon bermoqchisiz?',
+      'employee_needed': 'Hodim kerak',
+      'looking_for_permanent_employee':
+          'Kompaniya uchun doimiy xodim izlayapman',
+      'job_needed': 'Ish kerak',
+      'looking_for_job_myself':
+          'O\'zim ish qidiryapman va malakalarimni taqdim etmoqchiman',
+      'one_time_job': 'Bir martalik ish',
+      'short_term_project_specialist':
+          'Qisqa muddatli loyiha uchun mutaxassis kerak',
+      'basic_info': 'Asosiy Ma\'lumot',
+      'enter_general_information':
+          'E\'lon haqida umumiy ma\'lumotlarni kiriting',
+      'title_hint': 'Masalan: Senior Flutter Developer kerak',
+      'description_hint': 'Batafsil ma\'lumot kiriting...',
+      'category': 'Kategoriya',
+      'subcategory': 'Sub-kategoriya',
+      'specify_job_location': 'Ish joyingizni aniq ko\'rsating',
+      'region': 'Viloyat',
+      'district': 'Tuman',
+      'select_region': 'Viloyatni tanlang',
+      'select_district': 'Tumanni tanlang',
+      'select_village': 'Qishloqni tanlang',
+      'village_optional': 'Qishloq / Mahalla (ixtiyoriy)',
+      'set_salary_work_conditions': 'Maosh va ish shartlarini belgilang',
+      'salary_type': 'Maosh turi',
+      'daily': 'Kunlik',
+      'monthly': 'Oylik',
+      'freelance': 'Freelance',
+      'duration_days': 'Ish muddati (kunlarda)',
+      'duration_days_hint': 'Masalan: 30',
+      'main_requirements': 'Asosiy Talablar',
+      'main_requirements_hint': '3+ yil tajriba, Flutter, Dart...',
+      'additional_requirements_optional': 'Qo\'shimcha Talablar (ixtiyoriy)',
+      'additional_requirements_hint': 'Ingliz tili, Git, REST API...',
+      'experience_skills_optional':
+          'Tajribangiz va Ko\'nikmalaringiz (ixtiyoriy)',
+      'experience_skills_hint':
+          '5 yil Flutter development, Clean Architecture...',
+      'images': 'Rasmlar',
+      'add_images_optional': 'E\'loningizga rasmlar qo\'shing (ixtiyoriy)',
+      'tap_to_add_image': 'Rasm qo\'shish uchun bosing',
+      'max_3_images': 'Maksimal 3 ta rasm',
+
+      // NEW KEYS - Yangi qo'shilganlar
+      'job_details': 'Ish tafsilotlari',
+      'employee_needed_details': 'Hodim uchun talablar va shartlar',
+      'your_profile': 'Sizning profilingiz',
+      'job_needed_details': 'Tajribangiz va ko\'nikmalaringizni kiriting',
+      'project_details': 'Loyiha tafsilotlari',
+      'one_time_job_details': 'Loyiha muddati va byudjetini kiriting',
+      'expected_salary': 'Kutilayotgan maosh',
+      'project_budget': 'Loyiha byudjeti',
+      'budget_min': 'Min byudjet',
+      'budget_max': 'Max byudjet',
+      'project_requirements': 'Loyiha talablari',
+      'project_requirements_hint':
+          'Loyihani bajarish uchun qanday ko\'nikmalar kerak...',
+      'skills': 'Ko\'nikmalar',
+      'skills_hint': 'Flutter, Dart, Firebase, REST API...',
+      'experience': 'Tajriba',
+      'experience_hint': '5 yil Flutter dasturlash tajribasi...',
+      'skills_required': 'Ko\'nikmalarni kiritish majburiy',
+      'experience_required': 'Tajribani kiritish majburiy',
+      'selected_images': 'Tanlangan rasmlar',
+
+      // Validations
+      'title_required': 'Sarlavha kiritish majburiy',
+      'description_required': 'Tavsif kiritish majburiy',
+      'category_required': 'Kategoriyani tanlash majburiy',
+      'subcategory_required': 'Sub-kategoriyani tanlash majburiy',
+      'region_required': 'Viloyatni tanlash majburiy',
+      'district_required': 'Tumanni tanlash majburiy',
+      'salary_type_required': 'Maosh turini tanlash majburiy',
+      'requirements_required': 'Asosiy talablarni kiritish majburiy',
+      'duration_required': 'Ish muddatini kiritish majburiy',
+
+      // Post Messages
+      'uploading_post': 'E\'lon yuklanmoqda...',
+      'please_login': 'Iltimos, tizimga kiring',
+      'post_submitted_success': 'E\'loningiz muvaffaqiyatli yuborildi',
+      'next_steps': 'Keyingi qadamlar',
+      'moderators_will_review': 'Moderatorlar e\'loningizni ko\'rib chiqadi',
+      'visible_after_approval': 'Tasdiqlangandan keyin ommaga ko\'rinadi',
+      'process_24_hours': 'Jarayon 24 soatgacha davom etishi mumkin',
+      'post_creation_error': 'E\'lon yaratishda xatolik',
+      'failed_to_load_categories': 'Kategoriyalarni yuklab bo\'lmadi',
+      'failed_to_load_subcategories': 'Sub-kategoriyalarni yuklab bo\'lmadi',
     },
     'ru_RU': {
       // App
@@ -287,6 +360,7 @@ class AppTranslations extends Translations {
       'save': 'Сохранить',
       'cancel': 'Отмена',
       'submit': 'Отправить',
+      'close': 'Закрыть',
 
       // OTP
       'phone_verification': 'Подтверждение телефона',
@@ -308,7 +382,26 @@ class AppTranslations extends Translations {
       'service': 'Услуги',
       'transport': 'Транспорт',
 
-      // Post
+      // Profile
+      'my_profile': 'Мой профиль',
+      'edit_profile': 'Редактировать профиль',
+      'basic_edit': 'Простое редактирование',
+      'advanced_edit': 'Расширенное редактирование',
+      'account_settings': 'Настройки аккаунта',
+      'change_password': 'Изменить пароль',
+      'security': 'Безопасность',
+      'privacy': 'Конфиденциальность',
+      'language': 'Язык',
+      'change_language': 'Изменить язык',
+      'settings': 'Настройки',
+      'menu': 'Меню',
+      'my_posts': 'Мои объявления',
+      'saved_posts': 'Сохраненные',
+      'confirm_logout': 'Подтвердить выход?',
+      'yes_logout': 'Да, выйти',
+
+      // Stats
+      'posts': 'Посты',
       'views': 'Просмотры',
       'likes': 'Нравится',
       'share': 'Поделиться',
@@ -316,10 +409,169 @@ class AppTranslations extends Translations {
       'apply': 'Откликнуться',
 
       // Messages
-      'success': 'Успешно!',
-      'error': 'Ошибка!',
+      'success': 'Успешно',
+      'error': 'Ошибка',
+      'warning': 'Внимание',
       'account_created': 'Ваш аккаунт создан',
       'code_sent': 'Новый код отправлен на ваш номер',
+      'user_not_found': 'Пользователь не найден',
+      'profile_updated': 'Профиль обновлен',
+      'update_failed': 'Не обновлено',
+      'photo_updated': 'Фото обновлено',
+      'photo_upload_failed': 'Фото не загружено',
+      'photo_deleted': 'Фото удалено',
+      'post_updated': 'Объявление обновлено',
+      'post_update_failed': 'Объявление не обновлено',
+      'post_deleted': 'Объявление удалено',
+      'post_delete_failed': 'Объявление не удалено',
+      'post_saved': 'Объявление сохранено',
+      'post_unsaved': 'Объявление удалено',
+      'language_changed': 'Язык изменен',
+      'logout_success': 'Вы вышли из системы',
+      'logout_failed': 'Ошибка при выходе',
+      'coming_soon': 'Скоро',
+      'feature_coming_soon': 'Эта функция будет добавлена в ближайшее время',
+
+      // Photo
+      'change_photo': 'Изменить фото',
+      'take_photo': 'Камера',
+      'choose_from_gallery': 'Галерея',
+      'delete_photo': 'Удалить фото',
+      'confirm_delete_photo': 'Удалить фото профиля?',
+      'confirm_delete_post': 'Удалить это объявление?',
+
+      // Edit
+      'save_changes': 'Сохранить изменения',
+      'delete': 'Удалить',
+      'edit': 'Редактировать',
+
+      // Post
+      'title': 'Заголовок',
+      'description': 'Описание',
+      'salary': 'Зарплата',
+      'salary_min': 'Мин зарплата',
+      'salary_max': 'Макс зарплата',
+      'location': 'Местоположение',
+
+      // Empty states
+      'no_posts': 'Нет объявлений',
+      'no_posts_desc': 'Вы еще не создали объявления',
+      'no_saved_posts': 'Нет сохраненных',
+      'no_saved_posts_desc': 'Сохраняйте объявления с помощью закладок',
+
+      // About
+      'about_haqida': 'О себе',
+      'about_app': 'О приложении',
+      'no_bio': 'Нет информации',
+      'creators': 'Создатели',
+      'release_date': 'Дата выпуска',
+      'app_description':
+          'JobHub - самая удобная платформа для поиска работы и найма сотрудников.',
+
+      // Privacy & Security
+      'notifications': 'Уведомления',
+      'notifications_enabled': 'Уведомления включены',
+      'notifications_disabled': 'Уведомления отключены',
+      'privacy_info': 'JobHub защищает ваши данные',
+      'data_encrypted': 'Данные зашифрованы',
+      'personal_data_safe': 'Личные данные в безопасности',
+      'no_spam': 'Никакого спама',
+      'secure_auth': 'Безопасная аутентификация',
+      'set_new_password': 'Установить новый пароль',
+      'two_factor_auth': 'Двухфакторная аутентификация',
+      'extra_security': 'Дополнительная безопасность',
+
+      // ==================== CREATE POST ====================
+      'create_post': 'Создать объявление',
+      'select_post_type': 'Выберите тип объявления',
+      'what_is_your_purpose': 'С какой целью вы создаете объявление?',
+      'employee_needed': 'Нужен сотрудник',
+      'looking_for_permanent_employee':
+          'Ищу постоянного сотрудника для компании',
+      'job_needed': 'Нужна работа',
+      'looking_for_job_myself':
+          'Я сам ищу работу и готов представить свои навыки',
+      'one_time_job': 'Разовая работа',
+      'short_term_project_specialist':
+          'Нужен специалист для краткосрочного проекта',
+      'basic_info': 'Основная информация',
+      'enter_general_information': 'Введите общую информацию об объявлении',
+      'title_hint': 'Например: Требуется Senior Flutter Developer',
+      'description_hint': 'Введите подробное описание...',
+      'category': 'Категория',
+      'subcategory': 'Подкатегория',
+      'specify_job_location': 'Укажите точное место работы',
+      'region': 'Область',
+      'district': 'Район',
+      'select_region': 'Выберите область',
+      'select_district': 'Выберите район',
+      'select_village': 'Выберите поселок',
+      'village_optional': 'Поселок / Махалля (необязательно)',
+      'set_salary_work_conditions': 'Укажите зарплату и условия работы',
+      'salary_type': 'Тип оплаты',
+      'daily': 'Ежедневная',
+      'monthly': 'Ежемесячная',
+      'freelance': 'Фриланс',
+      'duration_days': 'Длительность работы (в днях)',
+      'duration_days_hint': 'Например: 30',
+      'main_requirements': 'Основные требования',
+      'main_requirements_hint': '3+ года опыта, Flutter, Dart...',
+      'additional_requirements_optional':
+          'Дополнительные требования (необязательно)',
+      'additional_requirements_hint': 'Английский язык, Git, REST API...',
+      'experience_skills_optional': 'Ваш опыт и навыки (необязательно)',
+      'experience_skills_hint':
+          '5 лет Flutter development, Clean Architecture...',
+      'images': 'Изображения',
+      'add_images_optional':
+          'Добавьте изображения к объявлению (необязательно)',
+      'tap_to_add_image': 'Нажмите для добавления изображения',
+      'max_3_images': 'Максимум 3 изображения',
+
+      // NEW KEYS - Новые ключи
+      'job_details': 'Детали работы',
+      'employee_needed_details': 'Требования и условия для сотрудника',
+      'your_profile': 'Ваш профиль',
+      'job_needed_details': 'Введите ваш опыт и навыки',
+      'project_details': 'Детали проекта',
+      'one_time_job_details': 'Введите сроки и бюджет проекта',
+      'expected_salary': 'Ожидаемая зарплата',
+      'project_budget': 'Бюджет проекта',
+      'budget_min': 'Мин бюджет',
+      'budget_max': 'Макс бюджет',
+      'project_requirements': 'Требования к проекту',
+      'project_requirements_hint':
+          'Какие навыки нужны для выполнения проекта...',
+      'skills': 'Навыки',
+      'skills_hint': 'Flutter, Dart, Firebase, REST API...',
+      'experience': 'Опыт',
+      'experience_hint': '5 лет опыта в разработке на Flutter...',
+      'skills_required': 'Необходимо указать навыки',
+      'experience_required': 'Необходимо указать опыт',
+      'selected_images': 'Выбранные изображения',
+
+      // Validations
+      'title_required': 'Необходимо ввести заголовок',
+      'description_required': 'Необходимо ввести описание',
+      'category_required': 'Необходимо выбрать категорию',
+      'subcategory_required': 'Необходимо выбрать подкатегорию',
+      'region_required': 'Необходимо выбрать область',
+      'district_required': 'Необходимо выбрать район',
+      'salary_type_required': 'Необходимо выбрать тип оплаты',
+      'requirements_required': 'Необходимо указать основные требования',
+      'duration_required': 'Необходимо указать длительность работы',
+
+      // Post Messages
+      'uploading_post': 'Объявление загружается...',
+      'please_login': 'Пожалуйста, войдите в систему',
+      'post_submitted_success': 'Ваше объявление успешно отправлено',
+      'next_steps': 'Следующие шаги',
+      'moderators_will_review': 'Модераторы проверят ваше объявление',
+      'visible_after_approval': 'После подтверждения будет видно всем',
+      'process_24_hours': 'Процесс может занять до 24 часов',
+      'post_creation_error': 'Ошибка при создании объявления',
+      'failed_to_load_categories': 'Не удалось загрузить категории',
+      'failed_to_load_subcategories': 'Не удалось загрузить подкатегории',
     },
     'en_US': {
       // App
@@ -392,6 +644,7 @@ class AppTranslations extends Translations {
       'save': 'Save',
       'cancel': 'Cancel',
       'submit': 'Submit',
+      'close': 'Close',
 
       // OTP
       'phone_verification': 'Phone Verification',
@@ -413,7 +666,26 @@ class AppTranslations extends Translations {
       'service': 'Service',
       'transport': 'Transport',
 
-      // Post
+      // Profile
+      'my_profile': 'My Profile',
+      'edit_profile': 'Edit Profile',
+      'basic_edit': 'Basic Edit',
+      'advanced_edit': 'Advanced Edit',
+      'account_settings': 'Account Settings',
+      'change_password': 'Change Password',
+      'security': 'Security',
+      'privacy': 'Privacy',
+      'language': 'Language',
+      'change_language': 'Change Language',
+      'settings': 'Settings',
+      'menu': 'Menu',
+      'my_posts': 'My Posts',
+      'saved_posts': 'Saved Posts',
+      'confirm_logout': 'Confirm logout?',
+      'yes_logout': 'Yes, logout',
+
+      // Stats
+      'posts': 'Posts',
       'views': 'Views',
       'likes': 'Likes',
       'share': 'Share',
@@ -421,10 +693,167 @@ class AppTranslations extends Translations {
       'apply': 'Apply',
 
       // Messages
-      'success': 'Success!',
-      'error': 'Error!',
+      'success': 'Success',
+      'error': 'Error',
+      'warning': 'Warning',
       'account_created': 'Your account has been created',
       'code_sent': 'New code sent to your phone',
+      'user_not_found': 'User not found',
+      'profile_updated': 'Profile updated',
+      'update_failed': 'Update failed',
+      'photo_updated': 'Photo updated',
+      'photo_upload_failed': 'Photo upload failed',
+      'photo_deleted': 'Photo deleted',
+      'post_updated': 'Post updated',
+      'post_update_failed': 'Post update failed',
+      'post_deleted': 'Post deleted',
+      'post_delete_failed': 'Post delete failed',
+      'post_saved': 'Post saved',
+      'post_unsaved': 'Post removed',
+      'language_changed': 'Language changed',
+      'logout_success': 'Logged out successfully',
+      'logout_failed': 'Logout failed',
+      'coming_soon': 'Coming Soon',
+      'feature_coming_soon': 'This feature will be added soon',
+
+      // Photo
+      'change_photo': 'Change Photo',
+      'take_photo': 'Camera',
+      'choose_from_gallery': 'Gallery',
+      'delete_photo': 'Delete Photo',
+      'confirm_delete_photo': 'Delete profile photo?',
+      'confirm_delete_post': 'Delete this post?',
+
+      // Edit
+      'save_changes': 'Save Changes',
+      'delete': 'Delete',
+      'edit': 'Edit',
+
+      // Post
+      'title': 'Title',
+      'description': 'Description',
+      'salary': 'Salary',
+      'salary_min': 'Min Salary',
+      'salary_max': 'Max Salary',
+      'location': 'Location',
+
+      // Empty states
+      'no_posts': 'No Posts',
+      'no_posts_desc': 'You haven\'t created any posts yet',
+      'no_saved_posts': 'No Saved Posts',
+      'no_saved_posts_desc': 'Bookmark posts to save them',
+
+      // About
+      'about_haqida': 'About',
+      'about_app': 'About App',
+      'no_bio': 'No bio available',
+      'creators': 'Creators',
+      'release_date': 'Release Date',
+      'app_description':
+          'JobHub - the most convenient platform for job search and hiring.',
+
+      // Privacy & Security
+      'notifications': 'Notifications',
+      'notifications_enabled': 'Notifications enabled',
+      'notifications_disabled': 'Notifications disabled',
+      'privacy_info': 'JobHub protects your data',
+      'data_encrypted': 'Data encrypted',
+      'personal_data_safe': 'Personal data is safe',
+      'no_spam': 'No spam emails',
+      'secure_auth': 'Secure authentication',
+      'set_new_password': 'Set new password',
+      'two_factor_auth': 'Two-factor authentication',
+      'extra_security': 'Extra security',
+
+      // ==================== CREATE POST ====================
+      'create_post': 'Create Post',
+      'select_post_type': 'Select Post Type',
+      'what_is_your_purpose': 'What is your purpose for posting?',
+      'employee_needed': 'Employee Needed',
+      'looking_for_permanent_employee':
+          'Looking for a permanent employee for company',
+      'job_needed': 'Job Needed',
+      'looking_for_job_myself':
+          'I am looking for a job and want to present my skills',
+      'one_time_job': 'One-time Job',
+      'short_term_project_specialist':
+          'Need a specialist for short-term project',
+      'basic_info': 'Basic Information',
+      'enter_general_information': 'Enter general information about the post',
+      'title_hint': 'For example: Senior Flutter Developer Needed',
+      'description_hint': 'Enter detailed description...',
+      'category': 'Category',
+      'subcategory': 'Subcategory',
+      'specify_job_location': 'Specify the exact job location',
+      'region': 'Region',
+      'district': 'District',
+      'select_region': 'Select region',
+      'select_district': 'Select district',
+      'select_village': 'Select village',
+      'village_optional': 'Village / Neighborhood (optional)',
+      'set_salary_work_conditions': 'Set salary and work conditions',
+      'salary_type': 'Salary Type',
+      'daily': 'Daily',
+      'monthly': 'Monthly',
+      'freelance': 'Freelance',
+      'duration_days': 'Work Duration (in days)',
+      'duration_days_hint': 'For example: 30',
+      'main_requirements': 'Main Requirements',
+      'main_requirements_hint': '3+ years experience, Flutter, Dart...',
+      'additional_requirements_optional': 'Additional Requirements (optional)',
+      'additional_requirements_hint': 'English language, Git, REST API...',
+      'experience_skills_optional': 'Your Experience and Skills (optional)',
+      'experience_skills_hint':
+          '5 years Flutter development, Clean Architecture...',
+      'images': 'Images',
+      'add_images_optional': 'Add images to your post (optional)',
+      'tap_to_add_image': 'Tap to add image',
+      'max_3_images': 'Maximum 3 images',
+
+      // NEW KEYS - New additions
+      'job_details': 'Job Details',
+      'employee_needed_details': 'Requirements and conditions for employee',
+      'your_profile': 'Your Profile',
+      'job_needed_details': 'Enter your experience and skills',
+      'project_details': 'Project Details',
+      'one_time_job_details': 'Enter project duration and budget',
+      'expected_salary': 'Expected Salary',
+      'project_budget': 'Project Budget',
+      'budget_min': 'Min Budget',
+      'budget_max': 'Max Budget',
+      'project_requirements': 'Project Requirements',
+      'project_requirements_hint':
+          'What skills are needed to complete the project...',
+      'skills': 'Skills',
+      'skills_hint': 'Flutter, Dart, Firebase, REST API...',
+      'experience': 'Experience',
+      'experience_hint': '5 years of Flutter development experience...',
+      'skills_required': 'Skills are required',
+      'experience_required': 'Experience is required',
+      'selected_images': 'Selected Images',
+
+      // Validations
+      'title_required': 'Title is required',
+      'description_required': 'Description is required',
+      'category_required': 'Category is required',
+      'subcategory_required': 'Subcategory is required',
+      'region_required': 'Region is required',
+      'district_required': 'District is required',
+      'salary_type_required': 'Salary type is required',
+      'requirements_required': 'Main requirements are required',
+      'duration_required': 'Work duration is required',
+
+      // Post Messages
+      'uploading_post': 'Uploading post...',
+      'please_login': 'Please login',
+      'post_submitted_success': 'Your post has been submitted successfully',
+      'next_steps': 'Next Steps',
+      'moderators_will_review': 'Moderators will review your post',
+      'visible_after_approval': 'Will be visible after approval',
+      'process_24_hours': 'Process may take up to 24 hours',
+      'post_creation_error': 'Error creating post',
+      'failed_to_load_categories': 'Failed to load categories',
+      'failed_to_load_subcategories': 'Failed to load subcategories',
     },
   };
 }

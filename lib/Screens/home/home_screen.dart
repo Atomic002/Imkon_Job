@@ -15,36 +15,61 @@ class HomeScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            _buildAppBar(controller), // ✅ CONTROLLER O'TKAZILDI
+            _buildAppBar(controller),
             Expanded(
               child: Obx(() {
                 // Loading state
-                if (controller.isLoading.value) {
+                if (controller.isLoading.value && controller.posts.isEmpty) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
                 // Empty state
                 if (controller.posts.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.work_outline_rounded,
-                          size: 64,
-                          color: Colors.grey[300],
+                  return RefreshIndicator(
+                    onRefresh: controller.refreshPosts,
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Container(
+                        height: MediaQuery.of(context).size.height * 0.7,
+                        alignment: Alignment.center,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.work_outline_rounded,
+                              size: 64,
+                              color: Colors.grey[300],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'E\'lonlar topilmadi',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 16,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            ElevatedButton.icon(
+                              onPressed: controller.refreshPosts,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Yangilash'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppConstants.primaryColor,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 12,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'E\'lonlar topilmadi',
-                          style: TextStyle(color: Colors.grey[600]),
-                        ),
-                      ],
+                      ),
                     ),
                   );
                 }
 
-                // Posts PageView - Carousel Slider
+                // Posts PageView - Simple vertical scroll
                 return PageView.builder(
                   controller: controller.pageController,
                   scrollDirection: Axis.vertical,
@@ -62,7 +87,8 @@ class HomeScreen extends StatelessWidget {
                       onLike: () => controller.toggleLike(post.id),
                       isLiked: controller.likedPosts[post.id] ?? false,
                       onTap: () {
-                        Get.toNamed('/post_detail', arguments: post);
+                        // Show post details bottom sheet
+                        _showPostDetails(context, post, controller);
                       },
                     );
                   },
@@ -76,9 +102,83 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  // ==================== SHOW POST DETAILS ====================
+  void _showPostDetails(
+    BuildContext context,
+    dynamic post,
+    HomeController controller,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.85,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            // Content
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Title
+                    Text(
+                      post.title,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Full description and details
+                    Text(
+                      post.description,
+                      style: const TextStyle(fontSize: 15, height: 1.5),
+                    ),
+                    const SizedBox(height: 24),
+                    // Close button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppConstants.primaryColor,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: const Text(
+                          'Yopish',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ==================== APP BAR ====================
   Widget _buildAppBar(HomeController controller) {
-    // ✅ CONTROLLER PARAMETER QO'SHILDI
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: 20,
@@ -114,16 +214,33 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           const Spacer(),
+          // Refresh Button
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, size: 26),
+            onPressed: () {
+              controller.refreshPosts();
+            },
+            color: AppConstants.textSecondary,
+            tooltip: 'Yangilash',
+          ),
+          // Notifications
           Stack(
             children: [
               IconButton(
                 icon: const Icon(Icons.notifications_outlined, size: 28),
                 onPressed: () {
-                  Get.toNamed('/notifications');
+                  try {
+                    Get.toNamed('/notifications');
+                  } catch (e) {
+                    Get.snackbar(
+                      'Xato',
+                      'Bildirishnomalar sahifasi topilmadi',
+                      backgroundColor: Colors.orange,
+                    );
+                  }
                 },
                 color: AppConstants.textSecondary,
               ),
-              // ✅ REAL NOTIFICATION COUNT
               Obx(() {
                 final count = controller.notificationCount.value;
                 if (count == 0) {
@@ -138,6 +255,10 @@ class HomeScreen extends StatelessWidget {
                       color: AppConstants.errorColor,
                       shape: BoxShape.circle,
                     ),
+                    constraints: const BoxConstraints(
+                      minWidth: 18,
+                      minHeight: 18,
+                    ),
                     child: Text(
                       count > 99 ? '99+' : '$count',
                       style: const TextStyle(
@@ -145,6 +266,7 @@ class HomeScreen extends StatelessWidget {
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
                       ),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 );
@@ -199,6 +321,7 @@ class HomeScreen extends StatelessWidget {
                       'Xato',
                       'Qidiruv sahifasi topilmadi',
                       backgroundColor: Colors.orange,
+                      colorText: Colors.white,
                     );
                   }
                 },
@@ -216,6 +339,7 @@ class HomeScreen extends StatelessWidget {
                       'Xato',
                       'Chat sahifasi topilmadi',
                       backgroundColor: Colors.orange,
+                      colorText: Colors.white,
                     );
                   }
                 },
@@ -232,6 +356,7 @@ class HomeScreen extends StatelessWidget {
                       'Xato',
                       'Profil sahifasi topilmadi',
                       backgroundColor: Colors.orange,
+                      colorText: Colors.white,
                     );
                   }
                 },
@@ -308,8 +433,9 @@ class HomeScreen extends StatelessWidget {
             } catch (e) {
               Get.snackbar(
                 'Xato',
-                'Create post sahifasi topilmadi',
+                'E\'lon yaratish sahifasi topilmadi',
                 backgroundColor: Colors.orange,
+                colorText: Colors.white,
               );
             }
           },

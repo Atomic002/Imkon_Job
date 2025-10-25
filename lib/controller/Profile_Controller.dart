@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -7,7 +6,6 @@ import 'package:version1/Models/job_post.dart';
 import 'package:version1/Models/user_model.dart';
 
 class ProfileController extends GetxController {
-  // Observable variables
   final user = Rxn<UserModel>();
   final userPosts = <JobPost>[].obs;
   final isLoading = false.obs;
@@ -18,22 +16,21 @@ class ProfileController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    loadUserProfile();
+    loadUserData();
   }
 
-  // ==================== LOAD USER PROFILE ====================
-  Future<void> loadUserProfile() async {
+  // ==================== LOAD USER DATA ====================
+  Future<void> loadUserData() async {
     try {
       isLoading.value = true;
 
-      // 1. Current user ID olish
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) {
-        print('User not logged in');
+        print('❌ User not logged in');
+        user.value = null;
         return;
       }
 
-      // 2. User ma'lumotlarini olish
       final response = await supabase
           .from('users')
           .select()
@@ -41,43 +38,49 @@ class ProfileController extends GetxController {
           .single();
 
       user.value = UserModel.fromJson(response);
-      print('User loaded: ${user.value?.fullName}');
+      print('✅ User loaded: ${user.value?.fullName}');
 
-      // 3. User postlarini olish
-      await loadUserPosts(userId);
-
-      // 4. Statistikani hisoblash
+      await loadUserPosts();
       calculateStats();
     } catch (e) {
-      print('Load profile error: $e');
-      Get.snackbar(
-        'Xato',
-        'Profil yuklashda xato: $e',
-        backgroundColor: Colors.redAccent,
-        colorText: Colors.white,
-      );
+      print('❌ Load user data error: $e');
+      user.value = null;
     } finally {
       isLoading.value = false;
     }
   }
 
-  // ==================== LOAD USER POSTS ====================
-  Future<void> loadUserPosts(String userId) async {
+  // ==================== LOAD USER POSTS (FIXED) ====================
+  Future<void> loadUserPosts() async {
     try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return;
+
+      // ✅ 'posts' jadvalidan ma'lumot olish
       final response = await supabase
           .from('posts')
-          .select()
+          .select('''
+            *,
+            users!inner(
+              id,
+              first_name,
+              last_name,
+              username,
+              profile_photo_url
+            )
+          ''')
           .eq('user_id', userId)
-          .eq('status', 'approved')
+          .eq('is_active', true)
           .order('created_at', ascending: false);
 
       userPosts.value = (response as List)
           .map((p) => JobPost.fromJson(p as Map<String, dynamic>))
           .toList();
 
-      print('${userPosts.length} ta post yuklandi');
+      print('✅ ${userPosts.length} ta post yuklandi');
     } catch (e) {
-      print('Load posts error: $e');
+      print('❌ Load posts error: $e');
+      userPosts.value = [];
     }
   }
 
@@ -91,190 +94,367 @@ class ProfileController extends GetxController {
       totalLikes += post.likes;
     }
 
-    stats['posts'] = userPosts.length;
-    stats['views'] = totalViews;
-    stats['likes'] = totalLikes;
-    stats.refresh();
+    stats.value = {
+      'posts': userPosts.length,
+      'views': totalViews,
+      'likes': totalLikes,
+    };
   }
 
   // ==================== UPDATE PROFILE ====================
-  Future<void> updateProfile({
+  Future<bool> updateProfile({
     required String firstName,
     required String lastName,
-    required String bio,
+    String? bio,
     String? location,
   }) async {
     try {
       isLoading.value = true;
 
       final userId = supabase.auth.currentUser?.id;
-      if (userId == null) return;
+      if (userId == null) {
+        Get.snackbar(
+          'error'.tr,
+          'user_not_found'.tr,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return false;
+      }
 
       await supabase
           .from('users')
           .update({
-            'first_name': firstName,
-            'last_name': lastName,
-            'bio': bio,
-            'location': location,
+            'first_name': firstName.trim(),
+            'last_name': lastName.trim(),
+            'bio': bio?.trim(),
+            'location': location?.trim(),
             'updated_at': DateTime.now().toIso8601String(),
           })
           .eq('id', userId);
 
-      // Local update
-      if (user.value != null) {
-        user.value = UserModel(
-          id: user.value!.id,
-          firstName: firstName,
-          lastName: lastName,
-          username: user.value!.username,
-          email: user.value!.email,
-          bio: bio,
-          profilePhotoUrl: user.value!.profilePhotoUrl,
-          userType: user.value!.userType,
-          isEmailVerified: user.value!.isEmailVerified,
-          location: location,
-          rating: user.value!.rating,
-          isActive: user.value!.isActive,
-          createdAt: user.value!.createdAt,
-        );
-        user.refresh();
-      }
+      await loadUserData();
 
       Get.snackbar(
-        'Muvaffaqiyatli',
-        'Profil yangilandi',
+        'success'.tr,
+        'profile_updated'.tr,
         backgroundColor: Colors.green,
         colorText: Colors.white,
+        icon: const Icon(Icons.check_circle, color: Colors.white),
       );
+
+      return true;
     } catch (e) {
+      print('❌ Update profile error: $e');
       Get.snackbar(
-        'Xato',
-        'Profil yangilantirishda xato: $e',
-        backgroundColor: Colors.redAccent,
+        'error'.tr,
+        'update_failed'.tr,
+        backgroundColor: Colors.red,
         colorText: Colors.white,
       );
+      return false;
     } finally {
       isLoading.value = false;
     }
   }
 
-  // ==================== UPLOAD PROFILE PHOTO ====================
-  Future<void> uploadProfilePhoto(String imagePath) async {
+  // ==================== UPLOAD PROFILE PHOTO (FIXED) ====================
+  Future<bool> uploadProfilePhoto(File imageFile) async {
     try {
       isLoading.value = true;
 
       final userId = supabase.auth.currentUser?.id;
-      if (userId == null) return;
+      if (userId == null) return false;
 
-      final fileName = 'profile_$userId.jpg';
+      // Eski rasmni o'chirish
+      if (user.value?.profilePhotoUrl != null) {
+        try {
+          final oldPath = user.value!.profilePhotoUrl!
+              .split('profile_pictures/')[1]
+              .split('?')[0];
+          await supabase.storage.from('profile_pictures').remove([oldPath]);
+        } catch (e) {
+          print('⚠️ Old photo delete error: $e');
+        }
+      }
 
-      // Supabase Storage ga yuklash
+      // Yangi rasmni yuklash
+      final fileExt = imageFile.path.split('.').last.toLowerCase();
+      final fileName =
+          '${userId}_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+
       await supabase.storage
-          .from('profiles')
+          .from('profile_pictures')
           .upload(
             fileName,
-            imagePath as File,
-            fileOptions: const FileOptions(upsert: true),
+            imageFile,
+            fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
           );
 
       // Public URL olish
-      final publicUrl = supabase.storage
-          .from('profiles')
+      final imageUrl = supabase.storage
+          .from('profile_pictures')
           .getPublicUrl(fileName);
 
-      // Database da yangilash
+      // Database yangilash
       await supabase
           .from('users')
           .update({
-            'profile_photo_url': publicUrl,
+            'profile_photo_url': imageUrl,
             'updated_at': DateTime.now().toIso8601String(),
           })
           .eq('id', userId);
 
-      // Local update
-      if (user.value != null) {
-        user.value = UserModel(
-          id: user.value!.id,
-          firstName: user.value!.firstName,
-          lastName: user.value!.lastName,
-          username: user.value!.username,
-          email: user.value!.email,
-          bio: user.value!.bio,
-          profilePhotoUrl: publicUrl,
-          userType: user.value!.userType,
-          isEmailVerified: user.value!.isEmailVerified,
-          location: user.value!.location,
-          rating: user.value!.rating,
-          isActive: user.value!.isActive,
-          createdAt: user.value!.createdAt,
-        );
-        user.refresh();
-      }
+      await loadUserData();
 
       Get.snackbar(
-        'Muvaffaqiyatli',
-        'Rasm o\'zgartirildi',
+        'success'.tr,
+        'photo_updated'.tr,
         backgroundColor: Colors.green,
         colorText: Colors.white,
       );
+
+      return true;
     } catch (e) {
+      print('❌ Upload photo error: $e');
       Get.snackbar(
-        'Xato',
-        'Rasm yuklashda xato: $e',
-        backgroundColor: Colors.redAccent,
+        'error'.tr,
+        'photo_upload_failed'.tr,
+        backgroundColor: Colors.red,
         colorText: Colors.white,
       );
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // ==================== DELETE PROFILE PHOTO ====================
+  Future<bool> deleteProfilePhoto() async {
+    try {
+      isLoading.value = true;
+
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return false;
+
+      if (user.value?.profilePhotoUrl != null) {
+        try {
+          final path = user.value!.profilePhotoUrl!
+              .split('profile_pictures/')[1]
+              .split('?')[0];
+          await supabase.storage.from('profile_pictures').remove([path]);
+        } catch (e) {
+          print('⚠️ Photo delete error: $e');
+        }
+      }
+
+      await supabase
+          .from('users')
+          .update({
+            'profile_photo_url': null,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', userId);
+
+      await loadUserData();
+
+      Get.snackbar(
+        'success'.tr,
+        'photo_deleted'.tr,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+
+      return true;
+    } catch (e) {
+      print('❌ Delete photo error: $e');
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // ==================== UPDATE POST ====================
+  Future<bool> updatePost({
+    required String postId,
+    required String title,
+    required String description,
+    required String location,
+    required int salaryMin,
+    required int salaryMax,
+  }) async {
+    try {
+      isLoading.value = true;
+
+      await supabase
+          .from('posts')
+          .update({
+            'title': title.trim(),
+            'description': description.trim(),
+            'location': location.trim(),
+            'salary_min': salaryMin,
+            'salary_max': salaryMax,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', postId);
+
+      await loadUserPosts();
+      calculateStats();
+
+      Get.snackbar(
+        'success'.tr,
+        'post_updated'.tr,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+
+      return true;
+    } catch (e) {
+      print('❌ Update post error: $e');
+      Get.snackbar(
+        'error'.tr,
+        'post_update_failed'.tr,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return false;
     } finally {
       isLoading.value = false;
     }
   }
 
   // ==================== DELETE POST ====================
-  Future<void> deletePost(String postId) async {
+  Future<bool> deletePost(String postId) async {
     try {
+      isLoading.value = true;
+
       await supabase.from('posts').delete().eq('id', postId);
 
       userPosts.removeWhere((p) => p.id == postId);
       calculateStats();
 
       Get.snackbar(
-        'Muvaffaqiyatli',
-        'E\'lon o\'chirildi',
+        'success'.tr,
+        'post_deleted'.tr,
         backgroundColor: Colors.green,
         colorText: Colors.white,
       );
+
+      return true;
     } catch (e) {
+      print('❌ Delete post error: $e');
       Get.snackbar(
-        'Xato',
-        'E\'lon o\'chirishda xato: $e',
-        backgroundColor: Colors.redAccent,
+        'error'.tr,
+        'post_delete_failed'.tr,
+        backgroundColor: Colors.red,
         colorText: Colors.white,
       );
+      return false;
+    } finally {
+      isLoading.value = false;
     }
   }
 
-  // ==================== GET USER RATING ====================
-  Future<double> getUserRating() async {
+  // ==================== GET SAVED POSTS ====================
+  Future<List<JobPost>> getSavedPosts() async {
     try {
       final userId = supabase.auth.currentUser?.id;
-      if (userId == null) return 0.0;
+      if (userId == null) return [];
 
       final response = await supabase
-          .from('users')
-          .select('rating')
-          .eq('id', userId)
-          .single();
+          .from('saved_posts')
+          .select('''
+            posts!inner(
+              *,
+              users!inner(
+                id,
+                first_name,
+                last_name,
+                username,
+                profile_photo_url
+              )
+            )
+          ''')
+          .eq('user_id', userId)
+          .order('created_at', ascending: false);
 
-      return (response['rating'] as num?)?.toDouble() ?? 0.0;
+      final savedPosts = (response as List)
+          .map(
+            (item) => JobPost.fromJson(item['posts'] as Map<String, dynamic>),
+          )
+          .toList();
+
+      return savedPosts;
     } catch (e) {
-      print('Get rating error: $e');
-      return 0.0;
+      print('❌ Get saved posts error: $e');
+      return [];
     }
   }
 
-  // ==================== REFRESH PROFILE ====================
+  // ==================== SAVE/UNSAVE POST ====================
+  Future<bool> savePost(String postId) async {
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return false;
+
+      await supabase.from('saved_posts').insert({
+        'user_id': userId,
+        'post_id': postId,
+      });
+
+      Get.snackbar(
+        'success'.tr,
+        'post_saved'.tr,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+
+      return true;
+    } catch (e) {
+      print('❌ Save post error: $e');
+      return false;
+    }
+  }
+
+  Future<bool> unsavePost(String postId) async {
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return false;
+
+      await supabase
+          .from('saved_posts')
+          .delete()
+          .eq('user_id', userId)
+          .eq('post_id', postId);
+
+      Get.snackbar(
+        'success'.tr,
+        'post_unsaved'.tr,
+        backgroundColor: Colors.orange,
+        colorText: Colors.white,
+      );
+
+      return true;
+    } catch (e) {
+      print('❌ Unsave post error: $e');
+      return false;
+    }
+  }
+
+  // ==================== REFRESH ====================
   Future<void> refreshProfile() async {
-    await loadUserProfile();
+    await loadUserData();
+  }
+
+  void clearData() {
+    user.value = null;
+    userPosts.clear();
+    stats.value = {'posts': 0, 'views': 0, 'likes': 0};
+  }
+
+  @override
+  void onClose() {
+    clearData();
+    super.onClose();
   }
 }

@@ -21,6 +21,12 @@ class JobPost {
   final int? sharesCount;
   final int? durationDays;
 
+  // ✅ YANGI FIELDLAR
+  final String? postType; // employee_needed, job_needed, one_time_job
+  final String? salaryType; // daily, monthly, freelance
+  final String? skills; // job_needed uchun
+  final String? experience; // job_needed uchun
+
   JobPost({
     required this.id,
     required this.title,
@@ -43,19 +49,31 @@ class JobPost {
     this.isActive = true,
     this.sharesCount,
     this.durationDays,
+    this.postType,
+    this.salaryType,
+    this.skills,
+    this.experience,
   });
 
-  // ✅ FROM JSON - Supabase dan kelgan ma'lumotlarni parse qilish (users bilan)
+  // ✅ FROM JSON - Supabase dan kelgan ma'lumotlarni parse qilish
   factory JobPost.fromJson(Map<String, dynamic> json) {
-    // Images listini olib olish
+    // Images listini to‘liq URL yoki path bo‘lishidan qat’i nazar ishlay oladi
     List<String>? imageUrls;
     if (json['post_images'] != null && json['post_images'] is List) {
       imageUrls = (json['post_images'] as List)
-          .map((img) => img['image_url'] as String)
+          .map((img) {
+            final url = img['image_url']?.toString();
+            if (url == null || url.isEmpty) return '';
+            // Agar to‘liq URL bo‘lsa, o‘z holida qoldiramiz
+            if (url.startsWith('http')) return url;
+            // Aks holda Supabase public path yasaymiz
+            return 'https://lebttvzssavbjkoumebf.supabase.co/storage/v1/object/public/post-images/$url';
+          })
+          .where((url) => url.isNotEmpty)
           .toList();
     }
 
-    // ✅ users jadvalidan ma'lumot olish (profiles emas!)
+    // Users jadvalidan ma'lumot olish
     String companyName = 'Kompaniya';
     String? companyLogo;
 
@@ -65,20 +83,19 @@ class JobPost {
       final lastName = user['last_name'] as String? ?? '';
       final username = user['username'] as String? ?? '';
 
-      // To'liq ismni yaratish
       companyName = '$firstName $lastName'.trim();
-
-      // Agar ism yo'q bo'lsa, username ishlatish
       if (companyName.isEmpty && username.isNotEmpty) {
         companyName = username;
       }
-
-      // Hali ham bo'sh bo'lsa, default qiymat
       if (companyName.isEmpty) {
         companyName = 'Kompaniya';
       }
 
       companyLogo = user['profile_photo_url'] as String?;
+      if (companyLogo != null && !companyLogo.startsWith('http')) {
+        companyLogo =
+            'https://lebttvzssavbjkoumebf.supabase.co/storage/v1/object/public/profile_images/$companyLogo';
+      }
     }
 
     return JobPost(
@@ -105,10 +122,14 @@ class JobPost {
       isActive: json['is_active'] as bool? ?? true,
       sharesCount: json['shares_count'] as int?,
       durationDays: json['duration_days'] as int?,
+      postType: json['post_type'] as String?,
+      salaryType: json['salary_type'] as String?,
+      skills: json['skills'] as String?,
+      experience: json['experience'] as String?,
     );
   }
 
-  // ✅ TO JSON - Supabase ga yuborish uchun
+  // ✅ TO JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -129,6 +150,10 @@ class JobPost {
       'shares_count': sharesCount,
       'duration_days': durationDays,
       'created_at': createdAt.toIso8601String(),
+      'post_type': postType,
+      'salary_type': salaryType,
+      'skills': skills,
+      'experience': experience,
     };
   }
 
@@ -155,6 +180,10 @@ class JobPost {
     bool? isActive,
     int? sharesCount,
     int? durationDays,
+    String? postType,
+    String? salaryType,
+    String? skills,
+    String? experience,
   }) {
     return JobPost(
       id: id ?? this.id,
@@ -178,6 +207,10 @@ class JobPost {
       isActive: isActive ?? this.isActive,
       sharesCount: sharesCount ?? this.sharesCount,
       durationDays: durationDays ?? this.durationDays,
+      postType: postType ?? this.postType,
+      salaryType: salaryType ?? this.salaryType,
+      skills: skills ?? this.skills,
+      experience: experience ?? this.experience,
     );
   }
 
@@ -315,7 +348,7 @@ class JobPost {
 
   @override
   String toString() {
-    return 'JobPost{id: $id, title: $title, company: $company, salary: ${getSalaryRange()}}';
+    return 'JobPost{id: $id, title: $title, company: $company, postType: $postType}';
   }
 
   @override
