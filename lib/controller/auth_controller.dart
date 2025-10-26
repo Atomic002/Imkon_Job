@@ -3,7 +3,7 @@ import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthController extends GetxController {
-  final usernameController = TextEditingController();
+  final phoneOrUsernameController = TextEditingController();
   final passwordController = TextEditingController();
   final isPasswordHidden = true.obs;
   final isLoading = false.obs;
@@ -15,10 +15,10 @@ class AuthController extends GetxController {
   }
 
   Future<void> login() async {
-    final username = usernameController.text.trim();
+    final input = phoneOrUsernameController.text.trim();
     final password = passwordController.text.trim();
 
-    if (username.isEmpty || password.isEmpty) {
+    if (input.isEmpty || password.isEmpty) {
       Get.snackbar(
         'Xato',
         'Iltimos, barcha maydonlarni to\'ldiring',
@@ -32,11 +32,11 @@ class AuthController extends GetxController {
     try {
       isLoading.value = true;
 
-      // 1️⃣ Username orqali email topamiz
+      // 1️⃣ Telefon yoki Username orqali foydalanuvchini topamiz
       final userResponse = await supabase
           .from('users')
-          .select('id, email, is_active')
-          .eq('username', username)
+          .select('id, email, is_active, phone_number, username')
+          .or('username.eq.$input,phone_number.eq.$input')
           .maybeSingle();
 
       if (userResponse == null) {
@@ -81,7 +81,7 @@ class AuthController extends GetxController {
         );
 
         // ✅ Clear fields
-        usernameController.clear();
+        phoneOrUsernameController.clear();
         passwordController.clear();
 
         // ✅ Home sahifasiga o'tish
@@ -91,9 +91,11 @@ class AuthController extends GetxController {
       String errorMessage = 'Auth xatosi yuz berdi';
 
       if (e.message.contains('Invalid login credentials')) {
-        errorMessage = 'Email yoki parol noto\'g\'ri';
+        errorMessage = 'Telefon/Username yoki parol noto\'g\'ri';
       } else if (e.message.contains('User not found')) {
         errorMessage = 'Bunday foydalanuvchi topilmadi';
+      } else if (e.message.contains('Email not confirmed')) {
+        errorMessage = 'Email tasdiqlanmagan';
       } else {
         errorMessage = e.message;
       }
@@ -122,7 +124,7 @@ class AuthController extends GetxController {
     try {
       isLoading.value = true;
       await supabase.auth.signOut();
-      usernameController.clear();
+      phoneOrUsernameController.clear();
       passwordController.clear();
       Get.offAllNamed('/login');
     } catch (e) {
@@ -164,7 +166,7 @@ class AuthController extends GetxController {
 
   @override
   void onClose() {
-    usernameController.dispose();
+    phoneOrUsernameController.dispose();
     passwordController.dispose();
     super.onClose();
   }

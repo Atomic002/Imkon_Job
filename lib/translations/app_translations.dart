@@ -31,6 +31,9 @@ class AppTranslations extends Translations {
       'logout': 'Chiqish',
       'username': 'Username',
       'password': 'Parol',
+      'phone_or_username': 'Telefon yoki Username',
+      'enter_phone_or_username': '+998901234567 yoki username',
+      'login_desc': 'Akkauntingizga telefon yoki username bilan kiring',
       'forgot_password': 'Parolni unutdingizmi?',
       'dont_have_account': 'Akkauntingiz yo\'qmi?',
       'already_have_account': 'Akkauntingiz bormi?',
@@ -43,24 +46,45 @@ class AppTranslations extends Translations {
       'personal_info_desc': 'Ism va familyangizni kiriting',
       'contact_info': 'Aloqa ma\'lumotlari',
       'contact_info_desc': 'Telefon raqam va emailingiz',
+      'phone_number_info':
+          'Bu raqamga mijozlar bog\'lanadi. To\'g\'ri kiriting!',
       'account_info': 'Akkount yaratish',
       'account_info_desc': 'Username va parol o\'ylab toping',
       'account_type': 'Akkount turi',
       'account_type_desc': 'Siz kim sifatida ro\'yxatdan o\'tyapsiz?',
+      'company_info': 'Kompaniya ma\'lumotlari',
+      'company_info_desc': 'Kompaniyangiz haqida ma\'lumot',
+      'location_info': 'Joylashuv ma\'lumotlari',
+      'location_info_desc': 'Qayerda yashayz yoki kompaniya manzili',
+      'profile_photo': 'Profil rasmi',
+      'profile_photo_desc': 'O\'zingizning yoki kompaniya logotipini qo\'ying',
 
       // Form Fields
       'first_name': 'Ism',
       'last_name': 'Familya',
+      'company_name': 'Kompaniya nomi',
       'phone': 'Telefon raqam',
       'email': 'Email',
+      'email_optional': 'Email (ixtiyoriy)',
       'bio': 'Bio (ixtiyoriy)',
       'enter_first_name': 'Ismingiz',
       'enter_last_name': 'Familyangiz',
+      'enter_company_name': 'Kompaniyangiz nomini kiriting',
       'enter_phone': '+998 90 123 45 67',
       'enter_email': 'example@mail.com',
       'enter_username': 'Noyob username tanlang',
       'enter_password': 'Kuchli parol kiriting',
       'enter_bio': 'O\'zingiz haqingizda qisqacha',
+
+      // Location Fields
+      'region': 'Viloyat',
+      'district': 'Tuman',
+      'village': 'Qishloq / Mahalla',
+      'full_address': 'To\'liq manzil',
+      'select_region': 'Viloyatni tanlang',
+      'select_district': 'Tumanni tanlang',
+      'select_village': 'Qishloqni tanlang',
+      'enter_full_address': 'Ko\'cha, uy raqami va boshqalar',
 
       // Account Types
       'individual': 'Shaxs',
@@ -196,7 +220,7 @@ class AppTranslations extends Translations {
       'two_factor_auth': 'Ikki bosqichli autentifikatsiya',
       'extra_security': 'Qo\'shimcha xavfsizlik',
 
-      // ==================== CREATE POST ====================
+      // CREATE POST
       'create_post': 'E\'lon yaratish',
       'select_post_type': 'E\'lon turini tanlang',
       'what_is_your_purpose': 'Qaysi maqsadda e\'lon bermoqchisiz?',
@@ -217,11 +241,6 @@ class AppTranslations extends Translations {
       'category': 'Kategoriya',
       'subcategory': 'Sub-kategoriya',
       'specify_job_location': 'Ish joyingizni aniq ko\'rsating',
-      'region': 'Viloyat',
-      'district': 'Tuman',
-      'select_region': 'Viloyatni tanlang',
-      'select_district': 'Tumanni tanlang',
-      'select_village': 'Qishloqni tanlang',
       'village_optional': 'Qishloq / Mahalla (ixtiyoriy)',
       'set_salary_work_conditions': 'Maosh va ish shartlarini belgilang',
       'salary_type': 'Maosh turi',
@@ -242,8 +261,6 @@ class AppTranslations extends Translations {
       'add_images_optional': 'E\'loningizga rasmlar qo\'shing (ixtiyoriy)',
       'tap_to_add_image': 'Rasm qo\'shish uchun bosing',
       'max_3_images': 'Maksimal 3 ta rasm',
-
-      // NEW KEYS - Yangi qo'shilganlar
       'job_details': 'Ish tafsilotlari',
       'employee_needed_details': 'Hodim uchun talablar va shartlar',
       'your_profile': 'Sizning profilingiz',
@@ -288,6 +305,84 @@ class AppTranslations extends Translations {
       'failed_to_load_categories': 'Kategoriyalarni yuklab bo\'lmadi',
       'failed_to_load_subcategories': 'Sub-kategoriyalarni yuklab bo\'lmadi',
     },
+
+    'uz_UZ_CYRILLIC': {
+      // App
+      'app_name': 'Job Hunter',
+      'welcome': 'Хуш келибсиз!',
+
+      // Auth
+      'login': 'Кириш',
+      'register': 'Рўйхатдан ўтиш',
+      'logout': 'Чиқиш',
+      'username': 'Username',
+      'password': 'Парол',
+      'phone_or_username': 'Телефон ёки Username',
+      'enter_phone_or_username': '+998901234567 ёки username',
+      'login_desc': 'Аккаунтингизга телефон ёки username билан киринг',
+      'dont_have_account': 'Аккаунтингиз йўқми?',
+      'register_now': 'Рўйхатдан ўтинг',
+
+      // Register Steps
+      'step': 'Босқич',
+      'account_type': 'Аккаунт тури',
+      'account_type_desc': 'Сиз ким сифатида рўйхатдан ўтяпсиз?',
+      'individual': 'Шахс',
+      'individual_desc': 'Иш қидирувчи ёки freelancer',
+      'company': 'Компания',
+      'company_desc': 'Ходим қидирувчи ташкилот',
+      'personal_info': 'Шахсий маълумотлар',
+      'personal_info_desc': 'Исм ва фамиляңизни киритинг',
+      'company_info': 'Компания маълумотлари',
+      'company_info_desc': 'Компанияңиз ҳақида маълумот',
+      'contact_info': 'Алоқа маълумотлари',
+      'contact_info_desc': 'Телефон рақам ва бошқа маълумотлар',
+      'phone_number_info': 'Бу рақамга мижозлар боғланади. Тўғри киритинг!',
+      'location_info': 'Жойлашув маълумотлари',
+      'location_info_desc': 'Қаерда яшайсиз ёки компания манзили',
+      'profile_photo': 'Профил расми',
+      'profile_photo_desc': 'Ўзингизнинг ёки компания логотипини қўйинг',
+
+      // Form Fields
+      'first_name': 'Исм',
+      'last_name': 'Фамиля',
+      'company_name': 'Компания номи',
+      'phone': 'Телефон рақам',
+      'email': 'Email',
+      'email_optional': 'Email (ихтиёрий)',
+      'bio': 'Bio (ихтиёрий)',
+      'region': 'Вилоят',
+      'district': 'Туман',
+      'village': 'Қишлоқ / Маҳалла',
+      'full_address': 'Тўлиқ манзил',
+      'enter_first_name': 'Исмингиз',
+      'enter_last_name': 'Фамиляңиз',
+      'enter_company_name': 'Компанияңиз номини киритинг',
+      'enter_phone': '+998 90 123 45 67',
+      'enter_email': 'example@mail.com',
+      'enter_username': 'Нойоб username танланг',
+      'enter_password': 'Кучли парол киритинг',
+      'enter_bio': 'Ўзингиз ҳақингизда қисқача',
+      'select_region': 'Вилоятни танланг',
+      'select_district': 'Туманни танланг',
+      'select_village': 'Қишлоқни танланг',
+      'enter_full_address': 'Кўча, уй рақами ва бошқалар',
+
+      // Buttons
+      'back': 'Орқага',
+      'next': 'Кейингиси',
+      'confirm': 'Тасдиқлаш',
+      'save': 'Сақлаш',
+      'cancel': 'Бекор қилиш',
+      'take_photo': 'Камера',
+      'choose_from_gallery': 'Галерея',
+
+      // Messages
+      'success': 'Муваффақиятли',
+      'error': 'Хатолик',
+      'language_changed': 'Тил ўзгартирилди',
+    },
+
     'ru_RU': {
       // App
       'app_name': 'Job Hunter',
@@ -316,6 +411,9 @@ class AppTranslations extends Translations {
       'logout': 'Выйти',
       'username': 'Имя пользователя',
       'password': 'Пароль',
+      'phone_or_username': 'Телефон или Username',
+      'enter_phone_or_username': '+998901234567 или username',
+      'login_desc': 'Войдите в аккаунт через телефон или username',
       'forgot_password': 'Забыли пароль?',
       'dont_have_account': 'Нет аккаунта?',
       'already_have_account': 'Есть аккаунт?',
@@ -328,24 +426,45 @@ class AppTranslations extends Translations {
       'personal_info_desc': 'Введите имя и фамилию',
       'contact_info': 'Контактные данные',
       'contact_info_desc': 'Телефон и email',
+      'phone_number_info':
+          'Клиенты свяжутся с вами по этому номеру. Введите правильно!',
       'account_info': 'Создание аккаунта',
       'account_info_desc': 'Придумайте username и пароль',
       'account_type': 'Тип аккаунта',
       'account_type_desc': 'Кем вы регистрируетесь?',
+      'company_info': 'Информация о компании',
+      'company_info_desc': 'Информация о вашей компании',
+      'location_info': 'Информация о местоположении',
+      'location_info_desc': 'Где вы живете или адрес компании',
+      'profile_photo': 'Фото профиля',
+      'profile_photo_desc': 'Добавьте свое фото или логотип компании',
 
       // Form Fields
       'first_name': 'Имя',
       'last_name': 'Фамилия',
+      'company_name': 'Название компании',
       'phone': 'Телефон',
       'email': 'Email',
+      'email_optional': 'Email (необязательно)',
       'bio': 'О себе (необязательно)',
       'enter_first_name': 'Ваше имя',
       'enter_last_name': 'Ваша фамилия',
+      'enter_company_name': 'Введите название вашей компании',
       'enter_phone': '+998 90 123 45 67',
       'enter_email': 'example@mail.com',
       'enter_username': 'Выберите уникальный username',
       'enter_password': 'Введите надежный пароль',
       'enter_bio': 'Расскажите о себе кратко',
+
+      // Location Fields
+      'region': 'Область',
+      'district': 'Район',
+      'village': 'Деревня / Махалля',
+      'full_address': 'Полный адрес',
+      'select_region': 'Выберите область',
+      'select_district': 'Выберите район',
+      'select_village': 'Выберите поселок',
+      'enter_full_address': 'Улица, номер дома и др.',
 
       // Account Types
       'individual': 'Частное лицо',
@@ -481,7 +600,7 @@ class AppTranslations extends Translations {
       'two_factor_auth': 'Двухфакторная аутентификация',
       'extra_security': 'Дополнительная безопасность',
 
-      // ==================== CREATE POST ====================
+      // CREATE POST
       'create_post': 'Создать объявление',
       'select_post_type': 'Выберите тип объявления',
       'what_is_your_purpose': 'С какой целью вы создаете объявление?',
@@ -501,11 +620,6 @@ class AppTranslations extends Translations {
       'category': 'Категория',
       'subcategory': 'Подкатегория',
       'specify_job_location': 'Укажите точное место работы',
-      'region': 'Область',
-      'district': 'Район',
-      'select_region': 'Выберите область',
-      'select_district': 'Выберите район',
-      'select_village': 'Выберите поселок',
       'village_optional': 'Поселок / Махалля (необязательно)',
       'set_salary_work_conditions': 'Укажите зарплату и условия работы',
       'salary_type': 'Тип оплаты',
@@ -527,8 +641,6 @@ class AppTranslations extends Translations {
           'Добавьте изображения к объявлению (необязательно)',
       'tap_to_add_image': 'Нажмите для добавления изображения',
       'max_3_images': 'Максимум 3 изображения',
-
-      // NEW KEYS - Новые ключи
       'job_details': 'Детали работы',
       'employee_needed_details': 'Требования и условия для сотрудника',
       'your_profile': 'Ваш профиль',
@@ -573,6 +685,7 @@ class AppTranslations extends Translations {
       'failed_to_load_categories': 'Не удалось загрузить категории',
       'failed_to_load_subcategories': 'Не удалось загрузить подкатегории',
     },
+
     'en_US': {
       // App
       'app_name': 'Job Hunter',
@@ -600,6 +713,9 @@ class AppTranslations extends Translations {
       'logout': 'Logout',
       'username': 'Username',
       'password': 'Password',
+      'phone_or_username': 'Phone or Username',
+      'enter_phone_or_username': '+998901234567 or username',
+      'login_desc': 'Login to your account with phone or username',
       'forgot_password': 'Forgot Password?',
       'dont_have_account': 'Don\'t have an account?',
       'already_have_account': 'Already have an account?',
@@ -612,24 +728,45 @@ class AppTranslations extends Translations {
       'personal_info_desc': 'Enter your name and surname',
       'contact_info': 'Contact Information',
       'contact_info_desc': 'Your phone and email',
+      'phone_number_info':
+          'Clients will contact you on this number. Enter correctly!',
       'account_info': 'Create Account',
       'account_info_desc': 'Choose username and password',
       'account_type': 'Account Type',
       'account_type_desc': 'Who are you registering as?',
+      'company_info': 'Company Information',
+      'company_info_desc': 'Information about your company',
+      'location_info': 'Location Information',
+      'location_info_desc': 'Where you live or company address',
+      'profile_photo': 'Profile Photo',
+      'profile_photo_desc': 'Add your photo or company logo',
 
       // Form Fields
       'first_name': 'First Name',
       'last_name': 'Last Name',
+      'company_name': 'Company Name',
       'phone': 'Phone',
       'email': 'Email',
+      'email_optional': 'Email (optional)',
       'bio': 'Bio (optional)',
       'enter_first_name': 'Your first name',
       'enter_last_name': 'Your last name',
+      'enter_company_name': 'Enter your company name',
       'enter_phone': '+998 90 123 45 67',
       'enter_email': 'example@mail.com',
       'enter_username': 'Choose a unique username',
       'enter_password': 'Enter a strong password',
       'enter_bio': 'Tell us about yourself',
+
+      // Location Fields
+      'region': 'Region',
+      'district': 'District',
+      'village': 'Village / Neighborhood',
+      'full_address': 'Full Address',
+      'select_region': 'Select region',
+      'select_district': 'Select district',
+      'select_village': 'Select village',
+      'enter_full_address': 'Street, house number, etc.',
 
       // Account Types
       'individual': 'Individual',
@@ -765,7 +902,7 @@ class AppTranslations extends Translations {
       'two_factor_auth': 'Two-factor authentication',
       'extra_security': 'Extra security',
 
-      // ==================== CREATE POST ====================
+      // CREATE POST
       'create_post': 'Create Post',
       'select_post_type': 'Select Post Type',
       'what_is_your_purpose': 'What is your purpose for posting?',
@@ -785,11 +922,6 @@ class AppTranslations extends Translations {
       'category': 'Category',
       'subcategory': 'Subcategory',
       'specify_job_location': 'Specify the exact job location',
-      'region': 'Region',
-      'district': 'District',
-      'select_region': 'Select region',
-      'select_district': 'Select district',
-      'select_village': 'Select village',
       'village_optional': 'Village / Neighborhood (optional)',
       'set_salary_work_conditions': 'Set salary and work conditions',
       'salary_type': 'Salary Type',
@@ -809,8 +941,6 @@ class AppTranslations extends Translations {
       'add_images_optional': 'Add images to your post (optional)',
       'tap_to_add_image': 'Tap to add image',
       'max_3_images': 'Maximum 3 images',
-
-      // NEW KEYS - New additions
       'job_details': 'Job Details',
       'employee_needed_details': 'Requirements and conditions for employee',
       'your_profile': 'Your Profile',

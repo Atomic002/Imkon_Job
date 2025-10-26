@@ -107,6 +107,7 @@ class ProfileController extends GetxController {
     required String lastName,
     String? bio,
     String? location,
+    String? email,
   }) async {
     try {
       isLoading.value = true;
@@ -268,6 +269,172 @@ class ProfileController extends GetxController {
       return true;
     } catch (e) {
       print('❌ Delete photo error: $e');
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // ==================== UPDATE PHONE NUMBER ====================
+  Future<bool> updatePhoneNumber(String newPhone, String password) async {
+    try {
+      isLoading.value = true;
+
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return false;
+
+      // Parolni tekshirish
+      final email = user.value?.email ?? '';
+      final authResult = await supabase.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+
+      if (authResult.user == null) {
+        Get.snackbar(
+          'error'.tr,
+          'incorrect_password'.tr,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return false;
+      }
+
+      // Telefon raqam bandligini tekshirish
+      final existing = await supabase
+          .from('users')
+          .select()
+          .eq('phone_number', newPhone)
+          .maybeSingle();
+
+      if (existing != null) {
+        Get.snackbar(
+          'error'.tr,
+          'phone_already_exists'.tr,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return false;
+      }
+
+      // Telefon raqamni yangilash
+      await supabase
+          .from('users')
+          .update({
+            'phone_number': newPhone,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', userId);
+
+      await loadUserData();
+
+      Get.snackbar(
+        'success'.tr,
+        'phone_updated'.tr,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        icon: const Icon(Icons.check_circle, color: Colors.white),
+      );
+
+      return true;
+    } catch (e) {
+      print('❌ Update phone error: $e');
+      Get.snackbar(
+        'error'.tr,
+        'phone_update_failed'.tr,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // ==================== UPDATE PASSWORD ====================
+  Future<bool> updatePassword(String oldPassword, String newPassword) async {
+    try {
+      isLoading.value = true;
+
+      final email = user.value?.email ?? '';
+
+      // Eski parolni tekshirish
+      final authResult = await supabase.auth.signInWithPassword(
+        email: email,
+        password: oldPassword,
+      );
+
+      if (authResult.user == null) {
+        Get.snackbar(
+          'error'.tr,
+          'incorrect_old_password'.tr,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return false;
+      }
+
+      // Yangi parolni o'rnatish
+      await supabase.auth.updateUser(UserAttributes(password: newPassword));
+
+      Get.snackbar(
+        'success'.tr,
+        'password_updated'.tr,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        icon: const Icon(Icons.check_circle, color: Colors.white),
+      );
+
+      return true;
+    } catch (e) {
+      print('❌ Update password error: $e');
+      Get.snackbar(
+        'error'.tr,
+        'password_update_failed'.tr,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // ==================== UPDATE USER TYPE ====================
+  Future<bool> updateUserType(String newUserType) async {
+    try {
+      isLoading.value = true;
+
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return false;
+
+      await supabase
+          .from('users')
+          .update({
+            'user_type': newUserType,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', userId);
+
+      await loadUserData();
+
+      Get.snackbar(
+        'success'.tr,
+        'user_type_updated'.tr,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        icon: const Icon(Icons.check_circle, color: Colors.white),
+      );
+
+      return true;
+    } catch (e) {
+      print('❌ Update user type error: $e');
+      Get.snackbar(
+        'error'.tr,
+        'user_type_update_failed'.tr,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
       return false;
     } finally {
       isLoading.value = false;
@@ -438,6 +605,132 @@ class ProfileController extends GetxController {
     } catch (e) {
       print('❌ Unsave post error: $e');
       return false;
+    }
+  }
+
+  // ==================== DELETE ACCOUNT ====================
+  Future<bool> deleteAccount(String password) async {
+    try {
+      isLoading.value = true;
+
+      final userId = supabase.auth.currentUser?.id;
+      final email = user.value?.email;
+
+      if (userId == null || email == null) {
+        Get.snackbar(
+          'Xato',
+          'Foydalanuvchi topilmadi!',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return false;
+      }
+
+      // 1. Parolni tekshirish
+      try {
+        final authResult = await supabase.auth.signInWithPassword(
+          email: email,
+          password: password,
+        );
+
+        if (authResult.user == null) {
+          Get.snackbar(
+            'Xato',
+            'Parol noto\'g\'ri!',
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
+          return false;
+        }
+      } catch (e) {
+        Get.snackbar(
+          'Xato',
+          'Parol noto\'g\'ri!',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return false;
+      }
+
+      // 2. Postlarni o'chirish
+      try {
+        await supabase.from('posts').delete().eq('user_id', userId);
+        print('✅ Posts deleted');
+      } catch (e) {
+        print('⚠️ Posts delete error: $e');
+      }
+
+      // 3. Saved posts ni o'chirish (agar jadval mavjud bo'lsa)
+      try {
+        await supabase.from('saved_posts').delete().eq('user_id', userId);
+        print('✅ Saved posts deleted');
+      } catch (e) {
+        print('⚠️ Saved posts delete error (maybe table doesn\'t exist): $e');
+        // Xato bo'lsa ham davom etamiz
+      }
+
+      // 4. Profile rasmini o'chirish
+      if (user.value?.profilePhotoUrl != null) {
+        try {
+          final path = user.value!.profilePhotoUrl!
+              .split('profile_pictures/')[1]
+              .split('?')[0];
+          await supabase.storage.from('profile_pictures').remove([path]);
+          print('✅ Profile photo deleted');
+        } catch (e) {
+          print('⚠️ Photo delete error: $e');
+        }
+      }
+
+      // 5. Users jadvalidan o'chirish
+      try {
+        await supabase.from('users').delete().eq('id', userId);
+        print('✅ User data deleted');
+      } catch (e) {
+        print('❌ User delete error: $e');
+        Get.snackbar(
+          'Xato',
+          'Foydalanuvchi ma\'lumotlarini o\'chirishda xato',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+        return false;
+      }
+
+      // 6. Auth dan o'chirish (agar admin API mavjud bo'lsa)
+      try {
+        // Admin API mavjud bo'lsa
+        await supabase.auth.admin.deleteUser(userId);
+        print('✅ Auth user deleted');
+      } catch (e) {
+        print('⚠️ Auth delete error (might need admin): $e');
+        // Oddiy logout qilamiz
+        await supabase.auth.signOut();
+      }
+
+      clearData();
+
+      Get.snackbar(
+        'Muvaffaqiyatli',
+        'Akkaunt muvaffaqiyatli o\'chirildi',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 3),
+      );
+
+      return true;
+    } catch (e) {
+      print('❌ Delete account error: $e');
+      Get.snackbar(
+        'Xato',
+        'Akkauntni o\'chirishda xato yuz berdi',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 4),
+      );
+      return false;
+    } finally {
+      isLoading.value = false;
     }
   }
 

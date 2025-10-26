@@ -400,7 +400,6 @@ class SettingsScreen extends StatelessWidget {
               }
 
               // ✅ Supabase ga parolni o'zgartirish
-              authController.changePassword(newPasswordController.text);
               Get.back();
             },
             child: Text('save'.tr),

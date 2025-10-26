@@ -8,7 +8,6 @@ import 'package:version1/Screens/home/notification_screen.dart';
 import 'package:version1/Screens/home/create_post_screen.dart';
 import 'package:version1/Screens/home/profile_screen.dart';
 import 'package:version1/Screens/home/search_screen.dart';
-import 'package:version1/Screens/language/language_screen.dart';
 import 'package:version1/Screens/onboarding/onboarding_screen.dart';
 import 'package:version1/Screens/splash/splash_screen.dart';
 

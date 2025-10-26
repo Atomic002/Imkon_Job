@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:version1/controller/Profile_Controller.dart';
 import 'package:version1/controller/auth_controller.dart';
 import 'package:version1/controller/language_controller.dart';
@@ -296,6 +295,1101 @@ class ProfileScreen extends StatelessWidget {
     });
   }
 
+  // ========== FULL USER INFO SECTION ==========
+  Widget _buildFullUserInfo(dynamic user) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(AppConstants.radiusLarge),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.person_outline,
+                color: AppConstants.primaryColor,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Ma\'lumotlar',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppConstants.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // ✅ ISM VA FAMILYA
+          _buildInfoRow(Icons.person, 'Ism', user.firstName ?? 'Kiritilmagan'),
+          const Divider(height: 24),
+
+          _buildInfoRow(
+            Icons.person_outline,
+            'Familya',
+            user.lastName ?? 'Kiritilmagan',
+          ),
+          const Divider(height: 24),
+
+          // ✅ USERNAME
+          _buildInfoRow(Icons.alternate_email, 'Username', '@${user.username}'),
+          const Divider(height: 24),
+
+          // ✅ EMAIL
+          _buildInfoRow(
+            Icons.email_outlined,
+            'Email',
+            user.email ?? 'Kiritilmagan',
+            trailing: user.isEmailVerified == true
+                ? const Icon(Icons.verified, color: Colors.green, size: 18)
+                : const Icon(Icons.cancel, color: Colors.orange, size: 18),
+          ),
+          const Divider(height: 24),
+
+          // ✅ TELEFON
+          _buildInfoRow(
+            Icons.phone_outlined,
+            'Telefon',
+            user.phoneNumber ?? 'Kiritilmagan',
+          ),
+          const Divider(height: 24),
+
+          // ✅ MANZIL
+          _buildInfoRow(
+            Icons.location_on_outlined,
+            'Manzil',
+            user.location ?? 'Kiritilmagan',
+          ),
+          const Divider(height: 24),
+
+          // ✅ AKKOUNT TURI
+          _buildInfoRow(
+            Icons.badge_outlined,
+            'Akkount turi',
+            user.userType == 'job_seeker' ? 'Ish qidiruvchi' : 'Ish beruvchi',
+          ),
+          const Divider(height: 24),
+
+          // ✅ RATING
+          _buildInfoRow(
+            Icons.star_outlined,
+            'Reyting',
+            '${user.rating ?? 0.0} ⭐',
+          ),
+          const Divider(height: 24),
+
+          // ✅ RO'YXATDAN O'TGAN SANA
+          _buildInfoRow(
+            Icons.calendar_today_outlined,
+            'Ro\'yxatdan o\'tdi',
+            _formatDate(user.createdAt),
+          ),
+          const Divider(height: 24),
+
+          // ✅ HOLATI
+          _buildInfoRow(
+            Icons.circle,
+            'Holat',
+            user.isActive == true ? 'Aktiv' : 'Nofaol',
+            trailing: Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: user.isActive == true ? Colors.green : Colors.grey,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(
+    IconData icon,
+    String label,
+    String value, {
+    Widget? trailing,
+  }) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppConstants.primaryColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 18, color: AppConstants.primaryColor),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: AppConstants.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (trailing != null) trailing,
+      ],
+    );
+  }
+
+  String _formatDate(dynamic date) {
+    if (date == null) return 'Noma\'lum';
+    try {
+      DateTime dt = DateTime.parse(date.toString());
+      return '${dt.day}.${dt.month}.${dt.year}';
+    } catch (e) {
+      return 'Noma\'lum';
+    }
+  }
+
+  // ========== TO'LIQ EDIT DIALOG ==========
+  // ========== MAIN EDIT PROFILE MENU ==========
+  void _showEditProfileMenu(
+    BuildContext context,
+    ProfileController profileController,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.75,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            // HEADER
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppConstants.primaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.edit_rounded,
+                      color: AppConstants.primaryColor,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Profilni tahrirlash',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+            Divider(height: 1, color: Colors.grey[200]),
+
+            // MENU ITEMS
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.all(20),
+                children: [
+                  _buildEditMenuItem(
+                    Icons.person_outline,
+                    'Ism va Familya',
+                    'Ismingiz va familyangizni o\'zgartirish',
+                    Colors.blue,
+                    () {
+                      Get.back();
+                      _showEditNameDialog(context, profileController);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
+                  _buildEditMenuItem(
+                    Icons.phone_outlined,
+                    'Telefon raqam',
+                    'Telefon raqamingizni o\'zgartirish',
+                    Colors.green,
+                    () {
+                      Get.back();
+                      _showEditPhoneDialog(context, profileController);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
+                  _buildEditMenuItem(
+                    Icons.email_outlined,
+                    'Email',
+                    'Email manzilingizni o\'zgartirish',
+                    Colors.orange,
+                    () {
+                      Get.back();
+                      _showEditEmailDialog(context, profileController);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
+                  _buildEditMenuItem(
+                    Icons.lock_outline,
+                    'Parol',
+                    'Parolingizni o\'zgartirish',
+                    Colors.red,
+                    () {
+                      Get.back();
+                      _showEditPasswordDialog(context, profileController);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
+                  _buildEditMenuItem(
+                    Icons.badge_outlined,
+                    'Akkount turi',
+                    'Ish qidiruvchi yoki Ish beruvchi',
+                    Colors.purple,
+                    () {
+                      Get.back();
+                      _showEditUserTypeDialog(context, profileController);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+
+                  _buildEditMenuItem(
+                    Icons.info_outline,
+                    'Bio va Manzil',
+                    'Qo\'shimcha ma\'lumotlarni o\'zgartirish',
+                    Colors.teal,
+                    () {
+                      Get.back();
+                      _showEditBioLocationDialog(context, profileController);
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEditMenuItem(
+    IconData icon,
+    String title,
+    String subtitle,
+    Color color,
+    VoidCallback onTap,
+  ) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: color.withOpacity(0.2)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: color, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 18,
+                color: color.withOpacity(0.5),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ========== 1. EDIT NAME DIALOG ==========
+  void _showEditNameDialog(BuildContext context, ProfileController controller) {
+    final user = controller.user.value;
+    if (user == null) return;
+
+    final firstNameController = TextEditingController(text: user.firstName);
+    final lastNameController = TextEditingController(text: user.lastName);
+
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.person, color: Colors.blue),
+            SizedBox(width: 12),
+            Text('Ism va Familya'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: firstNameController,
+              decoration: InputDecoration(
+                labelText: 'Ism *',
+                prefixIcon: const Icon(Icons.person_outline),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: lastNameController,
+              decoration: InputDecoration(
+                labelText: 'Familya *',
+                prefixIcon: const Icon(Icons.person_outline),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Bekor qilish'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (firstNameController.text.trim().isEmpty ||
+                  lastNameController.text.trim().isEmpty) {
+                Get.snackbar(
+                  'Xato',
+                  'Barcha maydonlarni to\'ldiring!',
+                  backgroundColor: Colors.red,
+                  colorText: Colors.white,
+                );
+                return;
+              }
+
+              final success = await controller.updateProfile(
+                firstName: firstNameController.text.trim(),
+                lastName: lastNameController.text.trim(),
+              );
+
+              if (success) {
+                Get.back();
+                Get.snackbar(
+                  'Muvaffaqiyatli',
+                  'Ism va familya yangilandi!',
+                  backgroundColor: Colors.green,
+                  colorText: Colors.white,
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+            child: const Text('Saqlash', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ========== 2. EDIT PHONE DIALOG ==========
+  void _showEditPhoneDialog(
+    BuildContext context,
+    ProfileController controller,
+  ) {
+    final user = controller.user.value;
+    if (user == null) return;
+
+    final phoneController = TextEditingController(
+      text: user.phoneNumber?.replaceAll('+998', ''),
+    );
+    final passwordController = TextEditingController();
+
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.phone, color: Colors.green),
+            SizedBox(width: 12),
+            Text('Telefon raqam'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: phoneController,
+              keyboardType: TextInputType.phone,
+              maxLength: 11,
+              decoration: InputDecoration(
+                labelText: 'Yangi telefon raqam *',
+                hintText: '90 123 45 67',
+                prefixIcon: const Icon(Icons.phone_outlined),
+                prefixText: '+998 ',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: 'Parolingiz (tasdiqlash uchun) *',
+                prefixIcon: const Icon(Icons.lock_outline),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.orange, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Xavfsizlik uchun parolingizni kiriting',
+                      style: TextStyle(fontSize: 12, color: Colors.orange),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Bekor qilish'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final phone = phoneController.text.replaceAll(' ', '');
+              if (phone.length != 9 || passwordController.text.isEmpty) {
+                Get.snackbar(
+                  'Xato',
+                  'To\'liq telefon raqam va parolni kiriting!',
+                  backgroundColor: Colors.red,
+                  colorText: Colors.white,
+                );
+                return;
+              }
+
+              final success = await controller.updatePhoneNumber(
+                '+998$phone',
+                passwordController.text.trim(),
+              );
+
+              if (success) {
+                Get.back();
+                Get.snackbar(
+                  'Muvaffaqiyatli',
+                  'Telefon raqam yangilandi!',
+                  backgroundColor: Colors.green,
+                  colorText: Colors.white,
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text('Saqlash', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ========== 3. EDIT EMAIL DIALOG ==========
+  void _showEditEmailDialog(
+    BuildContext context,
+    ProfileController controller,
+  ) {
+    final user = controller.user.value;
+    if (user == null) return;
+
+    final emailController = TextEditingController(text: user.email);
+
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.email, color: Colors.orange),
+            SizedBox(width: 12),
+            Text('Email'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: emailController,
+              keyboardType: TextInputType.emailAddress,
+              decoration: InputDecoration(
+                labelText: 'Yangi email',
+                hintText: 'example@gmail.com',
+                prefixIcon: const Icon(Icons.email_outlined),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Faqat @gmail.com emaillar qabul qilinadi',
+                      style: TextStyle(fontSize: 12, color: Colors.blue),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Bekor qilish'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final email = emailController.text.trim();
+              if (email.isNotEmpty && !email.endsWith('@gmail.com')) {
+                Get.snackbar(
+                  'Xato',
+                  'Faqat @gmail.com emaillar qabul qilinadi!',
+                  backgroundColor: Colors.red,
+                  colorText: Colors.white,
+                );
+                return;
+              }
+
+              final success = await controller.updateProfile(
+                email: email.isEmpty ? null : email,
+                firstName: '',
+                lastName: '',
+              );
+
+              if (success) {
+                Get.back();
+                Get.snackbar(
+                  'Muvaffaqiyatli',
+                  'Email yangilandi!',
+                  backgroundColor: Colors.green,
+                  colorText: Colors.white,
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            child: const Text('Saqlash', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ========== 4. EDIT PASSWORD DIALOG ==========
+  void _showEditPasswordDialog(
+    BuildContext context,
+    ProfileController controller,
+  ) {
+    final oldPasswordController = TextEditingController();
+    final newPasswordController = TextEditingController();
+    final confirmPasswordController = TextEditingController();
+
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.lock, color: Colors.red),
+            SizedBox(width: 12),
+            Text('Parolni o\'zgartirish'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: oldPasswordController,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: 'Eski parol *',
+                prefixIcon: const Icon(Icons.lock_outline),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: newPasswordController,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: 'Yangi parol (kamida 6 ta) *',
+                prefixIcon: const Icon(Icons.lock),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: confirmPasswordController,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: 'Yangi parolni tasdiqlang *',
+                prefixIcon: const Icon(Icons.lock),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Bekor qilish'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (oldPasswordController.text.isEmpty ||
+                  newPasswordController.text.length < 6 ||
+                  confirmPasswordController.text.isEmpty) {
+                Get.snackbar(
+                  'Xato',
+                  'Barcha maydonlarni to\'ldiring! Yangi parol kamida 6 ta belgidan iborat bo\'lishi kerak.',
+                  backgroundColor: Colors.red,
+                  colorText: Colors.white,
+                );
+                return;
+              }
+
+              if (newPasswordController.text !=
+                  confirmPasswordController.text) {
+                Get.snackbar(
+                  'Xato',
+                  'Yangi parollar mos kelmayapti!',
+                  backgroundColor: Colors.red,
+                  colorText: Colors.white,
+                );
+                return;
+              }
+
+              final success = await controller.updatePassword(
+                oldPasswordController.text.trim(),
+                newPasswordController.text.trim(),
+              );
+
+              if (success) {
+                Get.back();
+                Get.snackbar(
+                  'Muvaffaqiyatli',
+                  'Parol yangilandi!',
+                  backgroundColor: Colors.green,
+                  colorText: Colors.white,
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Saqlash', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ========== 5. EDIT USER TYPE DIALOG ==========
+  void _showEditUserTypeDialog(
+    BuildContext context,
+    ProfileController controller,
+  ) {
+    final user = controller.user.value;
+    if (user == null) return;
+
+    final selectedType = (user.userType).obs;
+
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.badge, color: Colors.purple),
+            SizedBox(width: 12),
+            Text('Akkount turi'),
+          ],
+        ),
+        content: Obx(
+          () => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildUserTypeOption(
+                'Ish qidiruvchi',
+                'Ish izlayotgan shaxslar uchun',
+                Icons.person_search,
+                'job_seeker',
+                selectedType.value == 'job_seeker',
+                () => selectedType.value = 'job_seeker',
+              ),
+              const SizedBox(height: 12),
+              _buildUserTypeOption(
+                'Ish beruvchi',
+                'Xodim izlayotgan kompaniyalar uchun',
+                Icons.business,
+                'employer',
+                selectedType.value == 'employer',
+                () => selectedType.value = 'employer',
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Bekor qilish'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final success = await controller.updateUserType(
+                selectedType.value,
+              );
+
+              if (success) {
+                Get.back();
+                Get.snackbar(
+                  'Muvaffaqiyatli',
+                  'Akkount turi yangilandi!',
+                  backgroundColor: Colors.green,
+                  colorText: Colors.white,
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+            child: const Text('Saqlash', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUserTypeOption(
+    String title,
+    String subtitle,
+    IconData icon,
+    String value,
+    bool isSelected,
+    VoidCallback onTap,
+  ) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.purple.shade50 : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? Colors.purple : Colors.grey.shade300,
+            width: 2,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? Colors.purple : Colors.grey,
+              size: 32,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: isSelected ? Colors.purple : Colors.black,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              const Icon(Icons.check_circle, color: Colors.purple),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ========== 6. EDIT BIO & LOCATION DIALOG ==========
+  void _showEditBioLocationDialog(
+    BuildContext context,
+    ProfileController controller,
+  ) {
+    final user = controller.user.value;
+    if (user == null) return;
+
+    final bioController = TextEditingController(text: user.bio);
+    final locationController = TextEditingController(text: user.location);
+
+    Get.dialog(
+      Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.7,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(
+                  color: Colors.teal,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info, color: Colors.white),
+                    SizedBox(width: 12),
+                    Text(
+                      'Bio va Manzil',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    TextField(
+                      controller: bioController,
+                      maxLines: 4,
+                      decoration: InputDecoration(
+                        labelText: 'Bio (o\'zingiz haqingizda)',
+                        hintText: 'Men dasturchi va dizaynerman...',
+                        prefixIcon: const Icon(Icons.info_outline),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: locationController,
+                      decoration: InputDecoration(
+                        labelText: 'Manzil',
+                        hintText: 'Toshkent, Chilonzor...',
+                        prefixIcon: const Icon(Icons.location_on_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Get.back(),
+                        child: const Text('Bekor qilish'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          final success = await controller.updateProfile(
+                            bio: bioController.text.trim(),
+                            location: locationController.text.trim(),
+                            firstName: '',
+                            lastName: '',
+                          );
+
+                          if (success) {
+                            Get.back();
+                            Get.snackbar(
+                              'Muvaffaqiyatli',
+                              'Ma\'lumotlar yangilandi!',
+                              backgroundColor: Colors.green,
+                              colorText: Colors.white,
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.teal,
+                        ),
+                        child: const Text(
+                          'Saqlash',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, color: AppConstants.primaryColor, size: 20),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: AppConstants.primaryColor,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    String? hint,
+    int maxLines = 1,
+    TextInputType? keyboardType,
+    bool enabled = true,
+  }) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      enabled: enabled,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        prefixIcon: Icon(icon, color: AppConstants.primaryColor),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: AppConstants.primaryColor,
+            width: 2,
+          ),
+        ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[200]!),
+        ),
+        filled: true,
+        fillColor: enabled ? Colors.white : Colors.grey[100],
+      ),
+    );
+  }
+
   Widget _buildStatItem(String value, String label, IconData icon) {
     return Column(
       children: [
@@ -442,12 +1536,18 @@ class ProfileScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
+
+          // ✅ BU YERDA O'ZGARISH - To'liq edit menu
           _buildMenuItem(
             Icons.edit_outlined,
             'edit_profile'.tr,
             AppConstants.primaryColor,
-            onTap: () => _showEditProfileDialog(context, profileController),
+            onTap: () => _showEditProfileMenu(
+              context,
+              profileController,
+            ), // ✅ TO'LIQ MENU
           ),
+
           _buildMenuItem(
             Icons.add_circle_outline,
             'create_post'.tr,
@@ -882,34 +1982,6 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    int maxLines = 1,
-  }) {
-    return TextField(
-      controller: controller,
-      maxLines: maxLines,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: AppConstants.primaryColor),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey[300]!),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: AppConstants.primaryColor,
-            width: 2,
-          ),
         ),
       ),
     );

@@ -50,6 +50,7 @@ class LanguageController extends GetxController {
         orElse: () => languages[0],
       );
       Get.updateLocale(lang['locale'] as Locale);
+      print('✅ Loaded language: $savedLang');
     } catch (e) {
       print('❌ Load language error: $e');
     }
@@ -66,9 +67,25 @@ class LanguageController extends GetxController {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('selected_language', code);
 
+      Get.snackbar(
+        'language_changed'.tr,
+        getCurrentLanguageName(),
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
+      );
+
       print('✅ Language changed to: $code');
     } catch (e) {
       print('❌ Change language error: $e');
+      Get.snackbar(
+        'error'.tr,
+        'Tilni o\'zgartirishda xatolik',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+      );
     }
   }
 
@@ -88,5 +105,10 @@ class LanguageController extends GetxController {
       orElse: () => languages[0],
     );
     return lang['flag'] as String;
+  }
+
+  // Kirill yoki Lotin ekanligini tekshirish
+  bool isCyrillic() {
+    return selectedLanguage.value == 'uz_UZ_CYRILLIC';
   }
 }

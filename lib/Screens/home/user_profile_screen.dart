@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:version1/Models/job_post.dart';
 import 'package:version1/config/constants.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class OtherUserProfilePage extends StatefulWidget {
   final String userId;
@@ -22,7 +23,6 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
   List<JobPost> activePosts = [];
   List<JobPost> completedPosts = [];
   bool isLoading = true;
-  bool isFollowing = false;
 
   late TabController _tabController;
 
@@ -42,14 +42,30 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
     try {
       setState(() => isLoading = true);
 
-      // Load user info
+      // ✅ Load FULL user info with ALL fields from database
       final userResponse = await supabase
           .from('users')
-          .select('id, first_name, last_name, username, profile_photo_url, bio')
+          .select('''
+            id,
+            username,
+            email,
+            first_name,
+            last_name,
+            bio,
+            profile_photo_url,
+            user_type,
+            is_email_verified,
+            location,
+            rating,
+            created_at,
+            updated_at,
+            is_active,
+            phone_number
+          ''')
           .eq('id', widget.userId)
           .single();
 
-      // Load user posts with images
+      // Load user posts
       final postsResponse = await supabase
           .from('posts')
           .select('''
@@ -110,20 +126,6 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
         shares += post.sharesCount ?? 0;
       }
 
-      // Check if following
-      final currentUserId = supabase.auth.currentUser?.id;
-      bool following = false;
-      if (currentUserId != null && currentUserId != widget.userId) {
-        final followResponse = await supabase
-            .from('follows')
-            .select('id')
-            .eq('follower_id', currentUserId)
-            .eq('following_id', widget.userId)
-            .maybeSingle();
-
-        following = followResponse != null;
-      }
-
       setState(() {
         userInfo = userResponse;
         activePosts = active;
@@ -131,7 +133,6 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
         totalViews = views;
         totalLikes = likes;
         totalShares = shares;
-        isFollowing = following;
         isLoading = false;
       });
     } catch (e) {
@@ -148,74 +149,43 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
     }
   }
 
-  Future<void> _toggleFollow() async {
+  // ✅ CALL USER - Open phone dialer
+  Future<void> _callUser() async {
     try {
-      final currentUserId = supabase.auth.currentUser?.id;
-      if (currentUserId == null) {
+      final phoneNumber = userInfo?['phone_number'];
+
+      if (phoneNumber == null || phoneNumber.isEmpty) {
         Get.snackbar(
-          'Xato',
-          'Iltimos, tizimga kiring',
+          'Ma\'lumot yo\'q',
+          'Bu foydalanuvchining telefon raqami mavjud emas',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.orange,
           colorText: Colors.white,
+          icon: const Icon(Icons.phone_disabled, color: Colors.white),
         );
         return;
       }
 
-      if (currentUserId == widget.userId) {
-        Get.snackbar(
-          'Xato',
-          'O\'zingizni follow qila olmaysiz',
-          snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.orange,
-          colorText: Colors.white,
-        );
-        return;
-      }
+      final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
 
-      setState(() => isFollowing = !isFollowing);
-
-      if (isFollowing) {
-        // Follow
-        await supabase.from('follows').insert({
-          'follower_id': currentUserId,
-          'following_id': widget.userId,
-          'created_at': DateTime.now().toIso8601String(),
-        });
-
-        Get.snackbar(
-          '✅ Follow qilindi',
-          'Endi bu foydalanuvchining postlarini ko\'rasiz',
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.green.withOpacity(0.8),
-          colorText: Colors.white,
-          duration: const Duration(seconds: 2),
-        );
+      if (await canLaunchUrl(launchUri)) {
+        await launchUrl(launchUri);
       } else {
-        // Unfollow
-        await supabase.from('follows').delete().match({
-          'follower_id': currentUserId,
-          'following_id': widget.userId,
-        });
-
         Get.snackbar(
-          'Unfollow qilindi',
-          '',
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: Colors.grey.withOpacity(0.8),
+          'Xato',
+          'Qo\'ng\'iroq qilish imkoni yo\'q',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
           colorText: Colors.white,
-          duration: const Duration(seconds: 2),
         );
       }
     } catch (e) {
-      print('Toggle follow error: $e');
-      setState(() => isFollowing = !isFollowing); // Revert
-
+      print('Call error: $e');
       Get.snackbar(
         'Xato',
-        'Follow qilishda xato',
+        'Qo\'ng\'iroq qilishda xato',
         snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.redAccent,
+        backgroundColor: Colors.red,
         colorText: Colors.white,
       );
     }
@@ -246,13 +216,11 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
         return;
       }
 
-      // Show loading
       Get.dialog(
         const Center(child: CircularProgressIndicator()),
         barrierDismissible: false,
       );
 
-      // Check if chat exists
       final existing = await supabase
           .from('chats')
           .select('id')
@@ -265,7 +233,6 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
       if (existing != null) {
         chatId = existing['id'];
       } else {
-        // Create new chat
         final response = await supabase
             .from('chats')
             .insert({
@@ -275,14 +242,11 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
             })
             .select()
             .single();
-
         chatId = response['id'];
       }
 
-      // Close loading dialog
       Get.back();
 
-      // Navigate to chat
       Get.toNamed(
         '/chat_detail',
         arguments: {
@@ -293,9 +257,8 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
         },
       );
     } catch (e) {
-      Get.back(); // Close loading
+      Get.back();
       print('Start chat error: $e');
-
       Get.snackbar(
         'Xato',
         'Chat ochishda xato',
@@ -313,6 +276,16 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
     return '$firstName $lastName'.trim().isEmpty
         ? (userInfo!['username'] ?? 'User')
         : '$firstName $lastName';
+  }
+
+  String _formatDate(dynamic date) {
+    if (date == null) return 'Noma\'lum';
+    try {
+      DateTime dt = DateTime.parse(date.toString());
+      return '${dt.day}.${dt.month}.${dt.year}';
+    } catch (e) {
+      return 'Noma\'lum';
+    }
   }
 
   @override
@@ -360,7 +333,7 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
     final totalPosts = activePosts.length + completedPosts.length;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         backgroundColor: Colors.white,
         foregroundColor: AppConstants.textPrimary,
@@ -371,163 +344,329 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
         ),
         actions: [
           IconButton(
-            onPressed: () {
-              _showMoreOptions();
-            },
+            onPressed: _showMoreOptions,
             icon: const Icon(Icons.more_vert),
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // Profile Header
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    // Avatar
-                    CircleAvatar(
-                      radius: 44,
-                      backgroundColor: AppConstants.primaryColor.withOpacity(
-                        0.1,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Profile Header Card
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      // Avatar
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundColor: AppConstants.primaryColor.withOpacity(
+                          0.1,
+                        ),
+                        backgroundImage:
+                            avatarUrl != null && avatarUrl.isNotEmpty
+                            ? NetworkImage(avatarUrl)
+                            : null,
+                        child: avatarUrl == null || avatarUrl.isEmpty
+                            ? Text(
+                                fullName.isNotEmpty
+                                    ? fullName[0].toUpperCase()
+                                    : 'U',
+                                style: const TextStyle(
+                                  color: AppConstants.primaryColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 36,
+                                ),
+                              )
+                            : null,
                       ),
-                      backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
-                          ? NetworkImage(avatarUrl)
-                          : null,
-                      child: avatarUrl == null || avatarUrl.isEmpty
-                          ? Text(
-                              fullName.isNotEmpty
-                                  ? fullName[0].toUpperCase()
-                                  : 'U',
-                              style: const TextStyle(
-                                color: AppConstants.primaryColor,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 32,
-                              ),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(width: 20),
+                      const SizedBox(width: 20),
 
-                    // Stats
-                    Expanded(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildStatColumn(totalPosts.toString(), 'Postlar'),
-                          _buildStatColumn(
-                            totalViews.toString(),
-                            'Ko\'rishlar',
-                          ),
-                          _buildStatColumn(totalLikes.toString(), 'Likelar'),
-                        ],
+                      // Stats
+                      Expanded(
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildStatColumn(totalPosts.toString(), 'Postlar'),
+                            _buildStatColumn(
+                              totalViews.toString(),
+                              'Ko\'rishlar',
+                            ),
+                            _buildStatColumn(totalLikes.toString(), 'Likelar'),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Name
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      fullName,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+
+                  if (username.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '@$username',
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 16),
 
-                // Name and Bio
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        fullName,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
+                  if (bio.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        bio,
+                        style: TextStyle(fontSize: 14, color: Colors.grey[700]),
                       ),
-                      if (bio.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          bio,
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[700],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
+                    ),
+                  ],
 
-                // Action Buttons
-                _buildActionButtons(),
-              ],
-            ),
-          ),
+                  const SizedBox(height: 20),
 
-          // Stats Row
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              border: Border(
-                top: BorderSide(color: Colors.grey[200]!),
-                bottom: BorderSide(color: Colors.grey[200]!),
+                  // Action Buttons
+                  _buildActionButtons(),
+                ],
               ),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatChip(
-                  Icons.grid_on,
-                  '${activePosts.length}',
-                  'Aktiv',
-                  Colors.green,
-                ),
-                _buildStatChip(
-                  Icons.check_circle_outline,
-                  '${completedPosts.length}',
-                  'Tugagan',
-                  Colors.grey,
-                ),
-                _buildStatChip(
-                  Icons.share_outlined,
-                  totalShares.toString(),
-                  'Ulashish',
-                  Colors.blue,
-                ),
-              ],
-            ),
-          ),
 
-          // Tabs
-          Container(
-            decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
-            ),
-            child: TabBar(
-              controller: _tabController,
-              indicatorColor: AppConstants.primaryColor,
-              labelColor: AppConstants.primaryColor,
-              unselectedLabelColor: Colors.grey,
-              labelStyle: const TextStyle(fontWeight: FontWeight.w600),
-              tabs: [
-                Tab(text: 'Aktiv (${activePosts.length})'),
-                Tab(text: 'Tugagan (${completedPosts.length})'),
-              ],
-            ),
-          ),
+            const SizedBox(height: 12),
 
-          // Posts
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildPostsList(activePosts, 'Hozircha aktiv post yo\'q'),
-                _buildPostsList(completedPosts, 'Hozircha tugagan post yo\'q'),
-              ],
+            // ✅ FULL USER INFO CARD
+            _buildFullUserInfoCard(),
+
+            const SizedBox(height: 12),
+
+            // Stats Card
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildStatChip(
+                    Icons.grid_on,
+                    '${activePosts.length}',
+                    'Aktiv',
+                    Colors.green,
+                  ),
+                  _buildStatChip(
+                    Icons.check_circle_outline,
+                    '${completedPosts.length}',
+                    'Tugagan',
+                    Colors.grey,
+                  ),
+                  _buildStatChip(
+                    Icons.share_outlined,
+                    totalShares.toString(),
+                    'Ulashish',
+                    Colors.blue,
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Tabs
+            Container(
+              color: Colors.white,
+              child: TabBar(
+                controller: _tabController,
+                indicatorColor: AppConstants.primaryColor,
+                labelColor: AppConstants.primaryColor,
+                unselectedLabelColor: Colors.grey,
+                labelStyle: const TextStyle(fontWeight: FontWeight.w600),
+                tabs: [
+                  Tab(text: 'Aktiv (${activePosts.length})'),
+                  Tab(text: 'Tugagan (${completedPosts.length})'),
+                ],
+              ),
+            ),
+
+            // Posts
+            SizedBox(
+              height: 500,
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _buildPostsList(activePosts, 'Hozircha aktiv post yo\'q'),
+                  _buildPostsList(
+                    completedPosts,
+                    'Hozircha tugagan post yo\'q',
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ✅ FULL USER INFO CARD
+  Widget _buildFullUserInfoCard() {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppConstants.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.person_outline,
+                  color: AppConstants.primaryColor,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Ma\'lumotlar',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          _buildInfoRow(
+            Icons.alternate_email,
+            'Username',
+            '@${userInfo!['username'] ?? 'N/A'}',
+          ),
+          const Divider(height: 24),
+
+          _buildInfoRow(
+            Icons.email_outlined,
+            'Email',
+            userInfo!['email'] ?? 'Kiritilmagan',
+            trailing: userInfo!['is_email_verified'] == true
+                ? const Icon(Icons.verified, color: Colors.green, size: 18)
+                : const Icon(Icons.cancel, color: Colors.orange, size: 18),
+          ),
+          const Divider(height: 24),
+
+          _buildInfoRow(
+            Icons.phone_outlined,
+            'Telefon',
+            userInfo!['phone_number'] ?? 'Kiritilmagan',
+          ),
+          const Divider(height: 24),
+
+          _buildInfoRow(
+            Icons.location_on_outlined,
+            'Manzil',
+            userInfo!['location'] ?? 'Kiritilmagan',
+          ),
+          const Divider(height: 24),
+
+          _buildInfoRow(
+            Icons.badge_outlined,
+            'Akkount turi',
+            userInfo!['user_type'] == 'job_seeker'
+                ? 'Ish qidiruvchi'
+                : 'Ish beruvchi',
+          ),
+          const Divider(height: 24),
+
+          _buildInfoRow(
+            Icons.star_outlined,
+            'Reyting',
+            '${userInfo!['rating'] ?? 0.0} ⭐',
+          ),
+          const Divider(height: 24),
+
+          _buildInfoRow(
+            Icons.calendar_today_outlined,
+            'Ro\'yxatdan o\'tdi',
+            _formatDate(userInfo!['created_at']),
+          ),
+          const Divider(height: 24),
+
+          _buildInfoRow(
+            Icons.circle,
+            'Holat',
+            userInfo!['is_active'] == true ? 'Aktiv' : 'Nofaol',
+            trailing: Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: userInfo!['is_active'] == true
+                    ? Colors.green
+                    : Colors.grey,
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildInfoRow(
+    IconData icon,
+    String label,
+    String value, {
+    Widget? trailing,
+  }) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppConstants.primaryColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 18, color: AppConstants.primaryColor),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: AppConstants.textPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (trailing != null) trailing,
+      ],
     );
   }
 
@@ -542,7 +681,7 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
           backgroundColor: Colors.grey[200],
           foregroundColor: Colors.black,
           elevation: 0,
-          minimumSize: const Size(double.infinity, 40),
+          minimumSize: const Size(double.infinity, 44),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: const Text(
@@ -554,43 +693,41 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
 
     return Row(
       children: [
+        // ✅ CALL BUTTON
         Expanded(
-          flex: 2,
           child: ElevatedButton.icon(
-            onPressed: _toggleFollow,
+            onPressed: _callUser,
             style: ElevatedButton.styleFrom(
-              backgroundColor: isFollowing
-                  ? Colors.grey[200]
-                  : AppConstants.primaryColor,
-              foregroundColor: isFollowing ? Colors.black : Colors.white,
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
               elevation: 0,
-              padding: const EdgeInsets.symmetric(vertical: 10),
+              padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            icon: Icon(isFollowing ? Icons.check : Icons.person_add, size: 18),
-            label: Text(
-              isFollowing ? 'Kuzatilmoqda' : 'Kuzatish',
-              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+            icon: const Icon(Icons.phone, size: 20),
+            label: const Text(
+              'Qo\'ng\'iroq',
+              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
             ),
           ),
         ),
         const SizedBox(width: 8),
+        // MESSAGE BUTTON
         Expanded(
-          flex: 2,
           child: ElevatedButton.icon(
             onPressed: _startChat,
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.grey[200],
-              foregroundColor: Colors.black,
+              backgroundColor: AppConstants.primaryColor,
+              foregroundColor: Colors.white,
               elevation: 0,
-              padding: const EdgeInsets.symmetric(vertical: 10),
+              padding: const EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            icon: const Icon(Icons.chat_bubble_outline, size: 18),
+            icon: const Icon(Icons.chat_bubble_outline, size: 20),
             label: const Text(
               'Xabar',
               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
@@ -606,9 +743,9 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
       children: [
         Text(
           count,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 4),
         Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
       ],
     );
@@ -667,9 +804,7 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
 
   Widget _buildPostCard(JobPost post) {
     return GestureDetector(
-      onTap: () {
-        // Navigate to post detail
-      },
+      onTap: () {},
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
@@ -687,7 +822,6 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Post Image
             if (post.hasImages)
               ClipRRect(
                 borderRadius: const BorderRadius.vertical(
@@ -698,22 +832,19 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
                   height: 180,
                   width: double.infinity,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      height: 180,
-                      color: Colors.grey[200],
-                      child: Center(
-                        child: Icon(
-                          Icons.image_not_supported,
-                          color: Colors.grey[400],
-                          size: 48,
-                        ),
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: 180,
+                    color: Colors.grey[200],
+                    child: Center(
+                      child: Icon(
+                        Icons.image_not_supported,
+                        color: Colors.grey[400],
+                        size: 48,
                       ),
-                    );
-                  },
+                    ),
+                  ),
                 ),
               ),
-
             Padding(
               padding: const EdgeInsets.all(12),
               child: Column(
@@ -807,26 +938,17 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
             ListTile(
               leading: const Icon(Icons.share),
               title: const Text('Profilni ulashish'),
-              onTap: () {
-                Get.back();
-                // Share profile logic
-              },
+              onTap: () => Get.back(),
             ),
             ListTile(
               leading: const Icon(Icons.report),
               title: const Text('Shikoyat qilish'),
-              onTap: () {
-                Get.back();
-                // Report logic
-              },
+              onTap: () => Get.back(),
             ),
             ListTile(
               leading: const Icon(Icons.block),
               title: const Text('Block qilish'),
-              onTap: () {
-                Get.back();
-                // Block logic
-              },
+              onTap: () => Get.back(),
             ),
           ],
         ),

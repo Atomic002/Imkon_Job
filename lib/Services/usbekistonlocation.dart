@@ -1,0 +1,516 @@
+class UzbekistanLocations {
+  static final Map<String, List<String>> regions = {
+    'Toshkent shahri': [
+      'Bektemir',
+      'Chilonzor',
+      'Mirobod',
+      'Mirzo Ulug\'bek',
+      'Olmazor',
+      'Sergeli',
+      'Shayhontohur',
+      'Uchtepa',
+      'Yashnobod',
+      'Yakkasaroy',
+      'Yunusobod',
+    ],
+    'Toshkent viloyati': [
+      'Angren',
+      'Bekobod',
+      'Bo\'ka',
+      'Bo\'stonliq',
+      'Chinoz',
+      'Qibray',
+      'Ohangaron',
+      'Oqqo\'rg\'on',
+      'Parkent',
+      'Piskent',
+      'Quyichirchiq',
+      'Toshkent',
+      'O\'rtachirchiq',
+      'Yangiyo\'l',
+      'Yuqorichirchiq',
+      'Zangiota',
+    ],
+    'Andijon': [
+      'Andijon shahri',
+      'Xonobod shahri',
+      'Andijon',
+      'Asaka',
+      'Baliqchi',
+      'Bo\'z',
+      'Buloqboshi',
+      'Jalaquduq',
+      'Izboskan',
+      'Qo\'rg\'ontepa',
+      'Marhamat',
+      'Oltinko\'l',
+      'Paxtaobod',
+      'Ulug\'nor',
+      'Xo\'jaobod',
+      'Shahrixon',
+    ],
+    'Buxoro': [
+      'Buxoro shahri',
+      'Buxoro',
+      'Vobkent',
+      'G\'ijduvon',
+      'Jondor',
+      'Kogon',
+      'Olot',
+      'Peshku',
+      'Qorako\'l',
+      'Qorovulbozor',
+      'Romitan',
+      'Shofirkon',
+    ],
+    'Farg\'ona': [
+      'Farg\'ona shahri',
+      'Qo\'qon shahri',
+      'Marg\'ilon shahri',
+      'Oltiariq',
+      'Bag\'dod',
+      'Beshariq',
+      'Buvayda',
+      'Dang\'ara',
+      'Farg\'ona',
+      'Furqat',
+      'O\'zbekiston',
+      'Qo\'shtepa',
+      'Quva',
+      'Rishton',
+      'So\'x',
+      'Toshloq',
+      'Uchko\'prik',
+      'Yozyovon',
+    ],
+    'Jizzax': [
+      'Jizzax shahri',
+      'Arnasoy',
+      'Baxmal',
+      'Do\'stlik',
+      'Forish',
+      'G\'allaorol',
+      'Sharof Rashidov',
+      'Mirzacho\'l',
+      'Paxtakor',
+      'Yangiobod',
+      'Zomin',
+      'Zarbdor',
+    ],
+    'Xorazm': [
+      'Urganch shahri',
+      'Xiva shahri',
+      'Bog\'ot',
+      'Gurlan',
+      'Qo\'shko\'pir',
+      'Urganch',
+      'Xiva',
+      'Xonqa',
+      'Shovot',
+      'Yangiariq',
+      'Yangibozor',
+    ],
+    'Namangan': [
+      'Namangan shahri',
+      'Chortoq',
+      'Chust',
+      'Kosonsoy',
+      'Mingbuloq',
+      'Namangan',
+      'Norin',
+      'Pop',
+      'To\'raqo\'rg\'on',
+      'Uchqo\'rg\'on',
+      'Uychi',
+      'Yangiqo\'rg\'on',
+    ],
+    'Navoiy': [
+      'Navoiy shahri',
+      'Zarafshon shahri',
+      'Karmana',
+      'Konimex',
+      'Qiziltepa',
+      'Navoiy',
+      'Nurota',
+      'Tomdi',
+      'Uchquduq',
+      'Xatirchi',
+    ],
+    'Qashqadaryo': [
+      'Qarshi shahri',
+      'Shahrisabz shahri',
+      'Chiroqchi',
+      'Dehqonobod',
+      'G\'uzor',
+      'Qamashi',
+      'Qarshi',
+      'Kasbi',
+      'Kitob',
+      'Koson',
+      'Mirishkor',
+      'Muborak',
+      'Nishon',
+      'Yakkabog\'',
+      'Shahrisabz',
+    ],
+    'Qoraqalpog\'iston': [
+      'Nukus shahri',
+      'Amudaryo',
+      'Beruniy',
+      'Chimboy',
+      'Ellikqal\'a',
+      'Kegeyli',
+      'Mo\'ynoq',
+      'Nukus',
+      'Qonliko\'l',
+      'Qorao\'zak',
+      'Qo\'ng\'irot',
+      'Shumanay',
+      'Taxtako\'pir',
+      'To\'rtko\'l',
+      'Xo\'jayli',
+    ],
+    'Samarqand': [
+      'Samarqand shahri',
+      'Kattaqo\'rg\'on shahri',
+      'Bulung\'ur',
+      'Ishtixon',
+      'Jomboy',
+      'Kattaqo\'rg\'on',
+      'Narpay',
+      'Nurobod',
+      'Oqdaryo',
+      'Payariq',
+      'Pastdarg\'om',
+      'Paxtachi',
+      'Qo\'shrabot',
+      'Samarqand',
+      'Toyloq',
+      'Urgut',
+    ],
+    'Sirdaryo': [
+      'Guliston shahri',
+      'Boyovut',
+      'Guliston',
+      'Xovos',
+      'Mirzaobod',
+      'Oqoltin',
+      'Sayhunobod',
+      'Sardoba',
+      'Sirdaryo',
+    ],
+    'Surxondaryo': [
+      'Termiz shahri',
+      'Angor',
+      'Boysun',
+      'Denov',
+      'Jarqo\'rg\'on',
+      'Muzrabot',
+      'Oltinsoy',
+      'Qiziriq',
+      'Qumqo\'rg\'on',
+      'Sariosiyo',
+      'Sherobod',
+      'Sho\'rchi',
+      'Termiz',
+      'Uzun',
+    ],
+  };
+
+  static final Map<String, Map<String, List<String>>> districtVillages = {
+    'Toshkent shahri': {
+      'Bektemir': [
+        'Sergeli MFY',
+        'Qoyliq MFY',
+        'Salar MFY',
+        'Yashnobod MFY',
+        'Bektemir MFY',
+        'Oqtepa MFY',
+      ],
+      'Chilonzor': [
+        'Chilonzor MFY',
+        'Navbahor MFY',
+        'Qatortol MFY',
+        'Minor MFY',
+        'Qorasaroy MFY',
+        'Parkent MFY',
+      ],
+      'Mirobod': [
+        'Mirobod MFY',
+        'Yakkasaroy MFY',
+        'Sebzor MFY',
+        'Paxtakor MFY',
+        'Almazar MFY',
+        'Yangiobod MFY',
+      ],
+      'Mirzo Ulug\'bek': [
+        'Mirzo Ulug\'bek MFY',
+        'Qorasu MFY',
+        'Toshkent MFY',
+        'Minor MFY',
+        'Sebzor MFY',
+        'Olmazor MFY',
+      ],
+      'Olmazor': [
+        'Olmazor MFY',
+        'Qoyliq MFY',
+        'Navbahor MFY',
+        'Minor MFY',
+        'Bog\'ishamol MFY',
+        'Chimboy MFY',
+      ],
+      'Sergeli': [
+        'Sergeli MFY',
+        'Qoyliq MFY',
+        'Salar MFY',
+        'Yashnobod MFY',
+        'Oqtepa MFY',
+        'Bektemir MFY',
+      ],
+      'Shayhontohur': [
+        'Shayhontohur MFY',
+        'Shota Rustaveli MFY',
+        'Amir Temur MFY',
+        'Hamza MFY',
+        'Bobur MFY',
+        'Minor MFY',
+      ],
+      'Uchtepa': [
+        'Uchtepa MFY',
+        'Qoyliq MFY',
+        'Minor MFY',
+        'Buyuk Ipak Yo\'li MFY',
+        'Chimboy MFY',
+        'Sebzor MFY',
+      ],
+      'Yashnobod': [
+        'Yashnobod MFY',
+        'Oqtepa MFY',
+        'Qoyliq MFY',
+        'Minor MFY',
+        'Sergeli MFY',
+        'Paxtakor MFY',
+      ],
+      'Yakkasaroy': [
+        'Yakkasaroy MFY',
+        'Sebzor MFY',
+        'Mirobod MFY',
+        'Minor MFY',
+        'Almazar MFY',
+        'Hamza MFY',
+      ],
+      'Yunusobod': [
+        'Yunusobod MFY',
+        'Minor MFY',
+        'Olmazor MFY',
+        'Sebzor MFY',
+        'Qoyliq MFY',
+        'Navbahor MFY',
+      ],
+    },
+    'Toshkent viloyati': {
+      'Angren': [
+        'Angren shahri',
+        'Suyuqbulok MFY',
+        'Oqtosh MFY',
+        'Qoratosh MFY',
+      ],
+      'Bekobod': [
+        'Bekobod shahri',
+        'Qiziltepa MFY',
+        'Yangibozor MFY',
+        'Oqtosh MFY',
+      ],
+      'Chinoz': [
+        'Chinoz shahri',
+        'Yangiyo\'l MFY',
+        'Qoratosh MFY',
+        'Minor MFY',
+      ],
+      'Qibray': [
+        'Qibray shahri',
+        'Ulug\'bek MFY',
+        'Minor MFY',
+        'Yangibozor MFY',
+      ],
+      'Ohangaron': [
+        'Ohangaron shahri',
+        'Qoratosh MFY',
+        'Minor MFY',
+        'Yangibozor MFY',
+      ],
+    },
+    'Andijon': {
+      'Andijon shahri': [
+        'Bobur MFY',
+        'Navbahor MFY',
+        'Minor MFY',
+        'Oqtepa MFY',
+      ],
+      'Asaka': ['Asaka shahri', 'Minor MFY', 'Navbahor MFY', 'Oqtepa MFY'],
+      'Baliqchi': [
+        'Baliqchi MFY',
+        'Minor MFY',
+        'Yangibozor MFY',
+        'Navbahor MFY',
+      ],
+    },
+    'Buxoro': {
+      'Buxoro shahri': [
+        'Istiqlol MFY',
+        'Navbahor MFY',
+        'Minor MFY',
+        'Oqtepa MFY',
+      ],
+      'Kogon': ['Kogon shahri', 'Minor MFY', 'Navbahor MFY', 'Yangibozor MFY'],
+    },
+    'Farg\'ona': {
+      'Farg\'ona shahri': [
+        'Bobur MFY',
+        'Minor MFY',
+        'Navbahor MFY',
+        'Oqtepa MFY',
+      ],
+      'Qo\'qon shahri': [
+        'Istiqlol MFY',
+        'Minor MFY',
+        'Navbahor MFY',
+        'Bobur MFY',
+      ],
+      'Marg\'ilon shahri': [
+        'Minor MFY',
+        'Navbahor MFY',
+        'Istiqlol MFY',
+        'Oqtepa MFY',
+      ],
+    },
+    'Jizzax': {
+      'Jizzax shahri': [
+        'Istiqlol MFY',
+        'Minor MFY',
+        'Navbahor MFY',
+        'Oqtepa MFY',
+      ],
+    },
+    'Xorazm': {
+      'Urganch shahri': [
+        'Istiqlol MFY',
+        'Minor MFY',
+        'Navbahor MFY',
+        'Oqtepa MFY',
+      ],
+      'Xiva shahri': [
+        'Ichan Qal\'a',
+        'Minor MFY',
+        'Navbahor MFY',
+        'Istiqlol MFY',
+      ],
+    },
+    'Namangan': {
+      'Namangan shahri': [
+        'Istiqlol MFY',
+        'Minor MFY',
+        'Navbahor MFY',
+        'Oqtepa MFY',
+      ],
+    },
+    'Navoiy': {
+      'Navoiy shahri': [
+        'Istiqlol MFY',
+        'Minor MFY',
+        'Navbahor MFY',
+        'Oqtepa MFY',
+      ],
+      'Zarafshon shahri': [
+        'Minor MFY',
+        'Navbahor MFY',
+        'Istiqlol MFY',
+        'Oqtepa MFY',
+      ],
+    },
+    'Qashqadaryo': {
+      'Qarshi shahri': [
+        'Istiqlol MFY',
+        'Minor MFY',
+        'Navbahor MFY',
+        'Oqtepa MFY',
+      ],
+      'Shahrisabz shahri': [
+        'Minor MFY',
+        'Navbahor MFY',
+        'Istiqlol MFY',
+        'Oqtepa MFY',
+      ],
+    },
+    'Qoraqalpog\'iston': {
+      'Nukus shahri': [
+        'Istiqlol MFY',
+        'Minor MFY',
+        'Navbahor MFY',
+        'Oqtepa MFY',
+      ],
+    },
+    'Samarqand': {
+      'Samarqand shahri': [
+        'Registon MFY',
+        'Minor MFY',
+        'Navbahor MFY',
+        'Oqtepa MFY',
+      ],
+      'Kattaqo\'rg\'on shahri': [
+        'Minor MFY',
+        'Navbahor MFY',
+        'Istiqlol MFY',
+        'Oqtepa MFY',
+      ],
+    },
+    'Sirdaryo': {
+      'Guliston shahri': [
+        'Istiqlol MFY',
+        'Minor MFY',
+        'Navbahor MFY',
+        'Oqtepa MFY',
+      ],
+    },
+    'Surxondaryo': {
+      'Termiz shahri': [
+        'Istiqlol MFY',
+        'Minor MFY',
+        'Navbahor MFY',
+        'Oqtepa MFY',
+      ],
+    },
+  };
+
+  // Get all regions list
+  static List<String> getAllRegions() {
+    return regions.keys.toList();
+  }
+
+  // Get districts by region
+  static List<String> getDistrictsByRegion(String region) {
+    return regions[region] ?? [];
+  }
+
+  // Get villages by region and district
+  static List<String> getVillagesByDistrict(String region, String district) {
+    return districtVillages[region]?[district] ?? [];
+  }
+
+  // Check if region exists
+  static bool isValidRegion(String region) {
+    return regions.containsKey(region);
+  }
+
+  // Check if district exists in region
+  static bool isValidDistrict(String region, String district) {
+    final districts = regions[region];
+    return districts != null && districts.contains(district);
+  }
+
+  // Check if village exists in district
+  static bool isValidVillage(String region, String district, String village) {
+    final villages = districtVillages[region]?[district];
+    return villages != null && villages.contains(village);
+  }
+}

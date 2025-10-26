@@ -1,5 +1,7 @@
+// ==================== splash_screen.dart (FIXED) ====================
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:version1/controller/auth_controller.dart';
 import '../../config/constants.dart';
@@ -21,7 +23,7 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
     _setupAnimation();
-    _checkAuthAndNavigate();
+    _checkAndNavigate();
   }
 
   void _setupAnimation() {
@@ -43,37 +45,49 @@ class _SplashScreenState extends State<SplashScreen>
     _controller.forward();
   }
 
-  // ✅ AUTH CHECK va NAVIGATION
-  Future<void> _checkAuthAndNavigate() async {
+  // ✅ TO'G'RI NAVIGATION LOGIC
+  Future<void> _checkAndNavigate() async {
     try {
-      // ✅ AuthController initialize qilish
-      await Get.putAsync<AuthController>(() async {
-        return AuthController();
-      });
-
-      // ✅ User logged in yoki yo'qligini tekshirish
-      final supabase = Supabase.instance.client;
-      final user = supabase.auth.currentUser;
-
-      // Animation uchun 2 soniya kutish
+      // Animation uchun kutish
       await Future.delayed(const Duration(seconds: 2));
 
       if (!mounted) return;
 
+      final prefs = await SharedPreferences.getInstance();
+
+      // 1️⃣ Onboarding ko'rilganmi tekshirish
+      final onboardingShown = prefs.getBool('onboarding_shown') ?? false;
+
+      if (!onboardingShown) {
+        // Birinchi marta - Onboarding ga o'tish
+        print('📱 First time user - showing onboarding');
+        Get.offAllNamed('/onboarding');
+        return;
+      }
+
+      // 2️⃣ AuthController initialize
+      await Get.putAsync<AuthController>(() async {
+        return AuthController();
+      });
+
+      // 3️⃣ User logged in yoki yo'qligini tekshirish
+      final supabase = Supabase.instance.client;
+      final user = supabase.auth.currentUser;
+
       if (user != null) {
-        // ✅ Login qilgan - Home ga o'tish
+        // Logged in - Home ga o'tish
         print('✅ User logged in: ${user.email}');
         Get.offAllNamed('/home');
       } else {
-        // ✅ Login qilmagan - Onboarding ga o'tish
-        print('❌ User not logged in');
-        Get.offAllNamed('/onboarding');
+        // Not logged in - Login ga o'tish
+        print('❌ User not logged in - showing login');
+        Get.offAllNamed('/login');
       }
     } catch (e) {
-      print('Auth check error: $e');
-      // Error bo'lsa Onboarding ga o'tish
+      print('Navigation error: $e');
       if (mounted) {
-        Get.offAllNamed('/onboarding');
+        // Error bo'lsa Login ga o'tish
+        Get.offAllNamed('/login');
       }
     }
   }
@@ -120,9 +134,9 @@ class _SplashScreenState extends State<SplashScreen>
                         ),
                       ),
                       const SizedBox(height: 30),
-                      Text(
+                      const Text(
                         'JobHub',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 42,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,

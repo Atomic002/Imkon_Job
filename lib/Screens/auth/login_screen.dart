@@ -34,7 +34,7 @@ class LoginScreen extends StatelessWidget {
 
               // ✅ Subtitle
               Text(
-                'Akkauntingizga kiring',
+                'login_desc'.tr,
                 style: const TextStyle(
                   fontSize: 16,
                   color: AppConstants.textSecondary,
@@ -42,11 +42,11 @@ class LoginScreen extends StatelessWidget {
               ),
               const SizedBox(height: 50),
 
-              // ✅ USERNAME FIELD
+              // ✅ TELEFON YOKI USERNAME
               CustomTextField(
-                controller: controller.usernameController,
-                label: 'username'.tr,
-                hint: 'enter_username'.tr,
+                controller: controller.phoneOrUsernameController,
+                label: 'phone_or_username'.tr,
+                hint: 'enter_phone_or_username'.tr,
                 icon: Icons.person_outline_rounded,
               ),
               const SizedBox(height: 20),
@@ -67,25 +67,6 @@ class LoginScreen extends StatelessWidget {
                       color: AppConstants.textSecondary,
                     ),
                     onPressed: controller.togglePasswordVisibility,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // ✅ FORGOT PASSWORD
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () {
-                    // Forgot password sahifasiga o'tish
-                    // Get.toNamed('/forgot-password');
-                  },
-                  child: Text(
-                    'forgot_password'.tr,
-                    style: const TextStyle(
-                      color: AppConstants.primaryColor,
-                      fontWeight: FontWeight.w600,
-                    ),
                   ),
                 ),
               ),
