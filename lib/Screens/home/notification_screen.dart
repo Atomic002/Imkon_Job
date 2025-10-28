@@ -36,12 +36,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           .eq('user_id', userId)
           .order('created_at', ascending: false);
 
-      if (response != null) {
-        setState(() {
-          notifications = List<Map<String, dynamic>>.from(response);
-          isLoading = false;
-        });
-      }
+      setState(() {
+        notifications = List<Map<String, dynamic>>.from(response);
+        isLoading = false;
+      });
     } catch (e) {
       print('Error loading notifications: $e');
       setState(() => isLoading = false);

@@ -193,28 +193,48 @@ class HomeScreen extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            height: 40,
+            width: 40,
+            padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              gradient: AppConstants.primaryGradient,
-              borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-            ),
-            child: const Icon(
-              Icons.work_rounded,
               color: Colors.white,
-              size: 24,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: AppConstants.primaryColor.withOpacity(0.3),
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppConstants.primaryColor.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Image.asset(
+              'assets/images/Logotip/image.png',
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) {
+                // Agar rasm topilmasa, default icon
+                return const Icon(
+                  Icons.work_rounded,
+                  size: 24,
+                  color: AppConstants.primaryColor,
+                );
+              },
             ),
           ),
           const SizedBox(width: 12),
+          // JobHub text
           const Text(
-            'JobHub',
+            'Imknon Job',
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
-              color: AppConstants.textPrimary,
+              color: AppConstants.primaryColor,
             ),
           ),
           const Spacer(),
-          // Refresh Button
           IconButton(
             icon: const Icon(Icons.refresh_rounded, size: 26),
             onPressed: () {

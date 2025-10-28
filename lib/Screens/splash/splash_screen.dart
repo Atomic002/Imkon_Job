@@ -115,27 +115,40 @@ class _SplashScreenState extends State<SplashScreen>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(30),
+                        height: 120,
+                        width: 120,
+                        padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(30),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppConstants.primaryColor.withOpacity(0.3),
+                            width: 2,
+                          ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: AppConstants.primaryColor.withOpacity(0.1),
                               blurRadius: 30,
-                              spreadRadius: 5,
+                              offset: const Offset(0, 2),
                             ),
                           ],
                         ),
-                        child: const Icon(
-                          Icons.work_rounded,
-                          size: 80,
-                          color: AppConstants.primaryColor,
+                        child: Image.asset(
+                          'assets/images/Logotip/image.png',
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            // Agar rasm topilmasa, default icon
+                            return const Icon(
+                              Icons.work_rounded,
+                              size: 60,
+                              color: AppConstants.primaryColor,
+                            );
+                          },
                         ),
                       ),
                       const SizedBox(height: 30),
                       const Text(
-                        'JobHub',
+                        'Imkon Job',
                         style: TextStyle(
                           fontSize: 42,
                           fontWeight: FontWeight.bold,

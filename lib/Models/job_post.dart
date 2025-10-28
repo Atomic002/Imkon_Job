@@ -20,12 +20,14 @@ class JobPost {
   final bool isActive;
   final int? sharesCount;
   final int? durationDays;
+  final String? postType;
+  final String? salaryType;
+  final String? skills;
+  final String? experience;
 
-  // ✅ YANGI FIELDLAR
-  final String? postType; // employee_needed, job_needed, one_time_job
-  final String? salaryType; // daily, monthly, freelance
-  final String? skills; // job_needed uchun
-  final String? experience; // job_needed uchun
+  // ✅ KATEGORIYA VA SUB-KATEGORIYA NOMLARI
+  final String? categoryName;
+  final String? subCategoryName;
 
   JobPost({
     required this.id,
@@ -53,35 +55,38 @@ class JobPost {
     this.salaryType,
     this.skills,
     this.experience,
+    this.categoryName,
+    this.subCategoryName,
   });
 
-  // ✅ FROM JSON - Supabase dan kelgan ma'lumotlarni parse qilish
+  // ✅ FROM JSON - MUKAMMAL VERSIYA
   factory JobPost.fromJson(Map<String, dynamic> json) {
-    // Images listini to‘liq URL yoki path bo‘lishidan qat’i nazar ishlay oladi
+    // 🖼️ Images - To'g'ri formatlash
     List<String>? imageUrls;
     if (json['post_images'] != null && json['post_images'] is List) {
       imageUrls = (json['post_images'] as List)
           .map((img) {
-            final url = img['image_url']?.toString();
-            if (url == null || url.isEmpty) return '';
-            // Agar to‘liq URL bo‘lsa, o‘z holida qoldiramiz
+            if (img == null || img is! Map) return '';
+            final url = img['image_url']?.toString() ?? '';
+            if (url.isEmpty) return '';
             if (url.startsWith('http')) return url;
-            // Aks holda Supabase public path yasaymiz
             return 'https://lebttvzssavbjkoumebf.supabase.co/storage/v1/object/public/post-images/$url';
           })
           .where((url) => url.isNotEmpty)
           .toList();
+
+      if (imageUrls.isEmpty) imageUrls = null;
     }
 
-    // Users jadvalidan ma'lumot olish
+    // 👤 User info - Xavfsiz olish
     String companyName = 'Kompaniya';
     String? companyLogo;
 
     if (json['users'] != null && json['users'] is Map) {
       final user = json['users'] as Map<String, dynamic>;
-      final firstName = user['first_name'] as String? ?? '';
-      final lastName = user['last_name'] as String? ?? '';
-      final username = user['username'] as String? ?? '';
+      final firstName = user['first_name']?.toString().trim() ?? '';
+      final lastName = user['last_name']?.toString().trim() ?? '';
+      final username = user['username']?.toString().trim() ?? '';
 
       companyName = '$firstName $lastName'.trim();
       if (companyName.isEmpty && username.isNotEmpty) {
@@ -91,42 +96,92 @@ class JobPost {
         companyName = 'Kompaniya';
       }
 
-      companyLogo = user['profile_photo_url'] as String?;
-      if (companyLogo != null && !companyLogo.startsWith('http')) {
+      companyLogo = user['profile_photo_url']?.toString();
+      if (companyLogo != null &&
+          companyLogo.isNotEmpty &&
+          !companyLogo.startsWith('http')) {
         companyLogo =
             'https://lebttvzssavbjkoumebf.supabase.co/storage/v1/object/public/profile_images/$companyLogo';
       }
     }
 
+    // 📂 KATEGORIYA NOMI - Xavfsiz olish
+    String? categoryName;
+    if (json['categories'] != null) {
+      if (json['categories'] is Map) {
+        final catMap = json['categories'] as Map<String, dynamic>;
+        categoryName = catMap['name']?.toString();
+      } else if (json['categories'] is String) {
+        categoryName = json['categories'] as String;
+      }
+    }
+
+    // 🏷️ SUB-KATEGORIYA NOMI - MUKAMMAL XAVFSIZ OLISH
+    String? subCategoryName;
+    if (json['sub_categories'] != null) {
+      if (json['sub_categories'] is Map) {
+        final subCatMap = json['sub_categories'] as Map<String, dynamic>;
+        subCategoryName = subCatMap['name']?.toString();
+      } else if (json['sub_categories'] is String) {
+        subCategoryName = json['sub_categories'] as String;
+      }
+    }
+
+    // 🐛 DEBUG - Agar kerak bo'lsa commentdan chiqaring
+    // print('📊 Category: $categoryName, Sub: $subCategoryName');
+    // print('🔍 Raw sub_categories: ${json['sub_categories']}');
+
     return JobPost(
-      id: json['id'] as String,
-      title: json['title'] as String? ?? 'Sarlavha yo\'q',
-      description: json['description'] as String? ?? '',
+      id: json['id']?.toString() ?? '',
+      title: json['title']?.toString() ?? 'Sarlavha yo\'q',
+      description: json['description']?.toString() ?? '',
       company: companyName,
       companyLogo: companyLogo,
-      location: json['location'] as String? ?? 'Joylashuv ko\'rsatilmagan',
-      salaryMin: json['salary_min'] as int? ?? 0,
-      salaryMax: json['salary_max'] as int? ?? 0,
-      views: json['views_count'] as int? ?? 0,
-      likes: json['likes_count'] as int? ?? 0,
-      categoryIdNum: json['category_id'] as int?,
-      subCategoryId: json['sub_category_id'] as int?,
-      userId: json['user_id'] as String? ?? '',
+      location: json['location']?.toString() ?? 'Joylashuv ko\'rsatilmagan',
+      salaryMin: _parseInt(json['salary_min']),
+      salaryMax: _parseInt(json['salary_max']),
+      views: _parseInt(json['views_count']),
+      likes: _parseInt(json['likes_count']),
+      categoryIdNum: _parseInt(json['category_id']),
+      subCategoryId: _parseInt(json['sub_category_id']),
+      userId: json['user_id']?.toString() ?? '',
       imageUrls: imageUrls,
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
-          : DateTime.now(),
-      requirementsMain: json['requirements_main'] as String?,
-      requirementsBasic: json['requirements_basic'] as String?,
-      status: json['status'] as String? ?? 'approved',
-      isActive: json['is_active'] as bool? ?? true,
-      sharesCount: json['shares_count'] as int?,
-      durationDays: json['duration_days'] as int?,
-      postType: json['post_type'] as String?,
-      salaryType: json['salary_type'] as String?,
-      skills: json['skills'] as String?,
-      experience: json['experience'] as String?,
+      createdAt: _parseDateTime(json['created_at']),
+      requirementsMain: json['requirements_main']?.toString(),
+      requirementsBasic: json['requirements_basic']?.toString(),
+      status: json['status']?.toString() ?? 'approved',
+      isActive: json['is_active'] == true,
+      sharesCount: _parseInt(json['shares_count']),
+      durationDays: _parseInt(json['duration_days']),
+      postType: json['post_type']?.toString(),
+      salaryType: json['salary_type']?.toString(),
+      skills: json['skills']?.toString(),
+      experience: json['experience']?.toString(),
+      categoryName: categoryName,
+      subCategoryName: subCategoryName,
     );
+  }
+
+  // 🛠️ HELPER METODLAR
+  static int _parseInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
+
+  static DateTime _parseDateTime(dynamic value) {
+    if (value == null) return DateTime.now();
+    if (value is DateTime) return value;
+    if (value is String) {
+      try {
+        return DateTime.parse(value);
+      } catch (e) {
+        return DateTime.now();
+      }
+    }
+    return DateTime.now();
   }
 
   // ✅ TO JSON
@@ -184,6 +239,8 @@ class JobPost {
     String? salaryType,
     String? skills,
     String? experience,
+    String? categoryName,
+    String? subCategoryName,
   }) {
     return JobPost(
       id: id ?? this.id,
@@ -211,7 +268,62 @@ class JobPost {
       salaryType: salaryType ?? this.salaryType,
       skills: skills ?? this.skills,
       experience: experience ?? this.experience,
+      categoryName: categoryName ?? this.categoryName,
+      subCategoryName: subCategoryName ?? this.subCategoryName,
     );
+  }
+
+  // ✅ KATEGORIYA VA SUB-KATEGORIYA DISPLAY - MUKAMMAL
+  String getCategoryDisplay() {
+    // 1. Agar ikkala nom ham mavjud bo'lsa
+    if (categoryName != null && categoryName!.isNotEmpty) {
+      if (subCategoryName != null && subCategoryName!.isNotEmpty) {
+        return '$categoryName • $subCategoryName';
+      }
+      return categoryName!;
+    }
+
+    // 2. Fallback - ID bo'yicha
+    final catName = getCategoryName(categoryIdNum);
+    if (subCategoryId != null && subCategoryId! > 0) {
+      final subName = _getSubCategoryFallback(categoryIdNum, subCategoryId);
+      if (subName.isNotEmpty) {
+        return '$catName • $subName';
+      }
+    }
+
+    return catName;
+  }
+
+  // 🔄 Sub-kategoriya fallback (agar database dan kelmasa)
+  String _getSubCategoryFallback(int? catId, int? subId) {
+    if (catId == null || subId == null) return '';
+
+    // IT (1)
+    if (catId == 1) {
+      final subs = {
+        1: 'Web Dasturlash',
+        2: 'Mobile Dasturlash',
+        3: 'Backend',
+        4: 'DevOps',
+        5: 'Data Science',
+      };
+      return subs[subId] ?? '';
+    }
+
+    // Qurilish (2)
+    if (catId == 2) {
+      final subs = {
+        1: 'Arxitektura',
+        2: 'Qurilish ustasi',
+        3: 'Elektrik',
+        4: 'Sanitariya',
+      };
+      return subs[subId] ?? '';
+    }
+
+    // Boshqa kategoriyalar...
+    return '';
   }
 
   // ✅ SALARY RANGE
@@ -235,23 +347,33 @@ class JobPost {
     return '${_formatMoney(salaryMin)} - ${_formatMoney(salaryMax)}';
   }
 
-  // ✅ FORMAT MONEY
+  // ✅ FORMAT MONEY - Yaxshilangan
   String _formatMoney(int amount) {
     if (amount >= 1000000) {
       final millions = amount / 1000000;
-      return '${millions.toStringAsFixed(millions.truncateToDouble() == millions ? 0 : 1)}M UZS';
+      final formatted = millions.toStringAsFixed(
+        millions.truncateToDouble() == millions ? 0 : 1,
+      );
+      return '$formatted mln so\'m';
     }
 
     if (amount >= 1000) {
       final thousands = amount / 1000;
-      return '${thousands.toStringAsFixed(thousands.truncateToDouble() == thousands ? 0 : 1)}K UZS';
+      final formatted = thousands.toStringAsFixed(
+        thousands.truncateToDouble() == thousands ? 0 : 1,
+      );
+      return '$formatted ming so\'m';
     }
 
-    return '$amount UZS';
+    return '$amount so\'m';
   }
 
   // ✅ CATEGORY NAME
   String getCategoryName(int? catId) {
+    if (categoryName != null && categoryName!.isNotEmpty) {
+      return categoryName!;
+    }
+
     if (catId == null) return 'Boshqa';
 
     final categories = {
@@ -302,7 +424,9 @@ class JobPost {
     final now = DateTime.now();
     final difference = now.difference(createdAt);
 
-    if (difference.inMinutes < 60) {
+    if (difference.inMinutes < 1) {
+      return 'Hozir';
+    } else if (difference.inMinutes < 60) {
       return '${difference.inMinutes} daqiqa oldin';
     } else if (difference.inHours < 24) {
       return '${difference.inHours} soat oldin';
@@ -321,7 +445,6 @@ class JobPost {
   // ✅ IS EXPIRED
   bool get isExpired {
     if (durationDays == null) return false;
-
     final expiryDate = createdAt.add(Duration(days: durationDays!));
     return DateTime.now().isAfter(expiryDate);
   }
@@ -329,26 +452,20 @@ class JobPost {
   // ✅ DAYS REMAINING
   int? get daysRemaining {
     if (durationDays == null) return null;
-
     final expiryDate = createdAt.add(Duration(days: durationDays!));
     final difference = expiryDate.difference(DateTime.now());
-
     return difference.inDays >= 0 ? difference.inDays : 0;
   }
 
   // ✅ HAS SALARY
-  bool get hasSalary {
-    return salaryMin > 0 || salaryMax > 0;
-  }
+  bool get hasSalary => salaryMin > 0 || salaryMax > 0;
 
   // ✅ HAS IMAGES
-  bool get hasImages {
-    return imageUrls != null && imageUrls!.isNotEmpty;
-  }
+  bool get hasImages => imageUrls != null && imageUrls!.isNotEmpty;
 
   @override
   String toString() {
-    return 'JobPost{id: $id, title: $title, company: $company, postType: $postType}';
+    return 'JobPost{id: $id, title: $title, company: $company, postType: $postType, category: $categoryName, subCategory: $subCategoryName}';
   }
 
   @override

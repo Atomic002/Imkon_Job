@@ -268,7 +268,7 @@ class HomeController extends GetxController {
       for (var item in response) {
         try {
           final images = item['post_images'] as List?;
-          final imageUrls = await _convertImageUrls(images);
+          await _convertImageUrls(images);
 
           final post = JobPost.fromJson(item);
           newPosts.add(post);
@@ -389,7 +389,7 @@ class HomeController extends GetxController {
       for (var item in response) {
         try {
           final images = item['post_images'] as List?;
-          final imageUrls = await _convertImageUrls(images);
+          await _convertImageUrls(images);
           filteredPosts.add(JobPost.fromJson(item));
         } catch (e) {
           print('Filter parse error: $e');
@@ -587,7 +587,7 @@ class HomeController extends GetxController {
       for (var item in response) {
         try {
           final images = item['post_images'] as List?;
-          final imageUrls = await _convertImageUrls(images);
+          await _convertImageUrls(images);
 
           searchResults.add(JobPost.fromJson(item));
         } catch (e) {

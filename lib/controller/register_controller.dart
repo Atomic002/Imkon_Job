@@ -408,7 +408,6 @@ class RegisterController extends GetxController {
 
     try {
       final fileExt = profilePhotoFile!.path.split('.').last;
-      final fileName = '$userId.$fileExt';
       final filePath = '$userId.$fileExt';
 
       // Agar oldingi rasm bo'lsa, o'chirish

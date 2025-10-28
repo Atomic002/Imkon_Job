@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:version1/Screens/home/user_profile_screen.dart';
 import '../Models/job_post.dart';
 import '../config/constants.dart';
@@ -27,6 +28,92 @@ class PostCard extends StatefulWidget {
 
 class _PostCardState extends State<PostCard> {
   int _currentImageIndex = 0;
+  bool _isViewRecorded = false; // ✅ View faqat bir marta yoziladi
+  final _supabase = Supabase.instance.client;
+
+  @override
+  void initState() {
+    super.initState();
+    // ✅ Post ko'rilganda viewni yozish (faqat bir marta)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _recordView();
+    });
+  }
+
+  // ✅ VIEW YOZISH - FAQAT BIR MARTA (MUKAMMAL)
+  Future<void> _recordView() async {
+    if (_isViewRecorded) return;
+
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+
+      // Agar user login qilmagan bo'lsa, device_id ishlatamiz
+      String? deviceId;
+      if (userId == null) {
+        deviceId = 'device_${DateTime.now().millisecondsSinceEpoch}';
+      }
+
+      // ✅ TO'G'RI QUERY - Faqat bitta qatorni tekshirish
+      List<dynamic> existingViews;
+
+      if (userId != null) {
+        existingViews = await _supabase
+            .from('post_views')
+            .select()
+            .eq('post_id', widget.post.id)
+            .eq('user_id', userId)
+            .limit(1);
+      } else {
+        existingViews = await _supabase
+            .from('post_views')
+            .select()
+            .eq('post_id', widget.post.id)
+            .eq('device_id', deviceId!)
+            .limit(1);
+      }
+
+      // Agar bu post allaqachon ko'rilgan bo'lsa, qayta yozmaymiz
+      if (existingViews.isNotEmpty) {
+        if (mounted) {
+          setState(() => _isViewRecorded = true);
+        }
+        return;
+      }
+
+      // ✅ Yangi view yozish (Duplicate xatolikdan himoya)
+      try {
+        await _supabase.from('post_views').insert({
+          'post_id': widget.post.id,
+          'user_id': userId,
+          'device_id': deviceId,
+          'viewed_at': DateTime.now().toIso8601String(),
+        });
+
+        // Local view count'ni yangilash
+        if (mounted) {
+          setState(() {
+            _isViewRecorded = true;
+            widget.post.views++;
+          });
+        }
+      } catch (insertError) {
+        // Agar duplicate key error bo'lsa, shunchaki ignore qilamiz
+        if (insertError.toString().contains('23505') ||
+            insertError.toString().contains('duplicate key')) {
+          if (mounted) {
+            setState(() => _isViewRecorded = true);
+          }
+        } else {
+          rethrow;
+        }
+      }
+    } catch (e) {
+      // Har qanday xatolikda qayta urinmaymiz
+      if (mounted) {
+        setState(() => _isViewRecorded = true);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -149,44 +236,51 @@ class _PostCardState extends State<PostCard> {
             },
           ),
           items: widget.post.imageUrls!.map((imageUrl) {
-            return Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(AppConstants.radiusLarge),
-                ),
-                color: Colors.grey[200],
+            return GestureDetector(
+              onTap: () => _showImageViewer(
+                context,
+                widget.post.imageUrls!,
+                _currentImageIndex,
               ),
-              child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(AppConstants.radiusLarge),
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(AppConstants.radiusLarge),
+                  ),
+                  color: Colors.grey[200],
                 ),
-                child: Image.network(
-                  imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: Colors.grey[300],
-                      child: const Center(
-                        child: Icon(
-                          Icons.image_not_supported,
-                          size: 48,
-                          color: Colors.grey,
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(AppConstants.radiusLarge),
+                  ),
+                  child: Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        color: Colors.grey[300],
+                        child: const Center(
+                          child: Icon(
+                            Icons.image_not_supported,
+                            size: 48,
+                            color: Colors.grey,
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return Center(
-                      child: CircularProgressIndicator(
-                        value: loadingProgress.expectedTotalBytes != null
-                            ? loadingProgress.cumulativeBytesLoaded /
-                                  loadingProgress.expectedTotalBytes!
-                            : null,
-                      ),
-                    );
-                  },
+                      );
+                    },
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                              : null,
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
             );
@@ -235,6 +329,20 @@ class _PostCardState extends State<PostCard> {
             ),
           ),
       ],
+    );
+  }
+
+  void _showImageViewer(
+    BuildContext context,
+    List<String> images,
+    int initialIndex,
+  ) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            _ImageViewerScreen(imageUrls: images, initialIndex: initialIndex),
+      ),
     );
   }
 
@@ -345,6 +453,7 @@ class _PostCardState extends State<PostCard> {
     );
   }
 
+  // ✅ SUB-KATEGORIYA BILAN BIRGA KO'RSATISH
   Widget _buildLocationCategorySection() {
     return Row(
       children: [
@@ -367,29 +476,36 @@ class _PostCardState extends State<PostCard> {
         ),
         const SizedBox(width: 12),
         if (widget.post.categoryIdNum != null)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppConstants.primaryColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  widget.post.getCategoryEmoji(widget.post.categoryIdNum),
-                  style: const TextStyle(fontSize: 12),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  widget.post.getCategoryName(widget.post.categoryIdNum),
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppConstants.primaryColor,
-                    fontWeight: FontWeight.w600,
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppConstants.primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    widget.post.getCategoryEmoji(widget.post.categoryIdNum),
+                    style: const TextStyle(fontSize: 12),
                   ),
-                ),
-              ],
+                  const SizedBox(width: 4),
+                  Flexible(
+                    child: Text(
+                      widget.post
+                          .getCategoryDisplay(), // ✅ Bu yerda sub-kategoriya ham ko'rinadi
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppConstants.primaryColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
       ],
@@ -509,32 +625,18 @@ class _PostCardState extends State<PostCard> {
               ),
             ),
             const SizedBox(width: 8),
+            // ✅ Share button - Count'siz
             Material(
               color: Colors.transparent,
               child: InkWell(
                 onTap: () => _sharePost(),
                 borderRadius: BorderRadius.circular(20),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.share_outlined,
-                        color: AppConstants.textSecondary,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${widget.post.sharesCount ?? 0}',
-                        style: const TextStyle(
-                          color: AppConstants.textSecondary,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
+                child: const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Icon(
+                    Icons.share_outlined,
+                    color: AppConstants.textSecondary,
+                    size: 20,
                   ),
                 ),
               ),
@@ -549,56 +651,44 @@ class _PostCardState extends State<PostCard> {
     );
   }
 
-  // 🔗 SHARE POST
+  // 🔗 ULASHISH - Post linki bilan
   Future<void> _sharePost() async {
     try {
-      final postUrl = 'https://yourdomain.com/post/${widget.post.id}';
+      // ✅ Post linki yaratish
+      final postLink = 'https://imkonjob.uz/post/${widget.post.id}';
+
       final shareText =
           '''
-${widget.post.title}
+📢 ${widget.post.title}
 
-${widget.post.company}
+🏢 ${widget.post.company}
 📍 ${widget.post.location}
 💰 ${widget.post.getSalaryRange()}
+${widget.post.salaryType != null ? '⏰ ${_getSalaryTypeText(widget.post.salaryType!)}' : ''}
 
-${widget.post.description.length > 100 ? widget.post.description.substring(0, 100) + '...' : widget.post.description}
+${widget.post.description.length > 150 ? widget.post.description.substring(0, 150) + '...' : widget.post.description}
 
-Ko'proq ma'lumot: $postUrl
+🔗 To'liq ma'lumot: $postLink
+
+📱 ImkonJob - Ish topish oson!
 ''';
 
-      await Share.share(shareText, subject: widget.post.title);
+      // ✅ Ulashish
+      final result = await Share.share(shareText, subject: widget.post.title);
 
-      // Share count ni update qilish (opsional)
-      // await HomeController.to.incrementShareCount(widget.post.id);
-
-      Get.snackbar(
-        '✅ Ulashildi',
-        'Post muvaffaqiyatli ulashildi',
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.green.withOpacity(0.8),
-        colorText: Colors.white,
-        duration: const Duration(seconds: 2),
-      );
+      // ✅ Faqat muvaffaqiyatli ulashganda share count'ni oshiramiz
+      if (result.status == ShareResultStatus.success) {
+        await _supabase
+            .from('posts')
+            .update({'shares_count': (widget.post.sharesCount ?? 0) + 1})
+            .eq('id', widget.post.id);
+      }
     } catch (e) {
+      // Xatolik bo'lsa ham hech narsa ko'rsatmaymiz
       print('Share error: $e');
-      // Fallback: Copy to clipboard
-      await Clipboard.setData(
-        ClipboardData(text: 'https://yourdomain.com/post/${widget.post.id}'),
-      );
-
-      Get.snackbar(
-        '📋 Nusxa olindi',
-        'Link nusxa olindi',
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: Colors.blue.withOpacity(0.8),
-        colorText: Colors.white,
-        duration: const Duration(seconds: 2),
-      );
     }
   }
 
-  // 👤 NAVIGATE TO USER PROFILE
-  // PostCard ichida
   void _navigateToUserProfile() {
     Get.to(
       () => OtherUserProfilePage(userId: widget.post.userId),
@@ -612,7 +702,7 @@ Ko'proq ma'lumot: $postUrl
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.85,
+        height: MediaQuery.of(context).size.height * 0.9,
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(
@@ -647,11 +737,8 @@ Ko'proq ma'lumot: $postUrl
                       ),
                     ),
                     const SizedBox(height: 16),
-
-                    // 👤 User Info (Clickable)
                     _buildUserInfoCard(),
                     const SizedBox(height: 16),
-
                     _buildDetailRow(
                       Icons.location_on_rounded,
                       'Joylashuv',
@@ -664,26 +751,136 @@ Ko'proq ma'lumot: $postUrl
                       _buildCategoryRow(),
                       const SizedBox(height: 24),
                     ],
-                    const Text(
-                      'Tasnif',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppConstants.textPrimary,
+                    if (widget.post.description.isNotEmpty) ...[
+                      const Text(
+                        'Tasnif',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppConstants.textPrimary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      widget.post.description.isEmpty
-                          ? 'Tasnif ma\'lumoti yo\'q'
-                          : widget.post.description,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppConstants.textSecondary,
-                        height: 1.6,
+                      const SizedBox(height: 12),
+                      Text(
+                        widget.post.description,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppConstants.textSecondary,
+                          height: 1.6,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 24),
+                    ],
+                    if (widget.post.requirementsMain != null &&
+                        widget.post.requirementsMain!.isNotEmpty) ...[
+                      const Text(
+                        'Asosiy Talablar',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppConstants.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.blue.withOpacity(0.2),
+                          ),
+                        ),
+                        child: Text(
+                          widget.post.requirementsMain!,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: AppConstants.textSecondary,
+                            height: 1.6,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                    if (widget.post.requirementsBasic != null &&
+                        widget.post.requirementsBasic!.isNotEmpty) ...[
+                      const Text(
+                        'Qo\'shimcha Talablar',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppConstants.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.green.withOpacity(0.2),
+                          ),
+                        ),
+                        child: Text(
+                          widget.post.requirementsBasic!,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: AppConstants.textSecondary,
+                            height: 1.6,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                    if (widget.post.skills != null &&
+                        widget.post.skills!.isNotEmpty) ...[
+                      const Text(
+                        'Ko\'nikmalar',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppConstants.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: widget.post.skills!.split(',').map((skill) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppConstants.primaryColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              skill.trim(),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppConstants.primaryColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                    if (widget.post.experience != null &&
+                        widget.post.experience!.isNotEmpty) ...[
+                      _buildDetailRow(
+                        Icons.work_history_rounded,
+                        'Tajriba',
+                        widget.post.experience!,
+                      ),
+                      const SizedBox(height: 20),
+                    ],
                     _buildDetailedStatsRow(),
                     const SizedBox(height: 24),
                     _buildApplyButton(context),
@@ -812,37 +1009,43 @@ Ko'proq ma'lumot: $postUrl
   }
 
   Widget _buildCategoryRow() {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Kategoriya:',
+          'Kategoriya',
           style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
             color: AppConstants.textPrimary,
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(height: 8),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: AppConstants.primaryColor.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(20),
+            color: AppConstants.primaryColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppConstants.primaryColor.withOpacity(0.3),
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 widget.post.getCategoryEmoji(widget.post.categoryIdNum),
-                style: const TextStyle(fontSize: 16),
+                style: const TextStyle(fontSize: 20),
               ),
-              const SizedBox(width: 6),
-              Text(
-                widget.post.getCategoryName(widget.post.categoryIdNum),
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppConstants.primaryColor,
+              const SizedBox(width: 10),
+              Flexible(
+                child: Text(
+                  widget.post.getCategoryDisplay(), // ✅ Sub-kategoriya bilan
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppConstants.primaryColor,
+                  ),
                 ),
               ),
             ],
@@ -866,10 +1069,26 @@ Ko'proq ma'lumot: $postUrl
           value: widget.post.likes.toString(),
           label: 'Yoqtirishlar',
         ),
-        _buildStatItem(
-          icon: Icons.share_outlined,
-          value: (widget.post.sharesCount ?? 0).toString(),
-          label: 'Ulashishlar',
+        // ✅ Share button - Count'siz
+        GestureDetector(
+          onTap: () => _sharePost(),
+          child: Column(
+            children: [
+              Icon(
+                Icons.share_outlined,
+                color: AppConstants.primaryColor,
+                size: 24,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Ulashish',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppConstants.textSecondary,
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -963,6 +1182,158 @@ Ko'proq ma'lumot: $postUrl
           ),
         ),
       ],
+    );
+  }
+}
+
+// 🖼️ RASM KO'RISH SAHIFASI
+class _ImageViewerScreen extends StatefulWidget {
+  final List<String> imageUrls;
+  final int initialIndex;
+
+  const _ImageViewerScreen({
+    Key? key,
+    required this.imageUrls,
+    required this.initialIndex,
+  }) : super(key: key);
+
+  @override
+  State<_ImageViewerScreen> createState() => _ImageViewerScreenState();
+}
+
+class _ImageViewerScreenState extends State<_ImageViewerScreen> {
+  late PageController _pageController;
+  late int _currentIndex;
+  final TransformationController _transformationController =
+      TransformationController();
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    _transformationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          PageView.builder(
+            controller: _pageController,
+            onPageChanged: (index) {
+              setState(() => _currentIndex = index);
+              _transformationController.value = Matrix4.identity();
+            },
+            itemCount: widget.imageUrls.length,
+            itemBuilder: (context, index) {
+              return InteractiveViewer(
+                transformationController: _transformationController,
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: Center(
+                  child: Image.network(
+                    widget.imageUrls[index],
+                    fit: BoxFit.contain,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                              : null,
+                          color: Colors.white,
+                        ),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Center(
+                        child: Icon(
+                          Icons.error_outline,
+                          color: Colors.white,
+                          size: 48,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+          SafeArea(
+            child: Positioned(
+              top: 16,
+              left: 16,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+            ),
+          ),
+          if (widget.imageUrls.length > 1)
+            SafeArea(
+              child: Positioned(
+                top: 16,
+                right: 16,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.5),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '${_currentIndex + 1} / ${widget.imageUrls.length}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          if (widget.imageUrls.length > 1)
+            Positioned(
+              bottom: 32,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: widget.imageUrls.asMap().entries.map((entry) {
+                  return Container(
+                    width: 8,
+                    height: 8,
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _currentIndex == entry.key
+                          ? Colors.white
+                          : Colors.white.withOpacity(0.5),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

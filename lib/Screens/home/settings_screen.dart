@@ -322,7 +322,7 @@ class SettingsScreen extends StatelessWidget {
     // Text controllerslar ma'lumot uchun
     final newPasswordController = TextEditingController();
     final confirmPasswordController = TextEditingController();
-    final authController = Get.find<AuthController>();
+    Get.find<AuthController>();
 
     Get.dialog(
       AlertDialog(

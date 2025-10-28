@@ -150,6 +150,7 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
   }
 
   // ✅ CALL USER - Open phone dialer
+  // ✅ IMPROVED CALL USER METHOD
   Future<void> _callUser() async {
     try {
       final phoneNumber = userInfo?['phone_number'];
@@ -162,34 +163,45 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
           backgroundColor: Colors.orange,
           colorText: Colors.white,
           icon: const Icon(Icons.phone_disabled, color: Colors.white),
+          duration: const Duration(seconds: 3),
         );
         return;
       }
 
-      final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
+      // Telefon raqamini tozalash (faqat raqamlar qoldirish)
+      String cleanPhone = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
+
+      // Tel URI yaratish
+      final Uri launchUri = Uri(scheme: 'tel', path: cleanPhone);
+
+      print('Calling: $cleanPhone'); // Debug uchun
 
       if (await canLaunchUrl(launchUri)) {
-        await launchUrl(launchUri);
+        await launchUrl(launchUri, mode: LaunchMode.externalApplication);
       } else {
         Get.snackbar(
           'Xato',
-          'Qo\'ng\'iroq qilish imkoni yo\'q',
+          'Qo\'ng\'iroq qilish imkoni yo\'q. Telefon ilovasi ochilmadi.',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.red,
           colorText: Colors.white,
+          duration: const Duration(seconds: 3),
         );
       }
     } catch (e) {
       print('Call error: $e');
       Get.snackbar(
         'Xato',
-        'Qo\'ng\'iroq qilishda xato',
+        'Qo\'ng\'iroq qilishda xato yuz berdi',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
+        duration: const Duration(seconds: 3),
       );
     }
   }
+
+  // other_user_profile_page.dart da _startChat metodini to'g'rilang:
 
   Future<void> _startChat() async {
     try {
@@ -245,8 +257,9 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
         chatId = response['id'];
       }
 
-      Get.back();
+      Get.back(); // Close loading dialog
 
+      // ✅ TO'G'RI NAVIGATSIYA
       Get.toNamed(
         '/chat_detail',
         arguments: {
@@ -261,7 +274,7 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
       print('Start chat error: $e');
       Get.snackbar(
         'Xato',
-        'Chat ochishda xato',
+        'Chat ochishda xato: ${e.toString()}',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.redAccent,
         colorText: Colors.white,
@@ -554,16 +567,6 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
             Icons.alternate_email,
             'Username',
             '@${userInfo!['username'] ?? 'N/A'}',
-          ),
-          const Divider(height: 24),
-
-          _buildInfoRow(
-            Icons.email_outlined,
-            'Email',
-            userInfo!['email'] ?? 'Kiritilmagan',
-            trailing: userInfo!['is_email_verified'] == true
-                ? const Icon(Icons.verified, color: Colors.green, size: 18)
-                : const Icon(Icons.cancel, color: Colors.orange, size: 18),
           ),
           const Divider(height: 24),
 

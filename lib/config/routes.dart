@@ -1,15 +1,22 @@
+// lib/config/routes.dart
+import 'package:get/get.dart';
+import 'package:get/get_core/src/get_main.dart';
 import 'package:get/get_navigation/src/routes/get_route.dart';
 import 'package:version1/Screens/auth/login_screen.dart';
 import 'package:version1/Screens/auth/otp_screen.dart';
 import 'package:version1/Screens/auth/register_screen.dart';
+import 'package:version1/Screens/home/all_user_screen.dart';
 import 'package:version1/Screens/home/chat_screen.dart';
 import 'package:version1/Screens/home/home_screen.dart';
 import 'package:version1/Screens/home/notification_screen.dart';
 import 'package:version1/Screens/home/create_post_screen.dart';
 import 'package:version1/Screens/home/profile_screen.dart';
 import 'package:version1/Screens/home/search_screen.dart';
+
+import 'package:version1/Screens/home/user_profile_screen.dart';
 import 'package:version1/Screens/onboarding/onboarding_screen.dart';
 import 'package:version1/Screens/splash/splash_screen.dart';
+import 'package:version1/detail/chat_detail.dart';
 
 class AppRoutes {
   static const String splash = '/';
@@ -22,9 +29,13 @@ class AppRoutes {
   static const String search = '/search';
   static const String chat = '/chat';
   static const String profile = '/profile';
-
-  // ✅ QO'SHISH KERAK BO'LGAN ROUTES:
   static const String createPost = '/create_post';
+  static const String notifications = '/notifications';
+
+  // ✅ YANGI ROUTELAR
+  static const String allUsers = '/all_users';
+  static const String chatDetail = '/chat_detail';
+  static const String otherProfile = '/other_profile';
 
   static List<GetPage> routes = [
     GetPage(name: splash, page: () => const SplashScreen()),
@@ -36,10 +47,18 @@ class AppRoutes {
     GetPage(name: search, page: () => const SearchScreen()),
     GetPage(name: chat, page: () => const ChatScreen()),
     GetPage(name: profile, page: () => const ProfileScreen()),
-
-    // ✅ QO'SHISH KERAK BO'LGAN PAGES:
     GetPage(name: createPost, page: () => const CreatePostScreen()),
+    GetPage(name: notifications, page: () => const NotificationsScreen()),
 
-    GetPage(name: '/notifications', page: () => const NotificationsScreen()),
+    // ✅ YANGI PAGES
+    GetPage(name: allUsers, page: () => const AllUsersScreen()),
+    GetPage(name: chatDetail, page: () => const ChatDetailScreen()),
+    GetPage(
+      name: otherProfile,
+      page: () {
+        final args = Get.arguments as Map<String, dynamic>;
+        return OtherUserProfilePage(userId: args['userId']);
+      },
+    ),
   ];
 }

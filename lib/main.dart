@@ -44,7 +44,7 @@ class JobHunterApp extends StatelessWidget {
     Get.put<AuthController>(AuthController(), permanent: true);
 
     return GetMaterialApp(
-      title: 'JobHub',
+      title: 'Imkon Job',
       debugShowCheckedModeBanner: false,
 
       // Theme
