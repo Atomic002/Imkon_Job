@@ -1,7 +1,5 @@
 // lib/config/routes.dart
 import 'package:get/get.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_navigation/src/routes/get_route.dart';
 import 'package:version1/Screens/auth/login_screen.dart';
 import 'package:version1/Screens/auth/otp_screen.dart';
 import 'package:version1/Screens/auth/register_screen.dart';
@@ -11,8 +9,7 @@ import 'package:version1/Screens/home/home_screen.dart';
 import 'package:version1/Screens/home/notification_screen.dart';
 import 'package:version1/Screens/home/create_post_screen.dart';
 import 'package:version1/Screens/home/profile_screen.dart';
-import 'package:version1/Screens/home/search_screen.dart';
-
+import 'package:version1/Screens/home/filter_screen.dart'; // ✅ TO'G'RI IMPORT
 import 'package:version1/Screens/home/user_profile_screen.dart';
 import 'package:version1/Screens/onboarding/onboarding_screen.dart';
 import 'package:version1/Screens/splash/splash_screen.dart';
@@ -44,7 +41,7 @@ class AppRoutes {
     GetPage(name: register, page: () => const RegisterScreen()),
     GetPage(name: otp, page: () => const OTPScreen()),
     GetPage(name: home, page: () => const HomeScreen()),
-    GetPage(name: search, page: () => const SearchScreen()),
+    GetPage(name: search, page: () => const FilterScreen()), // ✅ TO'G'RI
     GetPage(name: chat, page: () => const ChatScreen()),
     GetPage(name: profile, page: () => const ProfileScreen()),
     GetPage(name: createPost, page: () => const CreatePostScreen()),

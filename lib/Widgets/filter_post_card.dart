@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
@@ -8,25 +7,23 @@ import 'package:version1/Screens/home/user_profile_screen.dart';
 import '../Models/job_post.dart';
 import '../config/constants.dart';
 
-class PostCard extends StatefulWidget {
+class FilterPostCard extends StatefulWidget {
   final JobPost post;
   final VoidCallback onLike;
   final bool isLiked;
-  final VoidCallback onTap;
 
-  const PostCard({
+  const FilterPostCard({
     Key? key,
     required this.post,
     required this.onLike,
     required this.isLiked,
-    required this.onTap,
   }) : super(key: key);
 
   @override
-  State<PostCard> createState() => _PostCardState();
+  State<FilterPostCard> createState() => _FilterPostCardState();
 }
 
-class _PostCardState extends State<PostCard> {
+class _FilterPostCardState extends State<FilterPostCard> {
   int _currentImageIndex = 0;
   bool _isViewRecorded = false;
   final _supabase = Supabase.instance.client;
@@ -110,49 +107,45 @@ class _PostCardState extends State<PostCard> {
   Widget build(BuildContext context) {
     final hasImages = widget.post.hasImages;
 
-    return Padding(
-      padding: const EdgeInsets.all(AppConstants.paddingMedium),
-      child: GestureDetector(
-        onTap: () => _showPostDetailsBottomSheet(context),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(AppConstants.radiusLarge),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
+    return GestureDetector(
+      onTap: () => _showPostDetailsBottomSheet(context),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(AppConstants.radiusLarge),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            if (hasImages) _buildImageCarousel() else _buildPlaceholder(),
+            Padding(
+              padding: const EdgeInsets.all(AppConstants.paddingLarge),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildPostTypeBadge(),
+                  const SizedBox(height: 12),
+                  _buildTitleSection(),
+                  if (widget.post.description.isNotEmpty)
+                    _buildDescriptionSection(),
+                  const SizedBox(height: 12),
+                  _buildLocationSection(),
+                  const SizedBox(height: 12),
+                  _buildCategorySection(),
+                  const SizedBox(height: 12),
+                  _buildSalarySection(),
+                  const SizedBox(height: 16),
+                  _buildStatsSection(),
+                ],
               ),
-            ],
-          ),
-          child: Column(
-            children: [
-              if (hasImages) _buildImageCarousel() else _buildPlaceholder(),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppConstants.paddingLarge),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _buildPostTypeBadge(),
-                      const SizedBox(height: 12),
-                      _buildTitleSection(),
-                      if (widget.post.description.isNotEmpty)
-                        _buildDescriptionSection(),
-                      const SizedBox(height: 12),
-                      _buildLocationCategorySection(),
-                      const SizedBox(height: 12),
-                      _buildSalarySection(),
-                      const SizedBox(height: 16),
-                      _buildStatsSection(),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -323,7 +316,6 @@ class _PostCardState extends State<PostCard> {
     );
   }
 
-  // ✅ TO'LIQ EKRAN RASM KO'RISH
   void _showFullScreenImageViewer(
     BuildContext context,
     List<String> images,
@@ -436,7 +428,7 @@ class _PostCardState extends State<PostCard> {
         Text(
           widget.post.description,
           style: const TextStyle(
-            fontSize: 12,
+            fontSize: 13,
             color: AppConstants.textSecondary,
             height: 1.5,
           ),
@@ -447,35 +439,26 @@ class _PostCardState extends State<PostCard> {
     );
   }
 
-  Widget _buildLocationCategorySection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildLocationSection() {
+    return Row(
       children: [
-        Row(
-          children: [
-            const Icon(
-              Icons.location_on_rounded,
-              size: 16,
-              color: AppConstants.primaryColor,
-            ),
-            const SizedBox(width: 4),
-            Expanded(
-              child: Text(
-                widget.post.location,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: AppConstants.textSecondary,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
+        const Icon(
+          Icons.location_on_rounded,
+          size: 16,
+          color: AppConstants.primaryColor,
         ),
-        if (widget.post.categoryIdNum != null) ...[
-          const SizedBox(height: 12),
-          _buildCategorySection(),
-        ],
+        const SizedBox(width: 4),
+        Expanded(
+          child: Text(
+            widget.post.location,
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppConstants.textSecondary,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
       ],
     );
   }
@@ -488,7 +471,6 @@ class _PostCardState extends State<PostCard> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start, // Yuqoridan boshlash
         children: [
           Icon(
             Icons.category_rounded,
@@ -507,14 +489,11 @@ class _PostCardState extends State<PostCard> {
                     fontWeight: FontWeight.bold,
                     color: AppConstants.primaryColor,
                   ),
-                  maxLines: 2, // 2 qatorga ruxsat
-                  overflow: TextOverflow.ellipsis,
                 ),
                 if (widget.post.subCategoryName != null &&
                     widget.post.subCategoryName!.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Icon(
                         Icons.subdirectory_arrow_right,
@@ -530,7 +509,7 @@ class _PostCardState extends State<PostCard> {
                             color: Colors.grey[700],
                             fontWeight: FontWeight.w500,
                           ),
-                          maxLines: 2, // 2 qatorga ruxsat
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -545,128 +524,48 @@ class _PostCardState extends State<PostCard> {
     );
   }
 
-  // Bottom Sheet dagi kategoriya qismi ham yangilangan
-  Widget _buildCategoryRow() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Kategoriya',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: AppConstants.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppConstants.primaryColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppConstants.primaryColor.withOpacity(0.3),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildSalarySection() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.green.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.post.getCategoryEmoji(widget.post.categoryIdNum),
-                    style: const TextStyle(fontSize: 20),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      widget.post.getCategoryDisplay(),
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppConstants.primaryColor,
-                      ),
-                      maxLines: 3, // 3 qatorga ruxsat
-                    ),
-                  ),
-                ],
-              ),
-              if (widget.post.subCategoryName != null &&
-                  widget.post.subCategoryName!.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(width: 30), // Emoji bilan hizalash
-                    Icon(
-                      Icons.subdirectory_arrow_right,
-                      size: 16,
-                      color: Colors.grey[600],
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        widget.post.subCategoryName!,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey[700],
-                          fontWeight: FontWeight.w500,
-                        ),
-                        maxLines: 3, // 3 qatorga ruxsat
-                      ),
-                    ),
-                  ],
+              const Icon(Icons.payments_rounded, size: 20, color: Colors.green),
+              const SizedBox(width: 8),
+              Text(
+                widget.post.getSalaryRange(),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green,
                 ),
-              ],
+              ),
             ],
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSalarySection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Icon(
-              Icons.payments_rounded,
-              size: 18,
-              color: AppConstants.primaryColor,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              widget.post.getSalaryRange(),
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppConstants.primaryColor,
-              ),
-            ),
-          ],
-        ),
-        if (widget.post.salaryType != null) ...[
-          const SizedBox(height: 4),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              _getSalaryTypeText(widget.post.salaryType!),
-              style: const TextStyle(
-                fontSize: 11,
+          if (widget.post.salaryType != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
                 color: Colors.green,
-                fontWeight: FontWeight.w600,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                _getSalaryTypeText(widget.post.salaryType!),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
-          ),
         ],
-      ],
+      ),
     );
   }
 
@@ -738,7 +637,6 @@ class _PostCardState extends State<PostCard> {
                 ),
               ),
             ),
-            const SizedBox(width: 140),
             Material(
               color: Colors.transparent,
               child: InkWell(
@@ -1274,6 +1172,53 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
     );
   }
 
+  Widget _buildCategoryRow() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Kategoriya',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: AppConstants.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppConstants.primaryColor.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppConstants.primaryColor.withOpacity(0.3),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                widget.post.getCategoryEmoji(widget.post.categoryIdNum),
+                style: const TextStyle(fontSize: 20),
+              ),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Text(
+                  widget.post.getCategoryDisplay(),
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppConstants.primaryColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildDetailedStatsRow() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -1404,8 +1349,7 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
   }
 }
 
-// ✅ TO'LIQ EKRAN RASM KO'RISH - YAXSHILANGAN VERSIYA
-// ✅ TO'LIQ EKRAN RASM KO'RISH - YAXSHILANGAN VERSIYA
+// ✅ TO'LIQ EKRAN RASM KO'RISH
 class FullScreenImageViewer extends StatefulWidget {
   final List<String> imageUrls;
   final int initialIndex;
@@ -1431,29 +1375,17 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: widget.initialIndex);
 
-    // Har bir rasm uchun alohida transformation controller yaratish
     for (int i = 0; i < widget.imageUrls.length; i++) {
       _transformationControllers[i] = TransformationController();
     }
-
-    // Status bar ni yashirish
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   }
 
   @override
   void dispose() {
     _pageController.dispose();
-
-    // Barcha transformation controller'larni tozalash
     for (var controller in _transformationControllers.values) {
       controller.dispose();
     }
-
-    // Status bar ni qaytarish
-    SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.manual,
-      overlays: SystemUiOverlay.values,
-    );
     super.dispose();
   }
 
@@ -1469,7 +1401,6 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // ✅ ASOSIY RASM KO'RSATISH
           PageView.builder(
             controller: _pageController,
             onPageChanged: (index) {
@@ -1516,8 +1447,6 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
               );
             },
           ),
-
-          // ✅ ORQAGA TUGMASI
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -1531,8 +1460,6 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
               ),
             ),
           ),
-
-          // ✅ PASTKI INDIKATORLAR
           if (widget.imageUrls.length > 1)
             Positioned(
               bottom: 40,

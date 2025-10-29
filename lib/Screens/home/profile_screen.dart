@@ -109,7 +109,24 @@ class ProfileScreen extends StatelessWidget {
                       Row(
                         children: [
                           GestureDetector(
-                            onTap: () => _showProfilePhotoOptions(
+                            onTap: () {
+                              if (user.profilePhotoUrl != null) {
+                                print(
+                                  '✅ Opening photo: ${user.profilePhotoUrl}',
+                                ); // Debug uchun
+                                _showFullProfilePhoto(
+                                  context,
+                                  user.profilePhotoUrl!,
+                                );
+                              } else {
+                                print('❌ No photo URL');
+                                _showProfilePhotoOptions(
+                                  context,
+                                  profileController,
+                                );
+                              }
+                            },
+                            onLongPress: () => _showProfilePhotoOptions(
                               context,
                               profileController,
                             ),
@@ -158,7 +175,8 @@ class ProfileScreen extends StatelessWidget {
                                       shape: BoxShape.circle,
                                     ),
                                     child: const Icon(
-                                      Icons.camera_alt,
+                                      Icons
+                                          .zoom_in, // ✅ Bu icon bosish mumkinligini ko'rsatadi
                                       color: Colors.white,
                                       size: 16,
                                     ),
@@ -358,13 +376,10 @@ class ProfileScreen extends StatelessWidget {
                 children: [
                   _buildEditMenuItem(
                     Icons.person_outline,
-                    'Ism va Familya',
-                    'Ismingiz va familyangizni o\'zgartirish',
+                    'edit_name'.tr, // ✅
+                    'edit_name_desc'.tr, // ✅
                     Colors.blue,
-                    () {
-                      Get.back();
-                      _showEditNameDialog(context, profileController);
-                    },
+                    () => _showEditNameDialog(context, profileController),
                   ),
                   const SizedBox(height: 12),
 
@@ -509,7 +524,7 @@ class ProfileScreen extends StatelessWidget {
             TextField(
               controller: firstNameController,
               decoration: InputDecoration(
-                labelText: 'Ism *',
+                labelText: 'first_name_label'.tr,
                 prefixIcon: const Icon(Icons.person_outline),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -520,7 +535,7 @@ class ProfileScreen extends StatelessWidget {
             TextField(
               controller: lastNameController,
               decoration: InputDecoration(
-                labelText: 'Familya *',
+                labelText: 'last_name_label'.tr,
                 prefixIcon: const Icon(Icons.person_outline),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -1272,6 +1287,12 @@ class ProfileScreen extends StatelessWidget {
             onTap: () => _showSavedPostsDialog(context, profileController),
           ),
           _buildMenuItem(
+            Icons.history_rounded,
+            'Tarix (Muvaffaqiyatli)',
+            Colors.green,
+            onTap: () => _showCompletedPostsDialog(context, profileController),
+          ),
+          _buildMenuItem(
             Icons.language,
             'change_language'.tr,
             AppConstants.primaryColor,
@@ -1351,7 +1372,7 @@ class ProfileScreen extends StatelessWidget {
               Icon(Icons.info_outline, size: 16, color: Colors.grey[600]),
               const SizedBox(width: 8),
               Text(
-                'JobHub v1.0.0',
+                'ImkonJob v1.0.0',
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey[600],
@@ -1366,6 +1387,62 @@ class ProfileScreen extends StatelessWidget {
             style: TextStyle(fontSize: 11, color: Colors.grey[500]),
           ),
         ],
+      ),
+    );
+  }
+
+  // ==================== SHOW FULL PROFILE PHOTO ====================
+  // ==================== SHOW FULL PROFILE PHOTO ====================
+  void _showFullProfilePhoto(BuildContext context, String imageUrl) {
+    Get.dialog(
+      Dialog(
+        backgroundColor: Colors.transparent,
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                minScale: 0.5,
+                maxScale: 4.0,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Image.network(
+                    imageUrl,
+                    fit: BoxFit.contain,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                    loadingProgress.expectedTotalBytes!
+                              : null,
+                          color: Colors.white,
+                        ),
+                      );
+                    },
+                    errorBuilder: (_, __, ___) => const Icon(
+                      Icons.person,
+                      size: 100,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 40,
+              right: 20,
+              child: IconButton(
+                onPressed: () => Get.back(),
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.black54,
+                  padding: const EdgeInsets.all(12),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1689,7 +1766,24 @@ class ProfileScreen extends StatelessWidget {
                               color: Colors.blue,
                             ),
                             const SizedBox(width: 12),
-                            Text('edit'.tr),
+                            const Text('Tahrirlash'),
+                          ],
+                        ),
+                      ),
+                      PopupMenuItem(
+                        value: 'complete',
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.check_circle,
+                              size: 20,
+                              color: Colors.green,
+                            ),
+                            const SizedBox(width: 12),
+                            const Text(
+                              'Muvaffaqiyatli bajarildi',
+                              style: TextStyle(color: Colors.green),
+                            ),
                           ],
                         ),
                       ),
@@ -1703,9 +1797,9 @@ class ProfileScreen extends StatelessWidget {
                               color: Colors.red,
                             ),
                             const SizedBox(width: 12),
-                            Text(
-                              'delete'.tr,
-                              style: const TextStyle(color: Colors.red),
+                            const Text(
+                              'O\'chirish',
+                              style: TextStyle(color: Colors.red),
                             ),
                           ],
                         ),
@@ -1714,6 +1808,12 @@ class ProfileScreen extends StatelessWidget {
                     onSelected: (value) {
                       if (value == 'edit') {
                         _showEditPostDialog(context, post, profileController);
+                      } else if (value == 'complete') {
+                        _showCompletePostDialog(
+                          context,
+                          post,
+                          profileController,
+                        );
                       } else if (value == 'delete') {
                         _showDeleteConfirmDialog(
                           context,
@@ -1726,6 +1826,40 @@ class ProfileScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
+
+              // ✅ STATUS BADGE (BU YERDA QO'SHILDI!)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: _getStatusColor(post.status).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: _getStatusColor(post.status)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _getStatusIcon(post.status),
+                      size: 16,
+                      color: _getStatusColor(post.status),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _getStatusText(post.status),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: _getStatusColor(post.status),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+
               if (post.description.isNotEmpty)
                 Text(
                   post.description,
@@ -1792,17 +1926,31 @@ class ProfileScreen extends StatelessWidget {
     final salaryMaxController = TextEditingController(
       text: post.salaryMax.toString(),
     );
+    final requirementsMainController = TextEditingController(
+      text: post.requirementsMain ?? '',
+    );
+    final requirementsBasicController = TextEditingController(
+      text: post.requirementsBasic ?? '',
+    );
+    final skillsController = TextEditingController(text: post.skills ?? '');
+    final experienceController = TextEditingController(
+      text: post.experience ?? '',
+    );
+    final phoneController = TextEditingController(text: post.phoneNumber ?? '');
+
+    final selectedSalaryType = (post.salaryType ?? 'monthly').obs;
+    final selectedPostType = (post.postType ?? 'employee_needed').obs;
 
     Get.dialog(
       Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Container(
           constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(context).size.height * 0.8,
+            maxHeight: MediaQuery.of(context).size.height * 0.9,
           ),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
             children: [
+              // HEADER
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: const BoxDecoration(
@@ -1813,9 +1961,9 @@ class ProfileScreen extends StatelessWidget {
                   children: [
                     const Icon(Icons.edit, color: Colors.white),
                     const SizedBox(width: 12),
-                    Text(
-                      'edit'.tr,
-                      style: const TextStyle(
+                    const Text(
+                      'E\'lonni tahrirlash',
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -1824,53 +1972,182 @@ class ProfileScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              Flexible(
+
+              // CONTENT
+              Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(20),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Post Type
+                      const Text(
+                        'E\'lon turi *',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Obx(
+                        () => DropdownButtonFormField<String>(
+                          value: selectedPostType.value,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            prefixIcon: const Icon(Icons.work_outline),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'employee_needed',
+                              child: Text('Hodim kerak'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'job_needed',
+                              child: Text('Ish kerak'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'one_time_job',
+                              child: Text('Bir martalik ish'),
+                            ),
+                          ],
+                          onChanged: (value) => selectedPostType.value = value!,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Title
                       _buildTextField(
                         controller: titleController,
-                        label: 'title'.tr,
+                        label: 'Sarlavha *',
                         icon: Icons.title,
                       ),
                       const SizedBox(height: 16),
+
+                      // Location
                       _buildTextField(
                         controller: locationController,
-                        label: 'location'.tr,
+                        label: 'Joylashuv *',
                         icon: Icons.location_on,
                       ),
                       const SizedBox(height: 16),
+
+                      // Description
                       _buildTextField(
                         controller: descController,
-                        label: 'description'.tr,
+                        label: 'Tasnif *',
                         icon: Icons.description,
                         maxLines: 4,
                       ),
                       const SizedBox(height: 16),
+
+                      // Salary Type
+                      const Text(
+                        'Maosh turi',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      Obx(
+                        () => DropdownButtonFormField<String>(
+                          value: selectedSalaryType.value,
+                          decoration: InputDecoration(
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            prefixIcon: const Icon(Icons.attach_money),
+                          ),
+                          items: const [
+                            DropdownMenuItem(
+                              value: 'daily',
+                              child: Text('Kunlik'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'monthly',
+                              child: Text('Oylik'),
+                            ),
+                            DropdownMenuItem(
+                              value: 'freelance',
+                              child: Text('Freelance'),
+                            ),
+                          ],
+                          onChanged: (value) =>
+                              selectedSalaryType.value = value!,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Salary Range
                       Row(
                         children: [
                           Expanded(
                             child: _buildTextField(
                               controller: salaryMinController,
-                              label: 'salary_min'.tr,
+                              label: 'Min maosh *',
                               icon: Icons.money,
+                              keyboardType: TextInputType.number,
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: _buildTextField(
                               controller: salaryMaxController,
-                              label: 'salary_max'.tr,
+                              label: 'Max maosh *',
                               icon: Icons.money,
+                              keyboardType: TextInputType.number,
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Requirements Main
+                      _buildTextField(
+                        controller: requirementsMainController,
+                        label: 'Asosiy talablar',
+                        icon: Icons.checklist,
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Requirements Basic
+                      _buildTextField(
+                        controller: requirementsBasicController,
+                        label: 'Qo\'shimcha talablar',
+                        icon: Icons.check_circle_outline,
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Skills
+                      _buildTextField(
+                        controller: skillsController,
+                        label: 'Ko\'nikmalar (vergul bilan ajrating)',
+                        icon: Icons.star_outline,
+                        hint: 'Flutter, Dart, API',
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Experience
+                      _buildTextField(
+                        controller: experienceController,
+                        label: 'Tajriba',
+                        icon: Icons.work_history,
+                        hint: '2 yil',
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Phone
+                      _buildTextField(
+                        controller: phoneController,
+                        label: 'Telefon raqam',
+                        icon: Icons.phone,
+                        keyboardType: TextInputType.phone,
+                        hint: '+998901234567',
                       ),
                     ],
                   ),
                 ),
               ),
+
+              // FOOTER
               Padding(
                 padding: const EdgeInsets.all(20),
                 child: Row(
@@ -1878,13 +2155,25 @@ class ProfileScreen extends StatelessWidget {
                     Expanded(
                       child: TextButton(
                         onPressed: () => Get.back(),
-                        child: Text('cancel'.tr),
+                        child: const Text('Bekor qilish'),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () async {
+                          if (titleController.text.trim().isEmpty ||
+                              descController.text.trim().isEmpty ||
+                              locationController.text.trim().isEmpty) {
+                            Get.snackbar(
+                              'Xatolik',
+                              'Majburiy maydonlarni to\'ldiring!',
+                              backgroundColor: Colors.red,
+                              colorText: Colors.white,
+                            );
+                            return;
+                          }
+
                           final success = await profileController.updatePost(
                             postId: post.id,
                             title: titleController.text.trim(),
@@ -1894,16 +2183,26 @@ class ProfileScreen extends StatelessWidget {
                                 int.tryParse(salaryMinController.text) ?? 0,
                             salaryMax:
                                 int.tryParse(salaryMaxController.text) ?? 0,
+                            salaryType: selectedSalaryType.value,
+                            postType: selectedPostType.value,
+                            requirementsMain: requirementsMainController.text
+                                .trim(),
+                            requirementsBasic: requirementsBasicController.text
+                                .trim(),
+                            skills: skillsController.text.trim(),
+                            experience: experienceController.text.trim(),
+                            phoneNumber: phoneController.text.trim(),
                           );
+
                           if (success) Get.back();
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppConstants.primaryColor,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
-                        child: Text(
-                          'save_changes'.tr,
-                          style: const TextStyle(color: Colors.white),
+                        child: const Text(
+                          'Saqlash',
+                          style: TextStyle(color: Colors.white),
                         ),
                       ),
                     ),
@@ -1967,9 +2266,15 @@ class ProfileScreen extends StatelessWidget {
           TextButton(onPressed: () => Get.back(), child: Text('cancel'.tr)),
           ElevatedButton(
             onPressed: () async {
+              // Close dialog first
+              Get.back();
+
+              // Add a small delay to ensure dialog animation completes
+              await Future.delayed(const Duration(milliseconds: 300));
+
               final success = await profileController.deletePost(post.id);
               if (success) {
-                Get.back();
+                // Close the previous screen
                 Get.back();
               }
             },
@@ -1977,6 +2282,91 @@ class ProfileScreen extends StatelessWidget {
             child: Text(
               'delete'.tr,
               style: const TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showCompletePostDialog(
+    BuildContext context,
+    dynamic post,
+    ProfileController profileController,
+  ) {
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.green, size: 28),
+            SizedBox(width: 12),
+            Text('E\'lonni yakunlash'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Ushbu e\'lonni muvaffaqiyatli bajarilgan deb belgilamoqchimisiz?',
+              style: TextStyle(fontSize: 15),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    post.title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    '✅ E\'lon tarixga o\'tadi\n✅ Profilingizda saqlanadi\n✅ Boshqalar ko\'ra olmaydi',
+                    style: TextStyle(fontSize: 12, color: Colors.green),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Bekor qilish'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              // ✅ 1. Dialog yopish
+              Get.back();
+
+              // ✅ 2. Operatsiya bajarish
+              final success = await profileController.markPostAsCompleted(
+                post.id,
+                null,
+              );
+
+              // ✅ 3. Agar muvaffaqiyatli bo'lsa, asosiy dialogni ham yopish
+              if (success) {
+                await Future.delayed(
+                  const Duration(milliseconds: 500),
+                ); // ← Snackbar uchun kutish
+                Get.back(); // My posts dialog yopiladi
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            child: const Text(
+              'Ha, yakunlash',
+              style: TextStyle(color: Colors.white),
             ),
           ),
         ],
@@ -2062,9 +2452,10 @@ class ProfileScreen extends StatelessWidget {
                             return Card(
                               margin: const EdgeInsets.only(bottom: 12),
                               child: ListTile(
-                                leading: Text(
-                                  post.getCategoryEmoji(post.categoryIdNum),
-                                  style: const TextStyle(fontSize: 32),
+                                leading: const Icon(
+                                  Icons.check_circle,
+                                  color: Colors.green,
+                                  size: 40,
                                 ),
                                 title: Text(
                                   post.title,
@@ -2074,17 +2465,22 @@ class ProfileScreen extends StatelessWidget {
                                 ),
                                 subtitle: Text(post.company),
                                 trailing: IconButton(
+                                  // ✅ BU YERDA O'ZGARTIRDIK
                                   icon: const Icon(
-                                    Icons.bookmark,
-                                    color: Colors.orange,
+                                    Icons.restore,
+                                    color: Colors.blue,
                                   ),
+                                  tooltip: 'Qayta faollashtirish',
                                   onPressed: () async {
-                                    await profileController.unsavePost(post.id);
-                                    Get.back();
-                                    _showSavedPostsDialog(
-                                      context,
-                                      profileController,
-                                    );
+                                    final success = await profileController
+                                        .restorePost(post.id);
+                                    if (success) {
+                                      Get.back();
+                                      _showCompletedPostsDialog(
+                                        context,
+                                        profileController,
+                                      );
+                                    }
                                   },
                                 ),
                               ),
@@ -2115,6 +2511,128 @@ class ProfileScreen extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: Colors.grey[400],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showCompletedPostsDialog(
+    BuildContext context,
+    ProfileController profileController,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => FutureBuilder(
+        future: profileController.getCompletedPosts(),
+        builder: (context, snapshot) {
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.85,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              children: [
+                // Handle
+                Container(
+                  margin: const EdgeInsets.symmetric(vertical: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+
+                // Header
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.history,
+                          color: Colors.green,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'Muvaffaqiyatli bajarilgan',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Divider(height: 1, color: Colors.grey[200]),
+
+                // Content
+                Expanded(
+                  child: snapshot.connectionState == ConnectionState.waiting
+                      ? const Center(child: CircularProgressIndicator())
+                      : snapshot.hasData && snapshot.data!.isNotEmpty
+                      ? ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: snapshot.data!.length,
+                          itemBuilder: (context, index) {
+                            final post = snapshot.data![index];
+                            return Card(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              child: ListTile(
+                                leading: const Icon(
+                                  Icons.check_circle,
+                                  color: Colors.green,
+                                  size: 40,
+                                ),
+                                title: Text(
+                                  post.title,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                subtitle: Text(post.company),
+                                trailing: const Icon(
+                                  Icons.arrow_forward_ios,
+                                  size: 16,
+                                ),
+                              ),
+                            );
+                          },
+                        )
+                      : Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.history,
+                                size: 80,
+                                color: Colors.grey[300],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Hozircha tarix yo\'q',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.grey[600],
                                 ),
                               ),
                             ],
@@ -2727,5 +3245,50 @@ class ProfileScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+Color _getStatusColor(String status) {
+  switch (status) {
+    case 'approved':
+      return Colors.green;
+    case 'pending':
+      return Colors.orange;
+    case 'rejected':
+      return Colors.red;
+    case 'successfully_completed':
+      return Colors.blue;
+    default:
+      return Colors.grey;
+  }
+}
+
+IconData _getStatusIcon(String status) {
+  switch (status) {
+    case 'approved':
+      return Icons.check_circle;
+    case 'pending':
+      return Icons.hourglass_empty;
+    case 'rejected':
+      return Icons.cancel;
+    case 'successfully_completed':
+      return Icons.verified;
+    default:
+      return Icons.help;
+  }
+}
+
+String _getStatusText(String status) {
+  switch (status) {
+    case 'approved':
+      return 'Tasdiqlangan';
+    case 'pending':
+      return 'Kutilmoqda';
+    case 'rejected':
+      return 'Rad etilgan';
+    case 'successfully_completed':
+      return 'Bajarilgan';
+    default:
+      return 'Noma\'lum';
   }
 }

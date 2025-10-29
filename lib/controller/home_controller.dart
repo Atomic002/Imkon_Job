@@ -68,7 +68,7 @@ class HomeController extends GetxController {
 
       notificationCount.value = response.length;
     } catch (e) {
-      print('Error loading notification count: $e');
+      print('Load notification count error: $e');
     }
   }
 

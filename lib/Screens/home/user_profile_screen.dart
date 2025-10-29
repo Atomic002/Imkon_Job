@@ -42,24 +42,19 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
     try {
       setState(() => isLoading = true);
 
-      // ✅ Load FULL user info with ALL fields from database
+      // Load user info
       final userResponse = await supabase
           .from('users')
           .select('''
             id,
             username,
-            email,
             first_name,
             last_name,
             bio,
             profile_photo_url,
             user_type,
-            is_email_verified,
             location,
-            rating,
             created_at,
-            updated_at,
-            is_active,
             phone_number
           ''')
           .eq('id', widget.userId)
@@ -149,8 +144,6 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
     }
   }
 
-  // ✅ CALL USER - Open phone dialer
-  // ✅ IMPROVED CALL USER METHOD
   Future<void> _callUser() async {
     try {
       final phoneNumber = userInfo?['phone_number'];
@@ -168,13 +161,8 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
         return;
       }
 
-      // Telefon raqamini tozalash (faqat raqamlar qoldirish)
       String cleanPhone = phoneNumber.replaceAll(RegExp(r'[^\d+]'), '');
-
-      // Tel URI yaratish
       final Uri launchUri = Uri(scheme: 'tel', path: cleanPhone);
-
-      print('Calling: $cleanPhone'); // Debug uchun
 
       if (await canLaunchUrl(launchUri)) {
         await launchUrl(launchUri, mode: LaunchMode.externalApplication);
@@ -200,8 +188,6 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
       );
     }
   }
-
-  // other_user_profile_page.dart da _startChat metodini to'g'rilang:
 
   Future<void> _startChat() async {
     try {
@@ -257,9 +243,8 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
         chatId = response['id'];
       }
 
-      Get.back(); // Close loading dialog
+      Get.back();
 
-      // ✅ TO'G'RI NAVIGATSIYA
       Get.toNamed(
         '/chat_detail',
         arguments: {
@@ -282,6 +267,46 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
     }
   }
 
+  // Show full profile image
+  void _showFullImage(String? imageUrl) {
+    if (imageUrl == null || imageUrl.isEmpty) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.black,
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    padding: const EdgeInsets.all(20),
+                    child: const Icon(
+                      Icons.error_outline,
+                      color: Colors.white,
+                      size: 64,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 10,
+              right: 10,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   String _getUserFullName() {
     if (userInfo == null) return 'User';
     final firstName = userInfo!['first_name'] ?? '';
@@ -298,6 +323,19 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
       return '${dt.day}.${dt.month}.${dt.year}';
     } catch (e) {
       return 'Noma\'lum';
+    }
+  }
+
+  String _getPostTypeLabel(String? postType) {
+    switch (postType) {
+      case 'employee_needed':
+        return 'Xodim kerak';
+      case 'job_needed':
+        return 'Ish kerak';
+      case 'one_time_job':
+        return 'Bir martalik ish';
+      default:
+        return 'Noma\'lum';
     }
   }
 
@@ -355,12 +393,6 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
           username.isNotEmpty ? '@$username' : fullName,
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
         ),
-        actions: [
-          IconButton(
-            onPressed: _showMoreOptions,
-            icon: const Icon(Icons.more_vert),
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -373,28 +405,33 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
                 children: [
                   Row(
                     children: [
-                      // Avatar
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundColor: AppConstants.primaryColor.withOpacity(
-                          0.1,
+                      // Avatar (Clickable)
+                      GestureDetector(
+                        onTap: () => _showFullImage(avatarUrl),
+                        child: Hero(
+                          tag: 'profile_image_${widget.userId}',
+                          child: CircleAvatar(
+                            radius: 50,
+                            backgroundColor: AppConstants.primaryColor
+                                .withOpacity(0.1),
+                            backgroundImage:
+                                avatarUrl != null && avatarUrl.isNotEmpty
+                                ? NetworkImage(avatarUrl)
+                                : null,
+                            child: avatarUrl == null || avatarUrl.isEmpty
+                                ? Text(
+                                    fullName.isNotEmpty
+                                        ? fullName[0].toUpperCase()
+                                        : 'U',
+                                    style: const TextStyle(
+                                      color: AppConstants.primaryColor,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 36,
+                                    ),
+                                  )
+                                : null,
+                          ),
                         ),
-                        backgroundImage:
-                            avatarUrl != null && avatarUrl.isNotEmpty
-                            ? NetworkImage(avatarUrl)
-                            : null,
-                        child: avatarUrl == null || avatarUrl.isEmpty
-                            ? Text(
-                                fullName.isNotEmpty
-                                    ? fullName[0].toUpperCase()
-                                    : 'U',
-                                style: const TextStyle(
-                                  color: AppConstants.primaryColor,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 36,
-                                ),
-                              )
-                            : null,
                       ),
                       const SizedBox(width: 20),
 
@@ -460,7 +497,7 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
 
             const SizedBox(height: 12),
 
-            // ✅ FULL USER INFO CARD
+            // User Info Card
             _buildFullUserInfoCard(),
 
             const SizedBox(height: 12),
@@ -481,14 +518,8 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
                   _buildStatChip(
                     Icons.check_circle_outline,
                     '${completedPosts.length}',
-                    'Tugagan',
+                    'Muvofaqyatli Bajarilgan',
                     Colors.grey,
-                  ),
-                  _buildStatChip(
-                    Icons.share_outlined,
-                    totalShares.toString(),
-                    'Ulashish',
-                    Colors.blue,
                   ),
                 ],
               ),
@@ -507,7 +538,9 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
                 labelStyle: const TextStyle(fontWeight: FontWeight.w600),
                 tabs: [
                   Tab(text: 'Aktiv (${activePosts.length})'),
-                  Tab(text: 'Tugagan (${completedPosts.length})'),
+                  Tab(
+                    text: 'Muvofaqyatli Bajarilgan (${completedPosts.length})',
+                  ),
                 ],
               ),
             ),
@@ -532,7 +565,6 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
     );
   }
 
-  // ✅ FULL USER INFO CARD
   Widget _buildFullUserInfoCard() {
     return Container(
       color: Colors.white,
@@ -594,13 +626,6 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
           const Divider(height: 24),
 
           _buildInfoRow(
-            Icons.star_outlined,
-            'Reyting',
-            '${userInfo!['rating'] ?? 0.0} ⭐',
-          ),
-          const Divider(height: 24),
-
-          _buildInfoRow(
             Icons.calendar_today_outlined,
             'Ro\'yxatdan o\'tdi',
             _formatDate(userInfo!['created_at']),
@@ -608,17 +633,21 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
           const Divider(height: 24),
 
           _buildInfoRow(
-            Icons.circle,
-            'Holat',
-            userInfo!['is_active'] == true ? 'Aktiv' : 'Nofaol',
+            Icons.verified_user_outlined,
+            'Status',
+            'Doimiy foydalanuvchi',
             trailing: Container(
-              width: 10,
-              height: 10,
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: userInfo!['is_active'] == true
-                    ? Colors.green
-                    : Colors.grey,
+                color: AppConstants.primaryColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                '✓',
+                style: TextStyle(
+                  color: AppConstants.primaryColor,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
@@ -696,7 +725,7 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
 
     return Row(
       children: [
-        // ✅ CALL BUTTON
+        // CALL BUTTON
         Expanded(
           child: ElevatedButton.icon(
             onPressed: _callUser,
@@ -853,6 +882,26 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Post Type Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppConstants.primaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      _getPostTypeLabel(post.postType),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppConstants.primaryColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   Text(
                     post.title,
                     style: const TextStyle(
@@ -927,35 +976,6 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
         const SizedBox(width: 4),
         Text(value, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
       ],
-    );
-  }
-
-  void _showMoreOptions() {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.share),
-              title: const Text('Profilni ulashish'),
-              onTap: () => Get.back(),
-            ),
-            ListTile(
-              leading: const Icon(Icons.report),
-              title: const Text('Shikoyat qilish'),
-              onTap: () => Get.back(),
-            ),
-            ListTile(
-              leading: const Icon(Icons.block),
-              title: const Text('Block qilish'),
-              onTap: () => Get.back(),
-            ),
-          ],
-        ),
-      ),
     );
   }
 

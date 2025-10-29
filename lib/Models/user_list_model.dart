@@ -30,11 +30,15 @@ class _UsersListModalState extends State<UsersListModal> {
       setState(() => isLoading = true);
 
       final currentUserId = supabase.auth.currentUser?.id;
+      if (currentUserId == null) {
+        Get.snackbar('Xato', 'Iltimos tizimga kiring');
+        return;
+      }
 
       final response = await supabase
           .from('users')
           .select()
-          .neq('id', currentUserId!)
+          .neq('id', currentUserId)
           .order('created_at', ascending: false)
           .limit(100);
 
@@ -72,6 +76,7 @@ class _UsersListModalState extends State<UsersListModal> {
     });
   }
 
+  // ✅ ASOSIY TUZATISH - CHAT YARATISH
   Future<void> _createChat(String otherUserId) async {
     try {
       final currentUserId = supabase.auth.currentUser?.id;
@@ -86,33 +91,37 @@ class _UsersListModalState extends State<UsersListModal> {
         return;
       }
 
-      // Oldindan chat bor-yo'qligini tekshirish
+      // ✅ TO'G'RI SYNTAX - Oldindan chat bor-yo'qligini tekshirish
       final existing = await supabase
           .from('chats')
           .select('id')
-          .or(
-            'and(user1_id.eq.$currentUserId,user2_id.eq.$otherUserId),and(user1_id.eq.$otherUserId,user2_id.eq.$currentUserId)',
-          )
+          .or('user1_id.eq.$currentUserId,user2_id.eq.$currentUserId')
+          .or('user1_id.eq.$otherUserId,user2_id.eq.$otherUserId')
           .maybeSingle();
 
       late String chatId;
 
       if (existing != null) {
+        // Chat mavjud
         chatId = existing['id'];
+        print('✅ Mavjud chat topildi: $chatId');
       } else {
+        // Yangi chat yaratish
         final newChat = await supabase
             .from('chats')
             .insert({'user1_id': currentUserId, 'user2_id': otherUserId})
             .select()
             .single();
+
         chatId = newChat['id'];
+        print('✅ Yangi chat yaratildi: $chatId');
       }
 
       Get.back();
       Get.toNamed('/chat_detail', arguments: chatId);
     } catch (e) {
-      print('Error creating chat: $e');
-      Get.snackbar('Xato', 'Chat yaratishda xatolik yuz berdi: $e');
+      print('❌ Error creating chat: $e');
+      Get.snackbar('Xato', 'Chat yaratishda xatolik: $e');
     }
   }
 

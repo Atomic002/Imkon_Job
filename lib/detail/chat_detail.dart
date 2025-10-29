@@ -9,8 +9,6 @@ import 'package:version1/Screens/home/map_picker_screen.dart';
 import 'package:version1/controller/chat_controller.dart';
 import 'package:version1/config/constants.dart';
 
-// Map picker - ALOHIDA import qilamiz
-
 class ChatDetailScreen extends StatefulWidget {
   const ChatDetailScreen({Key? key}) : super(key: key);
 
@@ -23,10 +21,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   late final String otherUserId;
   late final String userName;
   final String? userAvatar = Get.arguments?['userAvatar'];
+  final String? initialMessage = Get.arguments?['initialMessage'];
 
   final TextEditingController messageController = TextEditingController();
   final ScrollController scrollController = ScrollController();
+  final FocusNode messageFocusNode = FocusNode();
   late final ChatController controller;
+
+  // ✅ TextField balandligini kuzatish uchun
+  int _currentLineCount = 1;
+  static const int _maxLines = 6; // Maksimal 6 qator
 
   @override
   void initState() {
@@ -39,8 +43,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
     controller = Get.put(ChatController());
 
+    // ✅ TextField o'zgarishlarini kuzatish
+    messageController.addListener(_onTextChanged);
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       controller.loadMessages(chatId);
+
+      if (initialMessage != null && initialMessage!.isNotEmpty) {
+        messageController.text = initialMessage!;
+        _showApplicationDialog();
+      }
     });
 
     ever(controller.currentMessages, (_) {
@@ -52,10 +64,95 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
   @override
   void dispose() {
+    messageController.removeListener(_onTextChanged);
     messageController.dispose();
     scrollController.dispose();
+    messageFocusNode.dispose();
     controller.clearCurrentChat();
     super.dispose();
+  }
+
+  // ✅ Text o'zgarishini kuzatish
+  void _onTextChanged() {
+    final text = messageController.text;
+    final lineCount = '\n'.allMatches(text).length + 1;
+
+    if (lineCount != _currentLineCount) {
+      setState(() {
+        _currentLineCount = lineCount;
+      });
+    }
+  }
+
+  void _showApplicationDialog() {
+    Future.delayed(const Duration(milliseconds: 500), () {
+      Get.dialog(
+        AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.work, color: AppConstants.primaryColor),
+              SizedBox(width: 8),
+              Text('Ariza yuborish'),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Ariza xabaringiz tayyor. Xohlasangiz, tahrirlashingiz mumkin.',
+                  style: TextStyle(fontSize: 14),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 200),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey[100],
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: SingleChildScrollView(
+                    child: Text(
+                      messageController.text,
+                      style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                messageController.clear();
+                Get.back();
+              },
+              child: const Text('Bekor qilish'),
+            ),
+            TextButton(
+              onPressed: () {
+                Get.back();
+                Future.delayed(const Duration(milliseconds: 100), () {
+                  messageFocusNode.requestFocus();
+                });
+              },
+              child: const Text('Tahrirlash'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Get.back();
+                _sendMessage();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppConstants.primaryColor,
+              ),
+              child: const Text('Yuborish'),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
   void _scrollToBottom() {
@@ -73,6 +170,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     if (text.isEmpty) return;
 
     messageController.clear();
+    setState(() {
+      _currentLineCount = 1;
+    });
+
     await controller.sendMessage(chatId: chatId, messageText: text);
   }
 
@@ -218,34 +319,28 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
   }
 
-  // ✅ ASOSIY TUZATISH - Bu yerda xato bor edi!
   Future<void> _openMapPicker() async {
     try {
-      // 1. Lokatsiyani olamiz
       final location = await controller.getCurrentLocation();
 
       final double initialLat = location?['latitude'] ?? 41.2995;
       final double initialLng = location?['longitude'] ?? 69.2401;
 
-      // 2. Map picker screen ochamiz - TO'G'RI USUL
-      final result = await Navigator.push<Map<String, double>>(
+      await Navigator.push<Map<String, double>>(
         context,
         MaterialPageRoute(
           builder: (context) => MapPickerScreen(
             initialLatitude: initialLat,
             initialLongitude: initialLng,
             onLocationPicked: (lat, lng) async {
-              // Lokatsiyani yuboramiz
               await controller.sendMessage(
                 chatId: chatId,
                 latitude: lat,
                 longitude: lng,
               );
 
-              // Navigator bilan orqaga qaytamiz
               Navigator.pop(context);
 
-              // Success message
               Get.snackbar(
                 'Muvaffaqiyatli',
                 'Lokatsiya yuborildi',
@@ -383,6 +478,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               );
             }),
           ),
+
+          // ✅ YAXSHILANGAN INPUT CONTAINER
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             decoration: BoxDecoration(
@@ -397,6 +494,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             ),
             child: SafeArea(
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   IconButton(
                     onPressed: _showLocationOptions,
@@ -407,24 +505,34 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                     tooltip: 'Lokatsiya yuborish',
                   ),
                   Expanded(
-                    child: TextField(
-                      controller: messageController,
-                      decoration: InputDecoration(
-                        hintText: 'Xabar yozing...',
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 10,
-                        ),
+                    child: Container(
+                      constraints: BoxConstraints(
+                        maxHeight: _maxLines * 24.0, // Har bir qator ~24px
                       ),
-                      maxLines: null,
-                      textInputAction: TextInputAction.newline,
-                      onSubmitted: (_) => _sendMessage(),
+                      child: TextField(
+                        controller: messageController,
+                        focusNode: messageFocusNode,
+                        decoration: InputDecoration(
+                          hintText: 'Xabar yozing...',
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(24),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 10,
+                          ),
+                        ),
+                        maxLines: null, // Ko'p qatorli bo'lishi mumkin
+                        minLines: 1,
+                        keyboardType: TextInputType.multiline,
+                        textInputAction: TextInputAction.newline,
+                        scrollPhysics: const ClampingScrollPhysics(),
+                        // ✅ Enter bosilganda yangi qator qo'shadi
+                        onSubmitted: null, // Enter yangi qator qo'shadi
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),

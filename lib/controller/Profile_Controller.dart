@@ -171,9 +171,9 @@ class ProfileController extends GetxController {
       if (user.value?.profilePhotoUrl != null) {
         try {
           final oldPath = user.value!.profilePhotoUrl!
-              .split('profile_pictures/')[1]
+              .split('user-pictures/')[1]
               .split('?')[0];
-          await supabase.storage.from('profile_pictures').remove([oldPath]);
+          await supabase.storage.from('user-pictures').remove([oldPath]);
         } catch (e) {
           print('⚠️ Old photo delete error: $e');
         }
@@ -185,7 +185,7 @@ class ProfileController extends GetxController {
           '${userId}_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
 
       await supabase.storage
-          .from('profile_pictures')
+          .from('user-pictures')
           .upload(
             fileName,
             imageFile,
@@ -194,7 +194,7 @@ class ProfileController extends GetxController {
 
       // Public URL olish
       final imageUrl = supabase.storage
-          .from('profile_pictures')
+          .from('user-pictures')
           .getPublicUrl(fileName);
 
       // Database yangilash
@@ -241,9 +241,9 @@ class ProfileController extends GetxController {
       if (user.value?.profilePhotoUrl != null) {
         try {
           final path = user.value!.profilePhotoUrl!
-              .split('profile_pictures/')[1]
+              .split('user-pictures/')[1]
               .split('?')[0];
-          await supabase.storage.from('profile_pictures').remove([path]);
+          await supabase.storage.from('user-pictures').remove([path]);
         } catch (e) {
           print('⚠️ Photo delete error: $e');
         }
@@ -252,7 +252,7 @@ class ProfileController extends GetxController {
       await supabase
           .from('users')
           .update({
-            'profile_photo_url': null,
+            'user_photo_url': null,
             'updated_at': DateTime.now().toIso8601String(),
           })
           .eq('id', userId);
@@ -442,6 +442,7 @@ class ProfileController extends GetxController {
   }
 
   // ==================== UPDATE POST ====================
+  // ==================== UPDATE POST (TO'LIQ VERSIYA) ====================
   Future<bool> updatePost({
     required String postId,
     required String title,
@@ -449,38 +450,60 @@ class ProfileController extends GetxController {
     required String location,
     required int salaryMin,
     required int salaryMax,
+    String? salaryType,
+    String? postType,
+    int? categoryId,
+    int? subCategoryId,
+    String? requirementsMain,
+    String? requirementsBasic,
+    String? skills,
+    String? experience,
+    String? phoneNumber,
   }) async {
     try {
       isLoading.value = true;
 
-      await supabase
-          .from('posts')
-          .update({
-            'title': title.trim(),
-            'description': description.trim(),
-            'location': location.trim(),
-            'salary_min': salaryMin,
-            'salary_max': salaryMax,
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', postId);
+      final updateData = {
+        'title': title.trim(),
+        'description': description.trim(),
+        'location': location.trim(),
+        'salary_min': salaryMin,
+        'salary_max': salaryMax,
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      // Ixtiyoriy fieldlar
+      if (salaryType != null) updateData['salary_type'] = salaryType;
+      if (postType != null) updateData['post_type'] = postType;
+      if (categoryId != null) updateData['category_id'] = categoryId;
+      if (subCategoryId != null) updateData['sub_category_id'] = subCategoryId;
+      if (requirementsMain != null)
+        updateData['requirements_main'] = requirementsMain.trim();
+      if (requirementsBasic != null)
+        updateData['requirements_basic'] = requirementsBasic.trim();
+      if (skills != null) updateData['skills'] = skills.trim();
+      if (experience != null) updateData['experience'] = experience.trim();
+      if (phoneNumber != null) updateData['phone_number'] = phoneNumber;
+
+      await supabase.from('posts').update(updateData).eq('id', postId);
 
       await loadUserPosts();
       calculateStats();
 
       Get.snackbar(
-        'success'.tr,
-        'post_updated'.tr,
+        'Muvaffaqiyatli',
+        'E\'lon yangilandi!',
         backgroundColor: Colors.green,
         colorText: Colors.white,
+        icon: const Icon(Icons.check_circle, color: Colors.white),
       );
 
       return true;
     } catch (e) {
       print('❌ Update post error: $e');
       Get.snackbar(
-        'error'.tr,
-        'post_update_failed'.tr,
+        'Xatolik',
+        'E\'lonni yangilashda xato',
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -519,6 +542,121 @@ class ProfileController extends GetxController {
       return false;
     } finally {
       isLoading.value = false;
+    }
+  }
+
+  // ==================== RESTORE POST (Tarixdan qaytarish) ====================
+  Future<bool> restorePost(String postId) async {
+    try {
+      isLoading.value = true;
+
+      await supabase
+          .from('posts')
+          .update({
+            'status': 'approved',
+            'is_active': true,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', postId);
+
+      await loadUserPosts();
+      calculateStats();
+
+      Get.snackbar(
+        'Muvaffaqiyatli',
+        'E\'lon qayta faollashtirildi',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+
+      return true;
+    } catch (e) {
+      print('❌ Restore post error: $e');
+      Get.snackbar(
+        'Xatolik',
+        'E\'lonni qaytarishda xato',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // ==================== MARK POST AS COMPLETED ====================
+  Future<bool> markPostAsCompleted(String postId, String? applicantId) async {
+    try {
+      isLoading.value = true;
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return false;
+
+      // ✅ FAQAT STATUS O'ZGARTIRISH
+      await supabase
+          .from('posts')
+          .update({
+            'status': 'successfully_completed',
+            'is_active': false,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', postId);
+
+      // ❌ BU QATORLARNI O'CHIRING (completed_posts jadvaliga qo'shish kerak emas)
+      // await supabase.from('completed_posts').insert({...});
+
+      await loadUserPosts();
+      calculateStats();
+
+      Get.snackbar(
+        'Muvaffaqiyatli',
+        'E\'lon bajarilgan deb belgilandi',
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+      );
+
+      return true;
+    } catch (e) {
+      print('❌ Mark completed error: $e');
+      Get.snackbar(
+        'Xatolik',
+        'Xato: ${e.toString()}',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // ==================== GET COMPLETED POSTS ====================
+  Future<List<JobPost>> getCompletedPosts() async {
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return [];
+
+      final response = await supabase
+          .from('posts') // ✅ TO'G'RIDAN-TO'G'RI posts jadvalidan
+          .select('''
+          *,
+          users!inner(
+            id,
+            first_name,
+            last_name,
+            username,
+            profile_photo_url
+          )
+        ''')
+          .eq('user_id', userId)
+          .eq('status', 'successfully_completed') // ✅ Status bo'yicha filter
+          .order('updated_at', ascending: false);
+
+      return (response as List)
+          .map((item) => JobPost.fromJson(item as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      print('❌ Get completed posts error: $e');
+      return [];
     }
   }
 
