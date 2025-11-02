@@ -97,14 +97,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           .eq('is_read', false);
 
       await _loadNotifications();
-
-      Get.snackbar(
-        'Muvaffaqiyatli',
-        'Barcha bildirishnomalar o\'qilgan deb belgilandi',
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-        icon: const Icon(Icons.check_circle, color: Colors.white),
-      );
     } catch (e) {
       print('❌ Mark all as read error: $e');
       Get.snackbar(
@@ -123,14 +115,6 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       setState(() {
         notifications.removeWhere((n) => n['id'] == notificationId);
       });
-
-      Get.snackbar(
-        'O\'chirildi',
-        'Bildirishnoma o\'chirildi',
-        backgroundColor: Colors.grey[700],
-        colorText: Colors.white,
-        duration: const Duration(seconds: 2),
-      );
     } catch (e) {
       print('❌ Delete notification error: $e');
     }

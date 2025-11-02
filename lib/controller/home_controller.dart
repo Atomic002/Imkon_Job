@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:version1/Models/job_post.dart';
+import 'package:version1/Services/ceche_manager.dart';
 
 class HomeController extends GetxController {
   // ✅ Observable variables
@@ -14,6 +15,7 @@ class HomeController extends GetxController {
   final notificationCount = 0.obs;
 
   final supabase = Supabase.instance.client;
+  final _cache = AppCacheManager(); // ✅ CACHE
 
   // 🔥 PAGINATION VARIABLES
   static const int INITIAL_BATCH = 30;
@@ -21,6 +23,9 @@ class HomeController extends GetxController {
   int currentOffset = 0;
   bool hasMorePosts = true;
   bool isLoadingMore = false;
+
+  // ✅ Offline mode
+  final isOffline = false.obs;
 
   // ✅ Categories
   final categories = [
@@ -40,7 +45,7 @@ class HomeController extends GetxController {
     pageController.addListener(_onPageScroll);
   }
 
-  // 🔥 SCROLL LISTENER - currentPostIndex ni update qilish qo'shildi
+  // 🔥 SCROLL LISTENER
   void _onPageScroll() {
     final page = pageController.page?.round() ?? 0;
     if (page != currentPostIndex.value) {
@@ -117,7 +122,7 @@ class HomeController extends GetxController {
         .toList();
   }
 
-  // ==================== LOAD POSTS FROM SUPABASE (INITIAL) ====================
+  // ==================== LOAD POSTS (CACHE FIRST) ====================
   Future<void> loadPosts() async {
     try {
       isLoading.value = true;
@@ -126,6 +131,93 @@ class HomeController extends GetxController {
 
       print('🔄 Postlar yuklanmoqda...');
 
+      // 1️⃣ AVVAL KESHDAN YUKLASH
+      try {
+        final cachedData = await _cache.getCachedPosts();
+        if (cachedData != null && cachedData.isNotEmpty) {
+          print('✅ Keshdan ${cachedData.length} ta post yuklandi');
+          posts.value = cachedData
+              .map((json) => JobPost.fromJson(json))
+              .toList();
+          isLoading.value = false;
+
+          // Liked posts'ni set qilish
+          for (var post in posts) {
+            likedPosts[post.id] = false;
+          }
+          await checkUserLikes();
+
+          // Background'da yangilash
+          _refreshPostsInBackground();
+          return;
+        }
+      } catch (cacheError) {
+        print('⚠️ Keshdan yuklashda xatolik: $cacheError');
+      }
+
+      // 2️⃣ SERVERDAN YUKLASH
+      await _loadFromServer();
+    } catch (e) {
+      print('❌ Load posts error: $e');
+
+      // Internet yo'q bo'lsa - keshdan yuklashga harakat qilish
+      if (_isNetworkError(e)) {
+        isOffline.value = true;
+        print('📵 Internet aloqasi yo\'q - Keshdan yuklanyapti...');
+
+        try {
+          final cachedData = await _cache.getCachedPosts();
+          if (cachedData != null && cachedData.isNotEmpty) {
+            posts.value = cachedData
+                .map((json) => JobPost.fromJson(json))
+                .toList();
+
+            for (var post in posts) {
+              likedPosts[post.id] = false;
+            }
+
+            Get.snackbar(
+              '📵 Offline rejim',
+              'Keshdan ${posts.length} ta e\'lon ko\'rsatilmoqda',
+              snackPosition: SnackPosition.TOP,
+              backgroundColor: Colors.orange.withOpacity(0.9),
+              colorText: Colors.white,
+              duration: const Duration(seconds: 3),
+            );
+          } else {
+            posts.value = [];
+            Get.snackbar(
+              '❌ Xato',
+              'Internet aloqasi yo\'q va keshda ma\'lumot yo\'q',
+              snackPosition: SnackPosition.BOTTOM,
+              backgroundColor: Colors.red,
+              colorText: Colors.white,
+              duration: const Duration(seconds: 3),
+            );
+          }
+        } catch (cacheError) {
+          print('❌ Keshdan ham yuklanmadi: $cacheError');
+          posts.value = [];
+        }
+      } else {
+        posts.value = [];
+        Get.snackbar(
+          'Xato',
+          'E\'lonlarni yuklashda xato: ${e.toString()}',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.redAccent,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 3),
+        );
+      }
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // ==================== LOAD FROM SERVER ====================
+  Future<void> _loadFromServer() async {
+    try {
       final response = await supabase
           .from('posts')
           .select('''
@@ -172,25 +264,40 @@ class HomeController extends GetxController {
       for (var item in response) {
         try {
           final images = item['post_images'] as List?;
-          final imageUrls = await _convertImageUrls(images);
-
-          if (imageUrls != null && imageUrls.isNotEmpty) {
-            print('🖼️ Post ${item['id']}: ${imageUrls.length} ta image');
-          }
+          await _convertImageUrls(images);
 
           final post = JobPost.fromJson(item);
           loadedPosts.add(post);
         } catch (e) {
           print('❌ Post convert error: $e');
-          print('❌ Item: $item');
         }
       }
 
       posts.value = loadedPosts;
       currentOffset = loadedPosts.length;
       hasMorePosts = loadedPosts.length >= INITIAL_BATCH;
+      isOffline.value = false;
 
       print('✅ ${posts.length} ta post yuklandi');
+
+      // ✅ KESHGA SAQLASH
+      try {
+        await _cache.cachePosts(loadedPosts.map((p) => p.toJson()).toList());
+        print('💾 Postlar keshga saqlandi');
+
+        // Rasmlarni prefetch qilish
+        final imageUrls = loadedPosts
+            .where((p) => p.imageUrls != null && p.imageUrls!.isNotEmpty)
+            .expand((p) => p.imageUrls!)
+            .take(20)
+            .toList();
+
+        if (imageUrls.isNotEmpty) {
+          _cache.prefetchImages(imageUrls);
+        }
+      } catch (cacheError) {
+        print('⚠️ Keshga saqlashda xatolik: $cacheError');
+      }
 
       // Initialize liked posts
       for (var post in posts) {
@@ -199,24 +306,92 @@ class HomeController extends GetxController {
 
       await checkUserLikes();
     } catch (e) {
-      print('❌ Load posts error: $e');
-      posts.value = [];
-      Get.snackbar(
-        'Xato',
-        'E\'lonlarni yuklashda xato: ${e.toString()}',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.redAccent,
-        colorText: Colors.white,
-        duration: const Duration(seconds: 3),
-      );
-    } finally {
-      isLoading.value = false;
+      rethrow;
     }
+  }
+
+  // ==================== BACKGROUND REFRESH ====================
+  Future<void> _refreshPostsInBackground() async {
+    try {
+      print('🔄 Background refresh...');
+
+      final response = await supabase
+          .from('posts')
+          .select('''
+            id,
+            user_id,
+            title,
+            description,
+            category_id,
+            sub_category_id,
+            location,
+            status,
+            salary_type,
+            salary_min,
+            salary_max,
+            requirements_main,
+            requirements_basic,
+            views_count,
+            likes_count,
+            shares_count,
+            duration_days,
+            is_active,
+            created_at,
+            post_type,
+            skills,
+            experience,
+            users!inner(first_name, last_name, profile_photo_url, username),
+            post_images(image_url)
+          ''')
+          .eq('status', 'approved')
+          .eq('is_active', true)
+          .order('created_at', ascending: false)
+          .limit(INITIAL_BATCH);
+
+      if (response.isEmpty) return;
+
+      final newPosts = <JobPost>[];
+      for (var item in response) {
+        try {
+          final images = item['post_images'] as List?;
+          await _convertImageUrls(images);
+          newPosts.add(JobPost.fromJson(item));
+        } catch (e) {
+          print('❌ Background parse error: $e');
+        }
+      }
+
+      // Agar yangi postlar bo'lsa - update qilish
+      if (newPosts.length != posts.length ||
+          (newPosts.isNotEmpty &&
+              posts.isNotEmpty &&
+              newPosts.first.id != posts.first.id)) {
+        posts.value = newPosts;
+        isOffline.value = false;
+
+        // Keshni yangilash
+        await _cache.cachePosts(newPosts.map((p) => p.toJson()).toList());
+
+        print('✅ Background refresh: ${newPosts.length} ta yangi post');
+      }
+    } catch (e) {
+      print('⚠️ Background refresh error: $e');
+    }
+  }
+
+  // ==================== CHECK IF NETWORK ERROR ====================
+  bool _isNetworkError(dynamic error) {
+    final errorString = error.toString().toLowerCase();
+    return errorString.contains('socketexception') ||
+        errorString.contains('failed host lookup') ||
+        errorString.contains('network') ||
+        errorString.contains('connection');
   }
 
   // ==================== LOAD MORE POSTS (PAGINATION) ====================
   Future<void> loadMorePosts() async {
-    if (isLoadingMore || !hasMorePosts || isLoading.value) return;
+    if (isLoadingMore || !hasMorePosts || isLoading.value || isOffline.value)
+      return;
 
     isLoadingMore = true;
     print('📥 Qo\'shimcha postlar yuklanmoqda... (offset: $currentOffset)');
@@ -336,7 +511,6 @@ class HomeController extends GetxController {
     try {
       isLoading.value = true;
 
-      // Category ID mapping
       final categoryMap = {
         'it': 1,
         'construction': 2,
@@ -419,7 +593,6 @@ class HomeController extends GetxController {
   }
 
   // ==================== TOGGLE LIKE ====================
-  // ==================== TOGGLE LIKE (IMPROVED) ====================
   Future<void> toggleLike(String postId) async {
     try {
       final userId = supabase.auth.currentUser?.id;
@@ -456,7 +629,6 @@ class HomeController extends GetxController {
             }, onConflict: 'post_id,user_id');
           } catch (e) {
             print('❌ Like insert error: $e');
-            // Revert changes
             likedPosts[postId] = wasLiked;
             posts[postIndex] = posts[postIndex].copyWith(
               likes: posts[postIndex].likes - 1,
@@ -475,7 +647,6 @@ class HomeController extends GetxController {
             });
           } catch (e) {
             print('❌ Like delete error: $e');
-            // Revert changes
             likedPosts[postId] = wasLiked;
             posts[postIndex] = posts[postIndex].copyWith(
               likes: posts[postIndex].likes + 1,
@@ -526,18 +697,10 @@ class HomeController extends GetxController {
     }
   }
 
-  // ==================== REFRESH POSTS (PULL TO REFRESH) ====================
+  // ==================== REFRESH POSTS ====================
   Future<void> refreshPosts() async {
     await loadPosts();
     await loadNotificationCount();
-    Get.snackbar(
-      '✅ Yangilandi',
-      'E\'lonlar muvaffaqiyatli yangilandi',
-      snackPosition: SnackPosition.TOP,
-      backgroundColor: Colors.green.withOpacity(0.8),
-      colorText: Colors.white,
-      duration: const Duration(seconds: 2),
-    );
   }
 
   // ==================== SEARCH POSTS ====================
@@ -597,7 +760,7 @@ class HomeController extends GetxController {
 
       posts.value = searchResults;
       currentOffset = searchResults.length;
-      hasMorePosts = false; // Search results don't have pagination
+      hasMorePosts = false;
 
       for (var post in posts) {
         likedPosts[post.id] = false;

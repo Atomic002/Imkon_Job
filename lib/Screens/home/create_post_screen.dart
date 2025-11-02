@@ -432,6 +432,9 @@ class CreatePostController extends GetxController {
   void setPostType(String type) {
     postType.value = type;
     formData['postType'] = type;
+    Future.delayed(const Duration(milliseconds: 300), () {
+      nextStep();
+    });
   }
 
   void nextStep() => currentStep.value++;
@@ -998,15 +1001,6 @@ class _Step0PostType extends StatelessWidget {
                   isSelected: controller.postType.value == 'one_time_job',
                   color: Colors.orange,
                   onTap: () => controller.setPostType('one_time_job'),
-                ),
-              ),
-              const SizedBox(height: 40),
-              Obx(
-                () => _PrimaryButton(
-                  text: 'continue'.tr,
-                  onPressed: controller.postType.value == null
-                      ? null
-                      : controller.nextStep,
                 ),
               ),
             ],

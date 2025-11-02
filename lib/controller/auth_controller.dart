@@ -3,20 +3,53 @@ import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthController extends GetxController {
-  final phoneOrUsernameController = TextEditingController();
+  // ✅ YANGI CONTROLLERLAR
+  final phoneController = TextEditingController();
+  final usernameController = TextEditingController();
   final passwordController = TextEditingController();
+
+  // ✅ LOGIN TYPE (phone yoki username)
+  final loginType = 'phone'.obs;
+
   final isPasswordHidden = true.obs;
   final isLoading = false.obs;
 
   final supabase = Supabase.instance.client;
+
+  // ✅ LOGIN TYPE O'ZGARTIRISH
+  void setLoginType(String type) {
+    loginType.value = type;
+    // Clear qilish
+    phoneController.clear();
+    usernameController.clear();
+  }
 
   void togglePasswordVisibility() {
     isPasswordHidden.value = !isPasswordHidden.value;
   }
 
   Future<void> login() async {
-    final input = phoneOrUsernameController.text.trim();
     final password = passwordController.text.trim();
+
+    // ✅ INPUT OLISH (telefon yoki username)
+    String input = '';
+    if (loginType.value == 'phone') {
+      // Telefon formatini tozalash va +998 qo'shish
+      final cleanPhone = phoneController.text.replaceAll(' ', '');
+      if (cleanPhone.length != 9) {
+        Get.snackbar(
+          'Xato',
+          'To\'liq telefon raqamni kiriting',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.redAccent,
+          colorText: Colors.white,
+        );
+        return;
+      }
+      input = '+998$cleanPhone';
+    } else {
+      input = usernameController.text.trim();
+    }
 
     if (input.isEmpty || password.isEmpty) {
       Get.snackbar(
@@ -42,7 +75,9 @@ class AuthController extends GetxController {
       if (userResponse == null) {
         Get.snackbar(
           'Xato',
-          'Bunday foydalanuvchi topilmadi',
+          loginType.value == 'phone'
+              ? 'Bu telefon raqam ro\'yxatdan o\'tmagan'
+              : 'Bu username topilmadi',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.redAccent,
           colorText: Colors.white,
@@ -78,10 +113,12 @@ class AuthController extends GetxController {
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.green,
           colorText: Colors.white,
+          icon: const Icon(Icons.check_circle, color: Colors.white),
         );
 
         // ✅ Clear fields
-        phoneOrUsernameController.clear();
+        phoneController.clear();
+        usernameController.clear();
         passwordController.clear();
 
         // ✅ Home sahifasiga o'tish
@@ -91,7 +128,7 @@ class AuthController extends GetxController {
       String errorMessage = 'Auth xatosi yuz berdi';
 
       if (e.message.contains('Invalid login credentials')) {
-        errorMessage = 'Telefon/Username yoki parol noto\'g\'ri';
+        errorMessage = 'Parol noto\'g\'ri';
       } else if (e.message.contains('User not found')) {
         errorMessage = 'Bunday foydalanuvchi topilmadi';
       } else if (e.message.contains('Email not confirmed')) {
@@ -124,7 +161,8 @@ class AuthController extends GetxController {
     try {
       isLoading.value = true;
       await supabase.auth.signOut();
-      phoneOrUsernameController.clear();
+      phoneController.clear();
+      usernameController.clear();
       passwordController.clear();
       Get.offAllNamed('/login');
     } catch (e) {
@@ -166,10 +204,9 @@ class AuthController extends GetxController {
 
   @override
   void onClose() {
-    phoneOrUsernameController.dispose();
+    phoneController.dispose();
+    usernameController.dispose();
     passwordController.dispose();
     super.onClose();
   }
-
-  void changePassword(String text) {}
 }
