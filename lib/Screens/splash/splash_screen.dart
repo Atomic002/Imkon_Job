@@ -1,4 +1,3 @@
-// ==================== splash_screen.dart (FIXED) ====================
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -79,15 +78,15 @@ class _SplashScreenState extends State<SplashScreen>
         print('✅ User logged in: ${user.email}');
         Get.offAllNamed('/home');
       } else {
-        // Not logged in - Login ga o'tish
-        print('❌ User not logged in - showing login');
-        Get.offAllNamed('/login');
+        // Not logged in - Register ga o'tish
+        print('❌ User not logged in - showing register');
+        Get.offAllNamed('/register'); // ✅ REGISTER GA O'TADI
       }
     } catch (e) {
       print('Navigation error: $e');
       if (mounted) {
-        // Error bo'lsa Login ga o'tish
-        Get.offAllNamed('/login');
+        // Error bo'lsa Register ga o'tish
+        Get.offAllNamed('/register'); // ✅ REGISTER GA O'TADI
       }
     }
   }

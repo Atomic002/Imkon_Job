@@ -2,10 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:version1/Widgets/custom_button.dart';
-import 'package:version1/Widgets/custom_text_field.dart';
 import 'package:version1/controller/register_controller.dart';
-import '../../config/constants.dart';
 
 class RegisterScreen extends StatelessWidget {
   const RegisterScreen({super.key});
@@ -15,838 +12,620 @@ class RegisterScreen extends StatelessWidget {
     final controller = Get.put(RegisterController());
 
     return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded),
-          onPressed: () => Get.back(),
-        ),
-        title: Obx(() => Text('Qadam ${controller.currentStep.value + 1}/5')),
-      ),
-      body: Column(
-        children: [
-          Obx(
-            () => LinearProgressIndicator(
-              value: (controller.currentStep.value + 1) / 5,
-              backgroundColor: AppConstants.borderColor,
-              valueColor: const AlwaysStoppedAnimation(
-                AppConstants.primaryColor,
-              ),
-              minHeight: 4,
-            ),
-          ),
-          Expanded(
-            child: PageView(
-              controller: controller.pageController,
-              physics: const NeverScrollableScrollPhysics(),
-              children: const [
-                Step1AccountType(),
-                Step2Personal(),
-                Step3Contact(),
-                Step4Location(),
-                Step5ProfilePhoto(),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ==================== STEP 1: ACCOUNT TYPE ====================
-class Step1AccountType extends StatelessWidget {
-  const Step1AccountType({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final controller = Get.find<RegisterController>();
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppConstants.paddingLarge),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Akkount turini tanlang',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: AppConstants.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Siz ish izlayapsizmi yoki xodim qidiryapsizmi?',
-            style: TextStyle(fontSize: 16, color: AppConstants.textSecondary),
-          ),
-          const SizedBox(height: 40),
-          Obx(
-            () => Column(
-              children: [
-                _buildTypeCard(
-                  title: 'Shaxsiy akkount',
-                  description: 'Ish izlayotgan shaxslar uchun',
-                  icon: Icons.person_outline_rounded,
-                  isSelected: controller.userType.value == 'individual',
-                  onTap: () => controller.selectUserType('individual'),
-                ),
-                const SizedBox(height: 16),
-                _buildTypeCard(
-                  title: 'Kompaniya akkaunt',
-                  description: 'Xodim izlayotgan kompaniyalar uchun',
-                  icon: Icons.business_outlined,
-                  isSelected: controller.userType.value == 'company',
-                  onTap: () => controller.selectUserType('company'),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 40),
-          CustomButton(text: 'Keyingi', onPressed: controller.nextStep),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTypeCard({
-    required String title,
-    required String description,
-    required IconData icon,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppConstants.radiusLarge),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFEEF2FF) : Colors.white,
-            border: Border.all(
-              color: isSelected
-                  ? AppConstants.primaryColor
-                  : AppConstants.borderColor,
-              width: 2,
-            ),
-            borderRadius: BorderRadius.circular(AppConstants.radiusLarge),
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppConstants.primaryColor
-                      : const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(
-                    AppConstants.radiusMedium,
-                  ),
-                ),
-                child: Icon(
-                  icon,
-                  color: isSelected ? Colors.white : AppConstants.textSecondary,
-                  size: 28,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: isSelected
-                            ? AppConstants.primaryColor
-                            : AppConstants.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      description,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppConstants.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (isSelected)
-                const Icon(
-                  Icons.check_circle_rounded,
-                  color: AppConstants.primaryColor,
-                  size: 28,
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ==================== STEP 2: PERSONAL INFO ====================
-class Step2Personal extends StatelessWidget {
-  const Step2Personal({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final controller = Get.find<RegisterController>();
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppConstants.paddingLarge),
-      child: Obx(() {
-        final isCompany = controller.userType.value == 'company';
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              isCompany ? 'Kompaniya ma\'lumotlari' : 'Shaxsiy ma\'lumotlar',
-              style: const TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: AppConstants.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              isCompany
-                  ? 'Kompaniya nomi va boshqa ma\'lumotlarni kiriting'
-                  : 'Ismingiz va familyangizni kiriting',
-              style: const TextStyle(
-                fontSize: 16,
-                color: AppConstants.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 40),
-
-            if (isCompany) ...[
-              // ✅ KOMPANIYA UCHUN
-              CustomTextField(
-                controller: controller.companyNameController,
-                label: 'Kompaniya nomi',
-                hint: 'Masalan: IT Solutions LLC',
-                icon: Icons.business_outlined,
-              ),
-            ] else ...[
-              // ✅ SHAXS UCHUN
-              CustomTextField(
-                controller: controller.firstNameController,
-                label: 'Ism',
-                hint: 'Masalan: Jahongir',
-                icon: Icons.person_outline_rounded,
-              ),
-              const SizedBox(height: 20),
-              CustomTextField(
-                controller: controller.lastNameController,
-                label: 'Familya',
-                hint: 'Masalan: Xolmatov',
-                icon: Icons.person_outline_rounded,
-              ),
-            ],
-
-            const SizedBox(height: 40),
-            Row(
-              children: [
-                Expanded(
-                  child: CustomButton(
-                    text: 'Orqaga',
-                    onPressed: controller.previousStep,
-                    isOutlined: true,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: CustomButton(
-                    text: 'Keyingi',
-                    onPressed: controller.nextStep,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        );
+      body: Obx(() {
+        if (controller.currentScreen.value == 0) {
+          return const RegisterFormScreen();
+        } else {
+          return const ProfilePhotoScreen();
+        }
       }),
     );
   }
 }
 
-// ==================== STEP 3: CONTACT INFO ====================
-class Step3Contact extends StatelessWidget {
-  const Step3Contact({super.key});
+// ==================== SCREEN 1: REGISTER FORM ====================
+class RegisterFormScreen extends StatelessWidget {
+  const RegisterFormScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<RegisterController>();
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppConstants.paddingLarge),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Aloqa ma\'lumotlari',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: AppConstants.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Telefon raqam, email va parolingizni kiriting',
-            style: TextStyle(fontSize: 16, color: AppConstants.textSecondary),
-          ),
-          const SizedBox(height: 40),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 10),
 
-          // ✅ TELEFON RAQAM - +998 avtomatik
-          TextField(
-            controller: controller.phoneController,
-            keyboardType: TextInputType.number,
-            inputFormatters: [
-              controller.phoneFormatter,
-              LengthLimitingTextInputFormatter(12),
-            ],
-            decoration: InputDecoration(
-              labelText: 'Telefon raqam',
-              hintText: '90 123 45 67',
-              prefixIcon: const Icon(Icons.phone_outlined),
-              prefixText: '+998 ',
-              prefixStyle: const TextStyle(
-                color: AppConstants.textPrimary,
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-                borderSide: const BorderSide(color: AppConstants.borderColor),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-                borderSide: const BorderSide(color: AppConstants.borderColor),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-                borderSide: const BorderSide(
-                  color: AppConstants.primaryColor,
-                  width: 2,
+              // ✅ LOGO
+              Center(
+                child: Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Colors.indigo.shade400, Colors.purple.shade400],
+                    ),
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.indigo.withOpacity(0.3),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.work_rounded,
+                    size: 35,
+                    color: Colors.white,
+                  ),
                 ),
               ),
-              filled: true,
-              fillColor: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEEF2FF),
-              borderRadius: BorderRadius.circular(AppConstants.radiusMedium),
-            ),
-            child: const Row(
-              children: [
-                Icon(
-                  Icons.info_outline_rounded,
-                  color: AppConstants.primaryColor,
-                  size: 20,
+              const SizedBox(height: 20),
+
+              // ✅ TITLE
+              const Center(
+                child: Text(
+                  'Ro\'yxatdan o\'tish',
+                  style: TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A1F36),
+                  ),
                 ),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Format: +998 XX XXX XX XX',
+              ),
+              const SizedBox(height: 8),
+              const Center(
+                child: Text(
+                  'Akkountingizni yarating',
+                  style: TextStyle(fontSize: 15, color: Color(0xFF6B7280)),
+                ),
+              ),
+              const SizedBox(height: 30),
+
+              // ✅ USER TYPE TABS
+              Obx(
+                () => Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3F4F6),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  padding: const EdgeInsets.all(4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _buildTypeTab(
+                          'Ish qidiruvchi',
+                          Icons.person_search_rounded,
+                          controller.userType.value == 'job_seeker',
+                          () => controller.selectUserType('job_seeker'),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: _buildTypeTab(
+                          'Ish beruvchi',
+                          Icons.business_rounded,
+                          controller.userType.value == 'employer',
+                          () => controller.selectUserType('employer'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 30),
+
+              // ✅ PERSONAL INFO
+              Obx(() {
+                if (controller.userType.value == 'employer') {
+                  return _buildTextField(
+                    controller: controller.companyNameController,
+                    label: 'Kompaniya nomi',
+                    hint: 'Masalan: IT Solutions LLC',
+                    icon: Icons.business_outlined,
+                  );
+                } else {
+                  return Column(
+                    children: [
+                      _buildTextField(
+                        controller: controller.firstNameController,
+                        label: 'Ism',
+                        hint: 'Masalan: Jahongir',
+                        icon: Icons.person_outline_rounded,
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextField(
+                        controller: controller.lastNameController,
+                        label: 'Familya',
+                        hint: 'Masalan: Xolmatov',
+                        icon: Icons.person_outline_rounded,
+                      ),
+                    ],
+                  );
+                }
+              }),
+              const SizedBox(height: 16),
+
+              // ✅ PHONE NUMBER
+              _buildPhoneField(controller),
+              const SizedBox(height: 16),
+
+              // ✅ USERNAME
+              _buildTextField(
+                controller: controller.usernameController,
+                label: 'Username',
+                hint: 'Masalan: jahongir_dev',
+                icon: Icons.alternate_email_rounded,
+              ),
+              const SizedBox(height: 16),
+
+              // ✅ PASSWORD
+              Obx(
+                () => _buildTextField(
+                  controller: controller.passwordController,
+                  label: 'Parol (kamida 6 ta belgi)',
+                  hint: '••••••',
+                  icon: Icons.lock_outline_rounded,
+                  obscureText: controller.isPasswordHidden.value,
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      controller.isPasswordHidden.value
+                          ? Icons.visibility_off_outlined
+                          : Icons.visibility_outlined,
+                      color: const Color(0xFF6B7280),
+                    ),
+                    onPressed: controller.togglePasswordVisibility,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 30),
+
+              // ✅ CONTINUE BUTTON
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: ElevatedButton(
+                  onPressed: controller.goToProfilePhotoScreen,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.indigo.shade600,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    elevation: 2,
+                  ),
+                  child: const Text(
+                    'Davom etish',
                     style: TextStyle(
-                      fontSize: 13,
-                      color: AppConstants.primaryColor,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
                     ),
                   ),
                 ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // ✅ USERNAME
-          CustomTextField(
-            controller: controller.usernameController,
-            label: 'Username',
-            hint: 'Masalan: jahongir_dev',
-            icon: Icons.alternate_email_rounded,
-          ),
-
-          const SizedBox(height: 20),
-
-          // ✅ EMAIL (Ixtiyoriy)
-
-          // ✅ PAROL
-          Obx(
-            () => CustomTextField(
-              controller: controller.passwordController,
-              label: 'Parol (kamida 6 ta belgi)',
-              hint: '••••••',
-              icon: Icons.lock_outline_rounded,
-              obscureText: controller.isPasswordHidden.value,
-              suffixIcon: IconButton(
-                icon: Icon(
-                  controller.isPasswordHidden.value
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
-                  color: AppConstants.textSecondary,
-                ),
-                onPressed: controller.togglePasswordVisibility,
               ),
-            ),
-          ),
+              const SizedBox(height: 20),
 
-          const SizedBox(height: 20),
-
-          // ✅ BIO (Majburiy)
-          CustomTextField(
-            controller: controller.bioController,
-            label: 'Bio (o\'zingiz haqingizda)',
-            hint: 'Masalan: Men dasturchi va dizaynerman...',
-            icon: Icons.info_outline_rounded,
-            maxLines: 3,
-          ),
-
-          const SizedBox(height: 40),
-          Row(
-            children: [
-              Expanded(
-                child: CustomButton(
-                  text: 'Orqaga',
-                  onPressed: controller.previousStep,
-                  isOutlined: true,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: CustomButton(
-                  text: 'Keyingi',
-                  onPressed: controller.nextStep,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ==================== STEP 4: LOCATION (DROPDOWN) ====================
-class Step4Location extends StatelessWidget {
-  const Step4Location({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final controller = Get.find<RegisterController>();
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppConstants.paddingLarge),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Manzil ma\'lumotlari',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: AppConstants.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Yashash joyingizni tanlang',
-            style: TextStyle(fontSize: 16, color: AppConstants.textSecondary),
-          ),
-          const SizedBox(height: 40),
-
-          // ✅ VILOYAT DROPDOWN
-          Obx(
-            () => DropdownButtonFormField<String>(
-              decoration: InputDecoration(
-                labelText: 'Viloyat',
-                prefixIcon: const Icon(Icons.location_city_outlined),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(
-                    AppConstants.radiusMedium,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(
-                    AppConstants.radiusMedium,
-                  ),
-                  borderSide: const BorderSide(color: AppConstants.borderColor),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(
-                    AppConstants.radiusMedium,
-                  ),
-                  borderSide: const BorderSide(
-                    color: AppConstants.primaryColor,
-                    width: 2,
-                  ),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-              ),
-              value: controller.selectedRegion.value.isEmpty
-                  ? null
-                  : controller.selectedRegion.value,
-              hint: const Text('Viloyatni tanlang'),
-              items: controller.regions.keys.map((region) {
-                return DropdownMenuItem(value: region, child: Text(region));
-              }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  controller.selectRegion(value);
-                }
-              },
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // ✅ TUMAN DROPDOWN
-          Obx(
-            () => DropdownButtonFormField<String>(
-              decoration: InputDecoration(
-                labelText: 'Tuman',
-                prefixIcon: const Icon(Icons.location_on_outlined),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(
-                    AppConstants.radiusMedium,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(
-                    AppConstants.radiusMedium,
-                  ),
-                  borderSide: const BorderSide(color: AppConstants.borderColor),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(
-                    AppConstants.radiusMedium,
-                  ),
-                  borderSide: const BorderSide(
-                    color: AppConstants.primaryColor,
-                    width: 2,
-                  ),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-              ),
-              value: controller.selectedDistrict.value.isEmpty
-                  ? null
-                  : controller.selectedDistrict.value,
-              hint: const Text('Tumanni tanlang'),
-              items: controller.availableDistricts.map((district) {
-                return DropdownMenuItem(value: district, child: Text(district));
-              }).toList(),
-              onChanged: controller.selectedRegion.value.isEmpty
-                  ? null
-                  : (value) {
-                      if (value != null) {
-                        controller.selectDistrict(value);
-                      }
-                    },
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // ✅ MAHALLA/QISHLOQ DROPDOWN
-          Obx(
-            () => DropdownButtonFormField<String>(
-              decoration: InputDecoration(
-                labelText: 'Mahalla/Qishloq',
-                prefixIcon: const Icon(Icons.home_outlined),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(
-                    AppConstants.radiusMedium,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(
-                    AppConstants.radiusMedium,
-                  ),
-                  borderSide: const BorderSide(color: AppConstants.borderColor),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(
-                    AppConstants.radiusMedium,
-                  ),
-                  borderSide: const BorderSide(
-                    color: AppConstants.primaryColor,
-                    width: 2,
-                  ),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-              ),
-              value: controller.selectedVillage.value.isEmpty
-                  ? null
-                  : controller.selectedVillage.value,
-              hint: const Text('Mahallani tanlang'),
-              items: controller.availableVillages.map((village) {
-                return DropdownMenuItem(value: village, child: Text(village));
-              }).toList(),
-              onChanged: controller.selectedDistrict.value.isEmpty
-                  ? null
-                  : (value) {
-                      if (value != null) {
-                        controller.selectVillage(value);
-                      }
-                    },
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // ✅ YASHASH MANZILI (Ko'cha, uy)
-          CustomTextField(
-            controller: controller.addressController,
-            label: 'Manzil (ko\'cha, uy raqami)',
-            hint: 'Masalan: Amir Temur ko\'chasi, 15-uy',
-            icon: Icons.place_outlined,
-            maxLines: 2,
-          ),
-
-          const SizedBox(height: 20),
-
-          // ✅ TO'LIQ MANZIL PREVIEW
-          Obx(() {
-            if (controller.selectedRegion.value.isNotEmpty &&
-                controller.selectedDistrict.value.isNotEmpty &&
-                controller.selectedVillage.value.isNotEmpty &&
-                controller.addressController.text.isNotEmpty) {
-              return Container(
+              // ✅ LOGIN LINK
+              Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEEF2FF),
-                  borderRadius: BorderRadius.circular(
-                    AppConstants.radiusMedium,
-                  ),
-                  border: Border.all(
-                    color: AppConstants.primaryColor,
-                    width: 1.5,
-                  ),
+                  color: const Color(0xFFF9FAFB),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Row(
-                      children: [
-                        Icon(
-                          Icons.location_on,
-                          color: AppConstants.primaryColor,
-                          size: 20,
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          'To\'liq manzil:',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: AppConstants.primaryColor,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
+                    const Text(
+                      'Akkauntingiz bormi?',
+                      style: TextStyle(color: Color(0xFF6B7280), fontSize: 15),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${controller.selectedRegion.value}, ${controller.selectedDistrict.value}, ${controller.selectedVillage.value}, ${controller.addressController.text}',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppConstants.textPrimary,
+                    const SizedBox(width: 4),
+                    TextButton(
+                      onPressed: () => Get.toNamed('/login'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        'Kirish',
+                        style: TextStyle(
+                          color: Colors.indigo.shade600,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
                 ),
-              );
-            }
-            return const SizedBox.shrink();
-          }),
-
-          const SizedBox(height: 40),
-          Row(
-            children: [
-              Expanded(
-                child: CustomButton(
-                  text: 'Orqaga',
-                  onPressed: controller.previousStep,
-                  isOutlined: true,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: CustomButton(
-                  text: 'Keyingi',
-                  onPressed: controller.nextStep,
-                ),
               ),
             ],
           ),
-        ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildTypeTab(
+    String label,
+    IconData icon,
+    bool isSelected,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : [],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: isSelected
+                  ? Colors.indigo.shade600
+                  : const Color(0xFF9CA3AF),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                color: isSelected
+                    ? Colors.indigo.shade600
+                    : const Color(0xFF9CA3AF),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    bool obscureText = false,
+    Widget? suffixIcon,
+    int maxLines = 1,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF374151),
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller,
+          obscureText: obscureText,
+          maxLines: maxLines,
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+            prefixIcon: Icon(icon, color: Colors.indigo.shade400),
+            suffixIcon: suffixIcon,
+            filled: true,
+            fillColor: const Color(0xFFF9FAFB),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.indigo.shade400, width: 2),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPhoneField(RegisterController controller) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Telefon raqam',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF374151),
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: controller.phoneController,
+          keyboardType: TextInputType.number,
+          inputFormatters: [
+            controller.phoneFormatter,
+            LengthLimitingTextInputFormatter(12),
+          ],
+          decoration: InputDecoration(
+            hintText: '90 123 45 67',
+            hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+            prefixIcon: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.phone_outlined, color: Colors.indigo.shade400),
+                  const SizedBox(width: 8),
+                  const Text(
+                    '+998',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF374151),
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                ],
+              ),
+            ),
+            filled: true,
+            fillColor: const Color(0xFFF9FAFB),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.indigo.shade400, width: 2),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
 
-// ==================== STEP 5: PROFILE PHOTO ====================
-class Step5ProfilePhoto extends StatelessWidget {
-  const Step5ProfilePhoto({super.key});
+// ==================== SCREEN 2: PROFILE PHOTO ====================
+class ProfilePhotoScreen extends StatelessWidget {
+  const ProfilePhotoScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<RegisterController>();
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppConstants.paddingLarge),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Profil rasmi',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: AppConstants.textPrimary,
-            ),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.black),
+          onPressed: controller.goBackToForm,
+        ),
+        title: const Text(
+          'Profil rasmi',
+          style: TextStyle(
+            color: Color(0xFF1A1F36),
+            fontWeight: FontWeight.bold,
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'Profil rasmingizni yuklang (ixtiyoriy)',
-            style: TextStyle(fontSize: 16, color: AppConstants.textSecondary),
-          ),
-          const SizedBox(height: 40),
+        ),
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              const SizedBox(height: 20),
+              const Text(
+                'Profil rasmingizni qo\'shing',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1A1F36),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Rasm qo\'shish ixtiyoriy, keyinroq ham qo\'shishingiz mumkin',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 15, color: Color(0xFF6B7280)),
+              ),
+              const Spacer(),
 
-          // ✅ PHOTO PICKER
-          Center(
-            child: Obx(() {
-              return GestureDetector(
-                onTap: controller.pickProfilePhoto,
-                child: Container(
-                  width: 180,
-                  height: 180,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: AppConstants.primaryColor,
-                      width: 3,
-                    ),
-                  ),
-                  child: controller.profilePhotoPath.value.isEmpty
-                      ? const Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.camera_alt_outlined,
-                              size: 50,
-                              color: AppConstants.textSecondary,
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              'Rasm tanlang',
-                              style: TextStyle(
-                                color: AppConstants.textSecondary,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        )
-                      : ClipRRect(
-                          borderRadius: BorderRadius.circular(90),
-                          child: Image.file(
-                            File(controller.profilePhotoPath.value),
-                            fit: BoxFit.cover,
-                            width: 180,
-                            height: 180,
-                          ),
+              // ✅ PHOTO PREVIEW
+              Obx(() {
+                return GestureDetector(
+                  onTap: controller.pickProfilePhoto,
+                  child: Container(
+                    width: 200,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.indigo.shade100,
+                          Colors.purple.shade100,
+                        ],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.indigo.withOpacity(0.2),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
                         ),
-                ),
-              );
-            }),
-          ),
-
-          const SizedBox(height: 20),
-
-          // ✅ BUTTONS - Rasm tanlash
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ElevatedButton.icon(
-                onPressed: controller.takePhoto,
-                icon: const Icon(Icons.camera_alt_outlined, size: 20),
-                label: const Text('Kamera'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: AppConstants.primaryColor,
-                  side: const BorderSide(
-                    color: AppConstants.primaryColor,
-                    width: 1.5,
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 14,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(
-                      AppConstants.radiusMedium,
+                      ],
                     ),
+                    child: controller.profilePhotoPath.value.isEmpty
+                        ? Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.add_a_photo_rounded,
+                                size: 50,
+                                color: Colors.indigo.shade400,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                'Rasm qo\'shish',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.indigo.shade600,
+                                ),
+                              ),
+                            ],
+                          )
+                        : ClipRRect(
+                            borderRadius: BorderRadius.circular(100),
+                            child: Image.file(
+                              File(controller.profilePhotoPath.value),
+                              fit: BoxFit.cover,
+                              width: 200,
+                              height: 200,
+                            ),
+                          ),
+                  ),
+                );
+              }),
+
+              const SizedBox(height: 30),
+
+              // ✅ PHOTO OPTIONS
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildPhotoOption(
+                    icon: Icons.camera_alt_rounded,
+                    label: 'Kamera',
+                    onTap: controller.takePhoto,
+                  ),
+                  const SizedBox(width: 20),
+                  _buildPhotoOption(
+                    icon: Icons.photo_library_rounded,
+                    label: 'Galereya',
+                    onTap: controller.pickProfilePhoto,
+                  ),
+                ],
+              ),
+
+              const Spacer(),
+
+              // ✅ FINISH BUTTON
+              Obx(
+                () => SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: ElevatedButton(
+                    onPressed: controller.isLoading.value
+                        ? null
+                        : controller.registerUser,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.indigo.shade600,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      elevation: 2,
+                    ),
+                    child: controller.isLoading.value
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2.5,
+                            ),
+                          )
+                        : const Text(
+                            'Tugatish',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              ElevatedButton.icon(
-                onPressed: controller.chooseFromGallery,
-                icon: const Icon(Icons.photo_library_outlined, size: 20),
-                label: const Text('Galereya'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppConstants.primaryColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 14,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(
-                      AppConstants.radiusMedium,
-                    ),
+              const SizedBox(height: 12),
+
+              // ✅ SKIP BUTTON
+              TextButton(
+                onPressed: controller.registerUser,
+                child: Text(
+                  'Keyinroq qo\'shaman',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Colors.indigo.shade600,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
 
-          const SizedBox(height: 40),
-          Row(
-            children: [
-              Expanded(
-                child: CustomButton(
-                  text: 'Orqaga',
-                  onPressed: controller.previousStep,
-                  isOutlined: true,
-                ),
+  Widget _buildPhotoOption({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3F4F6),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.indigo.shade600, size: 22),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Colors.indigo.shade600,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Obx(
-                  () => CustomButton(
-                    text: 'Ro\'yxatdan o\'tish',
-                    onPressed: controller.registerUser,
-                    isLoading: controller.isLoading.value,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }

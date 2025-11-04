@@ -119,7 +119,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         children: [
                           // Image with better styling
                           Container(
-                            height: screenHeight * 0.45,
+                            height: screenHeight * 0.65,
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(30),
@@ -144,7 +144,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                     ),
                                     child: const Icon(
                                       Icons.image_outlined,
-                                      size: 100,
+                                      size: 125,
                                       color: Colors.white54,
                                     ),
                                   );
@@ -153,7 +153,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             ),
                           ),
 
-                          const SizedBox(height: 50),
+                          const SizedBox(height: 40),
 
                           // Title
                           Text(

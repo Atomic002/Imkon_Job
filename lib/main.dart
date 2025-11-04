@@ -46,16 +46,10 @@ class JobHunterApp extends StatelessWidget {
     return GetMaterialApp(
       title: 'Imkon Job',
       debugShowCheckedModeBanner: false,
-
-      // Theme
       theme: AppThemes.lightTheme,
-
-      // Translations
       translations: AppTranslations(),
       locale: const Locale('uz', 'UZ'),
       fallbackLocale: const Locale('uz', 'UZ'),
-
-      // Routes
       getPages: AppRoutes.routes,
 
       // Home screen
