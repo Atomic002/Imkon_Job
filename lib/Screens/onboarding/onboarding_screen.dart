@@ -48,7 +48,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onboarding_shown', true);
     print('✅ Onboarding completed - saved to SharedPreferences');
-    Get.offAllNamed('/login');
+    Get.offAllNamed('/register'); // ✅ REGISTER SAHIFASIGA O'TADI
   }
 
   void _nextPage() {
@@ -119,7 +119,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         children: [
                           // Image with better styling
                           Container(
-                            height: screenHeight * 0.65,
+                            height: screenHeight * 0.55,
                             decoration: BoxDecoration(
                               color: Colors.white.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(30),
@@ -144,7 +144,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                                     ),
                                     child: const Icon(
                                       Icons.image_outlined,
-                                      size: 125,
+                                      size: 120,
                                       color: Colors.white54,
                                     ),
                                   );
@@ -152,8 +152,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               ),
                             ),
                           ),
-
-                          const SizedBox(height: 40),
 
                           // Title
                           Text(
