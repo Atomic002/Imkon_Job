@@ -4,8 +4,6 @@ import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:version1/Screens/home/map_picker_screen.dart';
-
-// Controllers va configs
 import 'package:version1/controller/chat_controller.dart';
 import 'package:version1/config/constants.dart';
 
@@ -28,9 +26,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   final FocusNode messageFocusNode = FocusNode();
   late final ChatController controller;
 
-  // ✅ TextField balandligini kuzatish uchun
   int _currentLineCount = 1;
-  static const int _maxLines = 6; // Maksimal 6 qator
+  static const int _maxLines = 6;
 
   @override
   void initState() {
@@ -42,8 +39,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     userName = args['userName'];
 
     controller = Get.put(ChatController());
-
-    // ✅ TextField o'zgarishlarini kuzatish
     messageController.addListener(_onTextChanged);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -72,7 +67,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     super.dispose();
   }
 
-  // ✅ Text o'zgarishini kuzatish
   void _onTextChanged() {
     final text = messageController.text;
     final lineCount = '\n'.allMatches(text).length + 1;
@@ -88,11 +82,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     Future.delayed(const Duration(milliseconds: 500), () {
       Get.dialog(
         AlertDialog(
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.work, color: AppConstants.primaryColor),
-              SizedBox(width: 8),
-              Text('Ariza yuborish'),
+              const Icon(Icons.work, color: AppConstants.primaryColor),
+              const SizedBox(width: 8),
+              Text('application_title'.tr), // ✅ Dinamik til
             ],
           ),
           content: SingleChildScrollView(
@@ -100,9 +94,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Ariza xabaringiz tayyor. Xohlasangiz, tahrirlashingiz mumkin.',
-                  style: TextStyle(fontSize: 14),
+                Text(
+                  'application_message'.tr, // ✅ Dinamik til
+                  style: const TextStyle(fontSize: 14),
                 ),
                 const SizedBox(height: 16),
                 Container(
@@ -128,7 +122,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 messageController.clear();
                 Get.back();
               },
-              child: const Text('Bekor qilish'),
+              child: Text('cancel'.tr), // ✅ Dinamik til
             ),
             TextButton(
               onPressed: () {
@@ -137,7 +131,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   messageFocusNode.requestFocus();
                 });
               },
-              child: const Text('Tahrirlash'),
+              child: Text('edit_application'.tr), // ✅ Dinamik til
             ),
             ElevatedButton(
               onPressed: () {
@@ -147,7 +141,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppConstants.primaryColor,
               ),
-              child: const Text('Yuborish'),
+              child: Text('send_application'.tr), // ✅ Dinamik til
             ),
           ],
         ),
@@ -198,9 +192,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
-              'Lokatsiya yuborish',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            Text(
+              'send_location'.tr, // ✅ Dinamik til
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
             ListTile(
@@ -212,11 +206,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 ),
                 child: const Icon(Icons.my_location, color: Colors.blue),
               ),
-              title: const Text(
-                'Hozirgi joylashuvim',
-                style: TextStyle(fontWeight: FontWeight.w600),
+              title: Text(
+                'current_location'.tr, // ✅ Dinamik til
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
-              subtitle: const Text('GPS orqali aniq manzilni yuborish'),
+              subtitle: Text('current_location_desc'.tr), // ✅ Dinamik til
               onTap: () async {
                 Get.back();
                 await _sendCurrentLocation();
@@ -232,11 +226,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 ),
                 child: const Icon(Icons.map_outlined, color: Colors.green),
               ),
-              title: const Text(
-                'Xaritadan tanlash',
-                style: TextStyle(fontWeight: FontWeight.w600),
+              title: Text(
+                'choose_from_map'.tr, // ✅ Dinamik til
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
-              subtitle: const Text('Istalgan joyni xaritadan belgilash'),
+              subtitle: Text('choose_from_map_desc'.tr), // ✅ Dinamik til
               onTap: () {
                 Get.back();
                 _openMapPicker();
@@ -245,9 +239,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             const SizedBox(height: 10),
             TextButton(
               onPressed: () => Get.back(),
-              child: const Text(
-                'Bekor qilish',
-                style: TextStyle(color: Colors.grey),
+              child: Text(
+                'cancel'.tr, // ✅ Dinamik til
+                style: const TextStyle(color: Colors.grey),
               ),
             ),
           ],
@@ -259,16 +253,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Future<void> _sendCurrentLocation() async {
     try {
       Get.dialog(
-        const Center(
+        Center(
           child: Card(
             child: Padding(
-              padding: EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Lokatsiya aniqlanmoqda...'),
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text('detecting_location'.tr), // ✅ Dinamik til
                 ],
               ),
             ),
@@ -288,8 +282,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         );
 
         Get.snackbar(
-          'Muvaffaqiyatli',
-          'Lokatsiya yuborildi',
+          'success'.tr, // ✅ Dinamik til
+          'location_sent'.tr, // ✅ Dinamik til
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.green,
           colorText: Colors.white,
@@ -298,8 +292,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         );
       } else {
         Get.snackbar(
-          'Xato',
-          'Lokatsiyani aniqlab bo\'lmadi',
+          'error'.tr, // ✅ Dinamik til
+          'location_not_detected'.tr, // ✅ Dinamik til
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.orange,
           colorText: Colors.white,
@@ -310,8 +304,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       if (Get.isDialogOpen ?? false) Get.back();
       print('Send location error: $e');
       Get.snackbar(
-        'Xato',
-        'Lokatsiya yuborishda xato',
+        'error'.tr, // ✅ Dinamik til
+        'location_send_error'.tr, // ✅ Dinamik til
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -342,8 +336,8 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               Navigator.pop(context);
 
               Get.snackbar(
-                'Muvaffaqiyatli',
-                'Lokatsiya yuborildi',
+                'success'.tr, // ✅ Dinamik til
+                'location_sent'.tr, // ✅ Dinamik til
                 snackPosition: SnackPosition.BOTTOM,
                 backgroundColor: Colors.green,
                 colorText: Colors.white,
@@ -357,7 +351,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     } catch (e) {
       print('Map picker error: $e');
       Get.snackbar(
-        'Xato',
+        'error'.tr, // ✅ Dinamik til
         'Xaritani ochishda xato',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
@@ -443,12 +437,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Hozircha xabarlar yo\'q',
+                        'no_messages_yet'.tr, // ✅ Dinamik til
                         style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Birinchi xabarni yuboring!',
+                        'send_first_message'.tr, // ✅ Dinamik til
                         style: TextStyle(fontSize: 14, color: Colors.grey[500]),
                       ),
                     ],
@@ -478,8 +472,6 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               );
             }),
           ),
-
-          // ✅ YAXSHILANGAN INPUT CONTAINER
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             decoration: BoxDecoration(
@@ -502,18 +494,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       Icons.location_on_outlined,
                       color: AppConstants.primaryColor,
                     ),
-                    tooltip: 'Lokatsiya yuborish',
+                    tooltip: 'send_location'.tr, // ✅ Dinamik til
                   ),
                   Expanded(
                     child: Container(
-                      constraints: BoxConstraints(
-                        maxHeight: _maxLines * 24.0, // Har bir qator ~24px
-                      ),
+                      constraints: BoxConstraints(maxHeight: _maxLines * 24.0),
                       child: TextField(
                         controller: messageController,
                         focusNode: messageFocusNode,
                         decoration: InputDecoration(
-                          hintText: 'Xabar yozing...',
+                          hintText: 'write_message'.tr, // ✅ Dinamik til
                           filled: true,
                           fillColor: Colors.grey[100],
                           border: OutlineInputBorder(
@@ -525,13 +515,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                             vertical: 10,
                           ),
                         ),
-                        maxLines: null, // Ko'p qatorli bo'lishi mumkin
+                        maxLines: null,
                         minLines: 1,
                         keyboardType: TextInputType.multiline,
                         textInputAction: TextInputAction.newline,
                         scrollPhysics: const ClampingScrollPhysics(),
-                        // ✅ Enter bosilganda yangi qator qo'shadi
-                        onSubmitted: null, // Enter yangi qator qo'shadi
+                        onSubmitted: null,
                       ),
                     ),
                   ),
@@ -661,7 +650,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
               ),
               const SizedBox(width: 8),
               Text(
-                'Lokatsiya',
+                'location_message'.tr, // ✅ Dinamik til
                 style: TextStyle(
                   color: isMe ? Colors.white : Colors.black87,
                   fontWeight: FontWeight.w600,
@@ -672,7 +661,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Xaritada ko\'rish uchun bosing',
+            'open_in_map'.tr, // ✅ Dinamik til
             style: TextStyle(
               color: isMe ? Colors.white70 : Colors.grey[600],
               fontSize: 12,

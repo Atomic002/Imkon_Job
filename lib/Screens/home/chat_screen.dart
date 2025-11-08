@@ -18,9 +18,9 @@ class ChatScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         foregroundColor: AppConstants.textPrimary,
         elevation: 0,
-        title: const Text(
-          'Chatlar',
-          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
+        title: Text(
+          'chats'.tr, // ✅ Dinamik til
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
         ),
         actions: [
           IconButton(
@@ -46,7 +46,7 @@ class ChatScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Hozircha chatlar yo\'q',
+                  'no_chats'.tr, // ✅ Dinamik til
                   style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                 ),
                 const SizedBox(height: 24),
@@ -61,7 +61,7 @@ class ChatScreen extends StatelessWidget {
                     ),
                   ),
                   icon: const Icon(Icons.person_add),
-                  label: const Text('Chat boshlash'),
+                  label: Text('start_chat'.tr), // ✅ Dinamik til
                 ),
               ],
             ),
@@ -198,7 +198,7 @@ class ChatScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    chat.lastMessage ?? 'Xabar yo\'q',
+                    chat.lastMessage ?? 'no_messages'.tr, // ✅ Dinamik til
                     style: TextStyle(
                       fontSize: 14,
                       color: chat.unreadCount > 0
@@ -227,7 +227,7 @@ class ChatScreen extends StatelessWidget {
     if (difference.inDays == 0) {
       return DateFormat('HH:mm').format(dateTime);
     } else if (difference.inDays == 1) {
-      return 'Kecha';
+      return 'yesterday'.tr; // ✅ Dinamik til
     } else if (difference.inDays < 7) {
       return DateFormat('EEEE').format(dateTime);
     } else {

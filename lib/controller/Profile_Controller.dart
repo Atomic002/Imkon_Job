@@ -102,12 +102,12 @@ class ProfileController extends GetxController {
   }
 
   // ==================== UPDATE PROFILE ====================
+  // ==================== UPDATE PROFILE (FIXED) ====================
   Future<bool> updateProfile({
-    required String firstName,
-    required String lastName,
+    String? firstName,
+    String? lastName,
     String? bio,
     String? location,
-    String? email,
   }) async {
     try {
       isLoading.value = true;
@@ -123,16 +123,25 @@ class ProfileController extends GetxController {
         return false;
       }
 
-      await supabase
-          .from('users')
-          .update({
-            'first_name': firstName.trim(),
-            'last_name': lastName.trim(),
-            'bio': bio?.trim(),
-            'location': location?.trim(),
-            'updated_at': DateTime.now().toIso8601String(),
-          })
-          .eq('id', userId);
+      // ✅ FAQAT YUBORILGAN QIYMATLARNI YANGILASH
+      final Map<String, dynamic> updateData = {
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      if (firstName != null && firstName.isNotEmpty) {
+        updateData['first_name'] = firstName.trim();
+      }
+      if (lastName != null && lastName.isNotEmpty) {
+        updateData['last_name'] = lastName.trim();
+      }
+      if (bio != null) {
+        updateData['bio'] = bio.trim();
+      }
+      if (location != null) {
+        updateData['location'] = location.trim();
+      }
+
+      await supabase.from('users').update(updateData).eq('id', userId);
 
       await loadUserData();
 

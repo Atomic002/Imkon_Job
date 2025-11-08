@@ -4,6 +4,94 @@ class AppTranslations extends Translations {
   @override
   Map<String, Map<String, String>> get keys => {
     'uz_UZ': {
+      // Profile screen - hardcoded texts
+      'edit_profile_title': 'Profilni tahrirlash',
+      'phone_number': 'Telefon raqam',
+      'phone_change_desc': 'Telefon raqamingizni o\'zgartirish',
+      'password_title': 'Parol',
+      'password_change_desc': 'Parolingizni o\'zgartirish',
+      'account_type_short': 'Akkount turi',
+      'account_type_change_desc': 'Ish qidiruvchi yoki Ish beruvchi',
+      'bio_location_title': 'Bio va Manzil',
+      'bio_location_change_desc': 'Qo\'shimcha ma\'lumotlarni o\'zgartirish',
+
+      // Phone dialog
+      'new_phone_number': 'Yangi telefon raqam *',
+      'phone_placeholder': '90 123 45 67',
+      'password_confirm': 'Parolingiz (tasdiqlash uchun) *',
+      'security_message': 'Xavfsizlik uchun parolingizni kiriting',
+      'full_phone_password': 'To\'liq telefon raqam va parolni kiriting!',
+
+      // Password dialog
+      'change_password_title': 'Parolni o\'zgartirish',
+      'old_password_label': 'Eski parol *',
+      'new_password_label': 'Yangi parol (kamida 6 ta) *',
+      'confirm_password_label': 'Yangi parolni tasdiqlang *',
+      'password_requirements':
+          'Barcha maydonlarni to\'ldiring! Yangi parol kamida 6 ta belgidan iborat bo\'lishi kerak.',
+      'passwords_mismatch': 'Yangi parollar mos kelmayapti!',
+      'password_updated_success': 'Parol yangilandi!',
+      'phone_updated_success': 'Telefon raqam yangilandi!',
+
+      // User type dialog
+      'account_type_dialog': 'Akkount turi',
+      'job_seeker_title': 'Ish qidiruvchi',
+      'job_seeker_subtitle': 'Ish izlayotgan shaxslar uchun',
+      'employer_title': 'Ish beruvchi',
+      'employer_subtitle': 'Xodim izlayotgan kompaniyalar uchun',
+      'account_updated_success': 'Akkount turi yangilandi!',
+
+      // Post edit dialog
+      'edit_post': 'E\'lonni tahrirlash',
+      'post_type': 'E\'lon turi *',
+      'employee_needed_short': 'Hodim kerak',
+      'job_needed_short': 'Ish kerak',
+      'one_time_short': 'Bir martalik ish',
+      'post_title': 'Sarlavha *',
+      'location_post': 'Joylashuv *',
+      'description_post': 'Tasnif *',
+      'salary_type_short': 'Maosh turi',
+      'daily_short': 'Kunlik',
+      'monthly_short': 'Oylik',
+      'freelance_short': 'Freelance',
+      'min_salary_label': 'Min maosh *',
+      'max_salary_label': 'Max maosh *',
+      'main_req': 'Asosiy talablar',
+      'additional_req': 'Qo\'shimcha talablar',
+      'skills_comma': 'Ko\'nikmalar (vergul bilan ajrating)',
+      'experience_short': 'Tajriba',
+      'phone_number_short': 'Telefon raqam',
+      'required_fields': 'Majburiy maydonlarni to\'ldiring!',
+      'post_save': 'Saqlash',
+
+      // Post menu
+      'edit_menu': 'Tahrirlash',
+      'complete_menu': 'Muvaffaqiyatli bajarildi',
+      'delete_menu': 'O\'chirish',
+
+      // Complete dialog
+      'complete_post': 'E\'lonni yakunlash',
+      'complete_confirm':
+          'Ushbu e\'lonni muvaffaqiyatli bajarilgan deb belgilamoqchimisiz?',
+      'complete_info':
+          '✅ E\'lon tarixga o\'tadi\n✅ Profilingizda saqlanadi\n✅ Boshqalar ko\'ra olmaydi',
+      'yes_complete_short': 'Ha, yakunlash',
+
+      // History dialog
+      'history_title': 'Muvaffaqiyatli bajarilgan',
+      'no_history': 'Hozircha tarix yo\'q',
+
+      // Logout dialog
+      'logout_confirm_msg': 'Rostdan ham tizimdan chiqmoqchimisiz?',
+      'logout_warning': 'Qayta kirish uchun login va parol kerak bo\'ladi',
+
+      // User type badge
+      'job_seeker_badge': 'Ish qidiruvchi',
+      'employer_badge': 'Ish beruvchi',
+
+      // App info
+      'app_version': 'ImkonJob v1.0.0',
+      'creators_text': 'Yaratuvchilar: Rahmatillo Ganiyev & Islomhon',
       'edit_name': 'Ism va Familya',
       'edit_name_desc': 'Ismingiz va familyangizni o\'zgartirish',
       'edit_phone': 'Telefon raqam',
@@ -78,6 +166,26 @@ class AppTranslations extends Translations {
       'salary_type_label': 'Maosh turi',
       'daily_option': 'Kunlik',
       'monthly_option': 'Oylik',
+      // Notifications
+      'notifications': 'Bildirishnomalar',
+      'unread_notifications': 'ta o\'qilmagan',
+      'mark_all_as_read': 'Hammasini o\'qilgan',
+      'clear_all_notifications': 'Hammasini o\'chirish',
+      'clear_all_notifications_title': 'Barcha bildirishnomalarni o\'chirish',
+      'clear_all_notifications_confirm':
+          'Haqiqatan ham barcha bildirishnomalarni o\'chirmoqchimisiz?',
+      'all_notifications_deleted': 'Barcha bildirishnomalar o\'chirildi',
+      'no_notifications': 'Bildirishnomalar yo\'q',
+      'notifications_will_appear_here':
+          'Yangi bildirishnomalar bu yerda ko\'rinadi',
+      'notification_title': 'Bildirishnoma',
+      'notification_load_error': 'Bildirishnomalarni yuklashda xato',
+      'rejection_reason': 'Rad etilish sababi:',
+      'unknown_time': 'Noma\'lum',
+      'just_now': 'Hozir',
+      'minutes_ago_short': 'm oldin',
+      'hours_ago_short': 'h oldin',
+      'days_ago_short': 'd oldin',
       'freelance_option': 'Freelance',
       'min_salary': 'Min maosh *',
       'max_salary': 'Max maosh *',
@@ -99,6 +207,36 @@ class AppTranslations extends Translations {
       'status_rejected': 'Rad etilgan',
       'status_completed': 'Bajarilgan',
       'status_unknown': 'Noma\'lum',
+
+      // ✅ CHAT SCREEN KALITLARI
+      'chats': 'Chatlar',
+      'no_chats': 'Hozircha chatlar yo\'q',
+      'start_chat': 'Chat boshlash',
+      'yesterday': 'Kecha',
+      'no_messages': 'Xabar yo\'q',
+
+      // ✅ CHAT DETAIL SCREEN KALITLARI
+      'send_location': 'Lokatsiya yuborish',
+      'write_message': 'Xabar yozing...',
+      'current_location': 'Hozirgi joylashuvim',
+      'current_location_desc': 'GPS orqali aniq manzilni yuborish',
+      'choose_from_map': 'Xaritadan tanlash',
+      'choose_from_map_desc': 'Istalgan joyni xaritadan belgilash',
+      'detecting_location': 'Lokatsiya aniqlanmoqda...',
+      'location_sent': 'Lokatsiya yuborildi',
+      'location_not_detected': 'Lokatsiyani aniqlab bo\'lmadi',
+      'location_send_error': 'Lokatsiya yuborishda xato',
+      'no_messages_yet': 'Hozircha xabarlar yo\'q',
+      'send_first_message': 'Birinchi xabarni yuboring!',
+      'location_message': 'Lokatsiya',
+      'open_in_map': 'Xaritada ko\'rish uchun bosing',
+
+      // ✅ APPLICATION DIALOG KALITLARI
+      'application_title': 'Ariza yuborish',
+      'application_message':
+          'Ariza xabaringiz tayyor. Xohlasangiz, tahrirlashingiz mumkin.',
+      'edit_application': 'Tahrirlash',
+      'send_application': 'Yuborish',
 
       // Chat screen
       'chats': 'Chatlar',
@@ -122,6 +260,35 @@ class AppTranslations extends Translations {
       'send_first_message': 'Birinchi xabarni yuboring!',
       'location_message': 'Lokatsiya',
       'open_in_map': 'Xaritada ko\'rish uchun bosing',
+
+      // Filter Screen
+      'filter': 'Filtr',
+      'filter_settings': 'Filtr sozlamalari',
+      'clear_filters': 'Filtrlarni tozalash',
+      'searching': 'Qidirilmoqda...',
+      'search_by_title': 'Sarlovha bo\'yicha qidirish...',
+      'post_type_filter': 'E\'lon turi',
+      'category_filter': 'Kategoriya',
+      'subcategory_filter': 'Sub kategoriya',
+      'location_filter': 'Manzil',
+      'select_option': 'Tanlash',
+      'active_filters': 'Faol filtrlar',
+      'search_button': 'Qidirish',
+      'apply_filters': 'Filtrlarni qo\'llash',
+      'select_category': 'Kategoriya tanlang',
+      'select_subcategory': 'Sub kategoriya tanlang',
+      'select_location': 'Manzil tanlang',
+      'no_subcategories': 'Sub kategoriyalar mavjud emas',
+      'whole_region': 'Butun viloyat/shahar',
+
+      'ready_to_search': 'Qidirish uchun tayyor',
+
+      'tap_filter_button':
+          'Yuqoridagi filter tugmasini bosib\nqidiruv parametrlarini tanlang',
+      'open_filter': 'Filtr ochish',
+      'no_results_found': 'Hech narsa topilmadi',
+      'try_different_filters': 'Filtrlarni o\'zgartirib\nyana urinib ko\'ring',
+      'change_filters': 'Filtrlarni o\'zgartirish',
 
       // Other user profile
       'user_not_found': 'Foydalanuvchi topilmadi',
@@ -379,6 +546,7 @@ class AppTranslations extends Translations {
           'JobHub - ish izlash va ish berish uchun eng qulay platforma.',
 
       // Privacy & Security
+      // ignore: equal_keys_in_map
       'notifications': 'Bildirishnomalar',
       'notifications_enabled': 'Bildirishnomalar yoqildi',
       'notifications_disabled': 'Bildirishnomalar o\'chirildi',
@@ -505,6 +673,35 @@ class AppTranslations extends Translations {
       'passwords_dont_match': 'Янги пароллар мос келмаяпти!',
       'data_updated': 'Маълумотлар янгиланди!',
 
+      'chats': 'Чатлар',
+      'no_chats': 'Ҳозирча чатлар йўқ',
+      'start_chat': 'Чат бошлаш',
+      'yesterday': 'Кеча',
+      'no_messages': 'Хабар йўқ',
+
+      // ✅ CHAT DETAIL SCREEN KALITLARI
+      'send_location': 'Локация юбориш',
+      'write_message': 'Хабар ёзинг...',
+      'current_location': 'Ҳозирги жойлашувим',
+      'current_location_desc': 'GPS орқали аниқ манзилни юбориш',
+      'choose_from_map': 'Харитадан танлаш',
+      'choose_from_map_desc': 'Исталган жойни харитадан белгилаш',
+      'detecting_location': 'Локация аниқланмоқда...',
+      'location_sent': 'Локация юборилди',
+      'location_not_detected': 'Локацияни аниқлаб бўлмади',
+      'location_send_error': 'Локация юборишда хато',
+      'no_messages_yet': 'Ҳозирча хабарлар йўқ',
+      'send_first_message': 'Биринчи хабарни юборинг!',
+      'location_message': 'Локация',
+      'open_in_map': 'Харитада кўриш учун босинг',
+
+      // ✅ APPLICATION DIALOG KALITLARI
+      'application_title': 'Ариза юбориш',
+      'application_message':
+          'Ариза хабарингиз тайёр. Хоҳласангиз, таҳрирлашингиз мумкин.',
+      'edit_application': 'Таҳрирлаш',
+      'send_application': 'Юбориш',
+
       // Completed posts
       'completed_posts': 'Бажарилган ишлар',
       'restore_post': 'Қайта тиклаш',
@@ -530,6 +727,24 @@ class AppTranslations extends Translations {
       'status_rejected': 'Рад этилган',
       'status_completed': 'Бажарилган',
       'status_unknown': 'Номаълум',
+      'notifications': 'Билдиришномалар',
+      'unread_notifications': 'та ўқилмаган',
+      'mark_all_as_read': 'Ҳаммасини ўқилган',
+      'clear_all_notifications': 'Ҳаммасини ўчириш',
+      'clear_all_notifications_title': 'Барча билдиришномаларни ўчириш',
+      'clear_all_notifications_confirm':
+          'Ҳақиқатан ҳам барча билдиришномаларни ўчирмоқчимисиз?',
+      'all_notifications_deleted': 'Барча билдиришномалар ўчирилди',
+      'no_notifications': 'Билдиришномалар йўқ',
+      'notifications_will_appear_here': 'Янги билдиришномалар бу ерда кўринади',
+      'notification_title': 'Билдиришнома',
+      'notification_load_error': 'Билдиришномаларни юклашда хато',
+      'rejection_reason': 'Рад этилиш сабаби:',
+      'unknown_time': 'Номаълум',
+      'just_now': 'Ҳозир',
+      'minutes_ago_short': 'м олдин',
+      'hours_ago_short': 'с олдин',
+      'days_ago_short': 'к олдин',
 
       // Chat
       'chats': 'Чатлар',
@@ -552,6 +767,34 @@ class AppTranslations extends Translations {
       // App
       'app_name': 'Imkon Job',
       'welcome': 'Хуш келибсиз!',
+      'filter': 'Филтр',
+      'filter_settings': 'Филтр созламалари',
+      'clear_filters': 'Филтрларни тозалаш',
+      'searching': 'Қидирилмоқда...',
+      'search_by_title': 'Сарлавҳа бўйича қидириш...',
+      'post_type_filter': 'Эълон тури',
+      'category_filter': 'Категория',
+      'subcategory_filter': 'Суб категория',
+      'location_filter': 'Манзил',
+      'select_option': 'Танлаш',
+      'active_filters': 'Фаол филтрлар',
+      'search_button': 'Қидириш',
+      'apply_filters': 'Филтрларни қўллаш',
+      'select_category': 'Категория танланг',
+      'select_subcategory': 'Суб категория танланг',
+      'select_location': 'Манзил танланг',
+      'no_subcategories': 'Суб категориялар мавжуд эмас',
+      'whole_region': 'Бутун вилоят/шаҳар',
+      'employee_needed_short': 'Ходим керак',
+      'job_needed_short': 'Иш керак',
+      'one_time_short': 'Бир марталик',
+      'ready_to_search': 'Қидириш учун тайёр',
+      'tap_filter_button':
+          'Юқоридаги филтер тугмасини босиб\nқидирув параметрларини танланг',
+      'open_filter': 'Филтр очиш',
+      'no_results_found': 'Ҳеч нарса топилмади',
+      'try_different_filters': 'Филтрларни ўзгартириб\nяна уриниб кўринг',
+      'change_filters': 'Филтрларни ўзгартириш',
 
       // Auth
       'login': 'Кириш',
@@ -702,6 +945,35 @@ class AppTranslations extends Translations {
       'next': 'Далее',
       'get_started': 'Начать',
 
+      'chats': 'Чаты',
+      'no_chats': 'Пока нет чатов',
+      'start_chat': 'Начать чат',
+      'yesterday': 'Вчера',
+      'no_messages': 'Нет сообщений',
+
+      // ✅ CHAT DETAIL SCREEN KALITLARI
+      'send_location': 'Отправить локацию',
+      'write_message': 'Напишите сообщение...',
+      'current_location': 'Текущее местоположение',
+      'current_location_desc': 'Отправить точную локацию через GPS',
+      'choose_from_map': 'Выбрать на карте',
+      'choose_from_map_desc': 'Выбрать любое место на карте',
+      'detecting_location': 'Определение локации...',
+      'location_sent': 'Локация отправлена',
+      'location_not_detected': 'Не удалось определить локацию',
+      'location_send_error': 'Ошибка отправки локации',
+      'no_messages_yet': 'Пока нет сообщений',
+      'send_first_message': 'Отправьте первое сообщение!',
+      'location_message': 'Локация',
+      'open_in_map': 'Нажмите для просмотра на карте',
+
+      // ✅ APPLICATION DIALOG KALITLARI
+      'application_title': 'Отправить заявку',
+      'application_message':
+          'Ваша заявка готова. При желании вы можете отредактировать её.',
+      'edit_application': 'Редактировать',
+      'send_application': 'Отправить',
+
       // Language
       'select_language': 'Выберите язык',
 
@@ -748,6 +1020,25 @@ class AppTranslations extends Translations {
       'location_info_desc': 'Где вы живете или адрес компании',
       'profile_photo': 'Фото профиля',
       'profile_photo_desc': 'Добавьте свое фото или логотип компании',
+      'notifications': 'Уведомления',
+      'unread_notifications': 'непрочитанных',
+      'mark_all_as_read': 'Отметить все прочитанными',
+      'clear_all_notifications': 'Удалить все',
+      'clear_all_notifications_title': 'Удалить все уведомления',
+      'clear_all_notifications_confirm':
+          'Вы действительно хотите удалить все уведомления?',
+      'all_notifications_deleted': 'Все уведомления удалены',
+      'no_notifications': 'Нет уведомлений',
+      'notifications_will_appear_here':
+          'Новые уведомления будут отображаться здесь',
+      'notification_title': 'Уведомление',
+      'notification_load_error': 'Ошибка загрузки уведомлений',
+      'rejection_reason': 'Причина отклонения:',
+      'unknown_time': 'Неизвестно',
+      'just_now': 'Только что',
+      'minutes_ago_short': 'м назад',
+      'hours_ago_short': 'ч назад',
+      'days_ago_short': 'д назад',
 
       // Form Fields
       'first_name': 'Имя',
@@ -898,6 +1189,7 @@ class AppTranslations extends Translations {
           'JobHub - самая удобная платформа для поиска работы и найма сотрудников.',
 
       // Privacy & Security
+      // ignore: equal_keys_in_map
       'notifications': 'Уведомления',
       'notifications_enabled': 'Уведомления включены',
       'notifications_disabled': 'Уведомления отключены',
@@ -971,7 +1263,115 @@ class AppTranslations extends Translations {
       'skills_required': 'Необходимо указать навыки',
       'experience_required': 'Необходимо указать опыт',
       'selected_images': 'Выбранные изображения',
+      'edit_profile_title': 'Редактировать профиль',
+      'phone_number': 'Номер телефона',
+      'phone_change_desc': 'Изменить номер телефона',
+      'password_title': 'Пароль',
+      'password_change_desc': 'Изменить пароль',
+      'account_type_short': 'Тип аккаунта',
+      'account_type_change_desc': 'Ищу работу или Работодатель',
+      'bio_location_title': 'Bio и Адрес',
+      'bio_location_change_desc': 'Изменить дополнительную информацию',
 
+      // Filter Screen
+      'filter': 'Фильтр',
+      'filter_settings': 'Настройки фильтра',
+      'clear_filters': 'Очистить фильтры',
+      'searching': 'Поиск...',
+      'search_by_title': 'Поиск по заголовку...',
+      'post_type_filter': 'Тип объявления',
+      'category_filter': 'Категория',
+      'subcategory_filter': 'Подкатегория',
+      'location_filter': 'Местоположение',
+      'select_option': 'Выбрать',
+      'active_filters': 'Активные фильтры',
+      'search_button': 'Искать',
+      'apply_filters': 'Применить фильтры',
+      'select_category': 'Выберите категорию',
+      'select_subcategory': 'Выберите подкатегорию',
+      'select_location': 'Выберите местоположение',
+      'no_subcategories': 'Подкатегории отсутствуют',
+      'whole_region': 'Весь регион/город',
+      'employee_needed_short': 'Нужен сотрудник',
+      'job_needed_short': 'Нужна работа',
+      'one_time_short': 'Разовая работа',
+      'ready_to_search': 'Готов к поиску',
+      'tap_filter_button':
+          'Нажмите кнопку фильтра вверху\nчтобы выбрать параметры поиска',
+      'open_filter': 'Открыть фильтр',
+      'no_results_found': 'Ничего не найдено',
+      'try_different_filters':
+          'Попробуйте изменить фильтры\nи попробуйте снова',
+      'change_filters': 'Изменить фильтры',
+
+      'new_phone_number': 'Новый номер *',
+      'phone_placeholder': '90 123 45 67',
+      'password_confirm': 'Ваш пароль (для подтверждения) *',
+      'security_message': 'Введите пароль для безопасности',
+      'full_phone_password': 'Введите полный номер и пароль!',
+
+      'change_password_title': 'Изменить пароль',
+      'old_password_label': 'Старый пароль *',
+      'new_password_label': 'Новый пароль (минимум 6) *',
+      'confirm_password_label': 'Подтвердите новый пароль *',
+      'password_requirements': 'Заполните все поля! Минимум 6 символов.',
+      'passwords_mismatch': 'Пароли не совпадают!',
+      'password_updated_success': 'Пароль обновлен!',
+      'phone_updated_success': 'Номер обновлен!',
+
+      'account_type_dialog': 'Тип аккаунта',
+      'job_seeker_title': 'Ищу работу',
+      'job_seeker_subtitle': 'Для ищущих работу',
+      'employer_title': 'Работодатель',
+      'employer_subtitle': 'Для компаний',
+      'account_updated_success': 'Тип аккаунта обновлен!',
+
+      'edit_post': 'Редактировать объявление',
+      'post_type': 'Тип объявления *',
+      // ignore: equal_keys_in_map
+      'employee_needed_short': 'Нужен сотрудник',
+      // ignore: equal_keys_in_map
+      'job_needed_short': 'Нужна работа',
+      // ignore: equal_keys_in_map
+      'one_time_short': 'Разовая работа',
+      'post_title': 'Заголовок *',
+      'location_post': 'Местоположение *',
+      'description_post': 'Описание *',
+      'salary_type_short': 'Тип оплаты',
+      'daily_short': 'Ежедневная',
+      'monthly_short': 'Ежемесячная',
+      'freelance_short': 'Фриланс',
+      'min_salary_label': 'Мин зарплата *',
+      'max_salary_label': 'Макс зарплата *',
+      'main_req': 'Основные требования',
+      'additional_req': 'Дополнительные требования',
+      'skills_comma': 'Навыки (через запятую)',
+      'experience_short': 'Опыт',
+      'phone_number_short': 'Телефон',
+      'required_fields': 'Заполните обязательные поля!',
+      'post_save': 'Сохранить',
+
+      'edit_menu': 'Редактировать',
+      'complete_menu': 'Выполнено',
+      'delete_menu': 'Удалить',
+
+      'complete_post': 'Завершить объявление',
+      'complete_confirm': 'Отметить как выполненное?',
+      'complete_info':
+          '✅ Перейдет в архив\n✅ Сохранится в профиле\n✅ Другие не увидят',
+      'yes_complete_short': 'Да, завершить',
+
+      'history_title': 'Выполненные',
+      'no_history': 'Пока нет истории',
+
+      'logout_confirm_msg': 'Действительно выйти из системы?',
+      'logout_warning': 'Потребуется повторный вход',
+
+      'job_seeker_badge': 'Ищу работу',
+      'employer_badge': 'Работодатель',
+
+      'app_version': 'ImkonJob v1.0.0',
+      'creators_text': 'Создатели: Rahmatillo Ganiyev & Islomhon',
       // Validations
       'title_required': 'Необходимо ввести заголовок',
       'description_required': 'Необходимо ввести описание',
@@ -1048,6 +1448,110 @@ class AppTranslations extends Translations {
       'already_have_account': 'Already have an account?',
       'login_now': 'Login',
       'register_now': 'Register Now',
+      'edit_profile_title': 'Edit Profile',
+      'phone_number': 'Phone Number',
+      'phone_change_desc': 'Change phone number',
+      'password_title': 'Password',
+      'password_change_desc': 'Change password',
+      'account_type_short': 'Account Type',
+      'account_type_change_desc': 'Job Seeker or Employer',
+      'bio_location_title': 'Bio and Address',
+      'bio_location_change_desc': 'Edit additional information',
+
+      'new_phone_number': 'New number *',
+      'phone_placeholder': '90 123 45 67',
+      'password_confirm': 'Your password (for confirmation) *',
+      'security_message': 'Enter your password for security',
+      'full_phone_password': 'Enter full phone number and password!',
+
+      'change_password_title': 'Change Password',
+      'old_password_label': 'Old Password *',
+      'new_password_label': 'New Password (minimum 6) *',
+      'confirm_password_label': 'Confirm New Password *',
+      'password_requirements': 'Fill in all fields! Minimum 6 characters.',
+      'passwords_mismatch': 'Passwords do not match!',
+      'password_updated_success': 'Password updated successfully!',
+      'phone_updated_success': 'Phone number updated successfully!',
+
+      'account_type_dialog': 'Account Type',
+      'job_seeker_title': 'Job Seeker',
+      'job_seeker_subtitle': 'For those looking for a job',
+      'employer_title': 'Employer',
+      'employer_subtitle': 'For companies',
+      'account_updated_success': 'Account type updated successfully!',
+
+      'edit_post': 'Edit Post',
+      'post_type': 'Post Type *',
+      'employee_needed_short': 'Employee Needed',
+      'job_needed_short': 'Job Needed',
+      'one_time_short': 'One-time Job',
+      'post_title': 'Title *',
+      'location_post': 'Location *',
+      'description_post': 'Description *',
+      'salary_type_short': 'Payment Type',
+      'daily_short': 'Daily',
+      'monthly_short': 'Monthly',
+      'freelance_short': 'Freelance',
+      'min_salary_label': 'Min Salary *',
+      'max_salary_label': 'Max Salary *',
+      'main_req': 'Main Requirements',
+      'additional_req': 'Additional Requirements',
+      'skills_comma': 'Skills (separated by commas)',
+      'experience_short': 'Experience',
+      'phone_number_short': 'Phone',
+      'required_fields': 'Fill in the required fields!',
+      'post_save': 'Save',
+
+      'edit_menu': 'Edit',
+      'complete_menu': 'Completed',
+      'delete_menu': 'Delete',
+
+      'complete_post': 'Complete Post',
+      'complete_confirm': 'Mark as completed?',
+      'complete_info':
+          '✅ Will move to archive\n✅ Saved in profile\n✅ Hidden from others',
+      'yes_complete_short': 'Yes, complete',
+
+      'history_title': 'Completed',
+      'no_history': 'No history yet',
+
+      'logout_confirm_msg': 'Are you sure you want to log out?',
+      'logout_warning': 'You will need to log in again',
+
+      'job_seeker_badge': 'Job Seeker',
+      'employer_badge': 'Employer',
+
+      'app_version': 'ImkonJob v1.0.0',
+      'creators_text': 'Creators: Rahmatillo Ganiyev & Islomhon',
+
+      'chats': 'Chats',
+      'no_chats': 'No chats yet',
+      'start_chat': 'Start Chat',
+      'yesterday': 'Yesterday',
+      'no_messages': 'No messages',
+
+      // ✅ CHAT DETAIL SCREEN KALITLARI
+      'send_location': 'Send Location',
+      'write_message': 'Write a message...',
+      'current_location': 'Current Location',
+      'current_location_desc': 'Send exact location via GPS',
+      'choose_from_map': 'Choose from Map',
+      'choose_from_map_desc': 'Select any location from map',
+      'detecting_location': 'Detecting location...',
+      'location_sent': 'Location sent',
+      'location_not_detected': 'Could not detect location',
+      'location_send_error': 'Error sending location',
+      'no_messages_yet': 'No messages yet',
+      'send_first_message': 'Send the first message!',
+      'location_message': 'Location',
+      'open_in_map': 'Tap to view on map',
+
+      // ✅ APPLICATION DIALOG KALITLARI
+      'application_title': 'Send Application',
+      'application_message':
+          'Your application message is ready. You can edit it if you want.',
+      'edit_application': 'Edit',
+      'send_application': 'Send',
 
       // Register Steps
       'step': 'Step',
@@ -1172,6 +1676,25 @@ class AppTranslations extends Translations {
           'Fill in all fields! New password must be at least 6 characters long.',
       'passwords_dont_match': 'New passwords do not match!',
       'data_updated': 'Data updated!',
+      // Notifications
+      'notifications': 'Notifications',
+      'unread_notifications': 'unread',
+      'mark_all_as_read': 'Mark all as read',
+      'clear_all_notifications': 'Clear all',
+      'clear_all_notifications_title': 'Clear all notifications',
+      'clear_all_notifications_confirm':
+          'Are you sure you want to delete all notifications?',
+      'all_notifications_deleted': 'All notifications deleted',
+      'no_notifications': 'No notifications',
+      'notifications_will_appear_here': 'New notifications will appear here',
+      'notification_title': 'Notification',
+      'notification_load_error': 'Error loading notifications',
+      'rejection_reason': 'Rejection reason:',
+      'unknown_time': 'Unknown',
+      'just_now': 'Just now',
+      'minutes_ago_short': 'm ago',
+      'hours_ago_short': 'h ago',
+      'days_ago_short': 'd ago',
 
       // Completed posts
       'mark_as_completed': 'Successfully Completed',
@@ -1248,7 +1771,38 @@ class AppTranslations extends Translations {
           'Your application message is ready. You can edit it if you want.',
       'edit_application': 'Edit',
       'send_application': 'Send',
-
+      // Filter Screen
+      'filter': 'Filter',
+      'filter_settings': 'Filter Settings',
+      'clear_filters': 'Clear Filters',
+      'searching': 'Searching...',
+      'search_by_title': 'Search by title...',
+      'post_type_filter': 'Post Type',
+      'category_filter': 'Category',
+      'subcategory_filter': 'Subcategory',
+      'location_filter': 'Location',
+      'select_option': 'Select',
+      'active_filters': 'Active Filters',
+      'search_button': 'Search',
+      'apply_filters': 'Apply Filters',
+      'select_category': 'Select Category',
+      'select_subcategory': 'Select Subcategory',
+      'select_location': 'Select Location',
+      'no_subcategories': 'No subcategories available',
+      'whole_region': 'Whole region/city',
+      // ignore: equal_keys_in_map
+      'employee_needed_short': 'Employee Needed',
+      // ignore: equal_keys_in_map
+      'job_needed_short': 'Job Needed',
+      // ignore: equal_keys_in_map
+      'one_time_short': 'One-time Job',
+      'ready_to_search': 'Ready to Search',
+      'tap_filter_button':
+          'Tap the filter button above\nto select search parameters',
+      'open_filter': 'Open Filter',
+      'no_results_found': 'No Results Found',
+      'try_different_filters': 'Try changing the filters\nand search again',
+      'change_filters': 'Change Filters',
       // Other user profile
       'user_not_found': 'User not found',
       'posts_count': 'Posts',
@@ -1336,6 +1890,7 @@ class AppTranslations extends Translations {
 
       // Date formats
       'today': 'Today',
+      // ignore: equal_keys_in_map
       'just_now': 'Just now',
       'minutes_ago': '{minutes} minutes ago',
       'hours_ago': '{hours} hours ago',
@@ -1368,10 +1923,12 @@ class AppTranslations extends Translations {
 
       // Empty states
       'no_data_available': 'No data available',
+      // ignore: equal_keys_in_map
       'no_results_found': 'No results found',
       'empty_list': 'List is empty',
 
       // Map picker
+      // ignore: equal_keys_in_map
       'select_location': 'Select Location',
       'confirm_location': 'Confirm Location',
       'search_location': 'Search location...',
@@ -1488,6 +2045,7 @@ class AppTranslations extends Translations {
           'JobHub - the most convenient platform for job search and hiring.',
 
       // Privacy & Security
+      // ignore: equal_keys_in_map
       'notifications': 'Notifications',
       'notifications_enabled': 'Notifications enabled',
       'notifications_disabled': 'Notifications disabled',

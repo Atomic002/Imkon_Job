@@ -227,8 +227,9 @@ class ProfileScreen extends StatelessWidget {
                                       const SizedBox(width: 4),
                                       Text(
                                         user.userType == 'job_seeker'
-                                            ? 'Ish qidiruvchi'
-                                            : 'Ish beruvchi',
+                                            ? 'job_seeker_badge'
+                                                  .tr // ← o'zgardi
+                                            : 'employer_badge'.tr, // ← o'zgardi
                                         style: const TextStyle(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,
@@ -385,8 +386,8 @@ class ProfileScreen extends StatelessWidget {
 
                   _buildEditMenuItem(
                     Icons.phone_outlined,
-                    'Telefon raqam',
-                    'Telefon raqamingizni o\'zgartirish',
+                    'phone_number'.tr, // ← o'zgardi
+                    'phone_change_desc'.tr, // ← o'zgardi
                     Colors.green,
                     () {
                       Get.back();
@@ -397,8 +398,8 @@ class ProfileScreen extends StatelessWidget {
 
                   _buildEditMenuItem(
                     Icons.lock_outline,
-                    'Parol',
-                    'Parolingizni o\'zgartirish',
+                    'password_title'.tr,
+                    'password_change_desc'.tr,
                     Colors.red,
                     () {
                       Get.back();
@@ -409,8 +410,8 @@ class ProfileScreen extends StatelessWidget {
 
                   _buildEditMenuItem(
                     Icons.badge_outlined,
-                    'Akkount turi',
-                    'Ish qidiruvchi yoki Ish beruvchi',
+                    'account_type_short'.tr,
+                    'account_type_change_desc'.tr,
                     Colors.purple,
                     () {
                       Get.back();
@@ -421,8 +422,8 @@ class ProfileScreen extends StatelessWidget {
 
                   _buildEditMenuItem(
                     Icons.info_outline,
-                    'Bio va Manzil',
-                    'Qo\'shimcha ma\'lumotlarni o\'zgartirish',
+                    'bio_location_title'.tr,
+                    'bio_location_change_desc'.tr,
                     Colors.teal,
                     () {
                       Get.back();
@@ -511,11 +512,11 @@ class ProfileScreen extends StatelessWidget {
     Get.dialog(
       AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.person, color: Colors.blue),
-            SizedBox(width: 12),
-            Text('Ism va Familya'),
+            const Icon(Icons.person, color: Colors.blue),
+            const SizedBox(width: 12),
+            Text('name_and_surname'.tr),
           ],
         ),
         content: Column(
@@ -545,40 +546,30 @@ class ProfileScreen extends StatelessWidget {
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Get.back(),
-            child: const Text('Bekor qilish'),
-          ),
+          TextButton(onPressed: () => Get.back(), child: Text('cancel'.tr)),
           ElevatedButton(
             onPressed: () async {
               if (firstNameController.text.trim().isEmpty ||
                   lastNameController.text.trim().isEmpty) {
                 Get.snackbar(
-                  'Xato',
-                  'Barcha maydonlarni to\'ldiring!',
+                  'error'.tr,
+                  'fill_all_fields'.tr,
                   backgroundColor: Colors.red,
                   colorText: Colors.white,
                 );
                 return;
               }
 
+              // ✅ FAQAT ISM VA FAMILYANI YUBORISH
               final success = await controller.updateProfile(
                 firstName: firstNameController.text.trim(),
                 lastName: lastNameController.text.trim(),
               );
 
-              if (success) {
-                Get.back();
-                Get.snackbar(
-                  'Muvaffaqiyatli',
-                  'Ism va familya yangilandi!',
-                  backgroundColor: Colors.green,
-                  colorText: Colors.white,
-                );
-              }
+              if (success) Get.back();
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-            child: const Text('Saqlash', style: TextStyle(color: Colors.white)),
+            child: Text('save'.tr, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -970,13 +961,13 @@ class ProfileScreen extends StatelessWidget {
                   color: Colors.teal,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.info, color: Colors.white),
-                    SizedBox(width: 12),
+                    const Icon(Icons.info, color: Colors.white),
+                    const SizedBox(width: 12),
                     Text(
-                      'Bio va Manzil',
-                      style: TextStyle(
+                      'bio_and_location'.tr,
+                      style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -993,8 +984,8 @@ class ProfileScreen extends StatelessWidget {
                       controller: bioController,
                       maxLines: 4,
                       decoration: InputDecoration(
-                        labelText: 'Bio (o\'zingiz haqingizda)',
-                        hintText: 'Men dasturchi va dizaynerman...',
+                        labelText: 'bio_label'.tr,
+                        hintText: 'bio_hint'.tr,
                         prefixIcon: const Icon(Icons.info_outline),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -1005,8 +996,8 @@ class ProfileScreen extends StatelessWidget {
                     TextField(
                       controller: locationController,
                       decoration: InputDecoration(
-                        labelText: 'Manzil',
-                        hintText: 'Toshkent, Chilonzor...',
+                        labelText: 'location_label'.tr,
+                        hintText: 'location_hint'.tr,
                         prefixIcon: const Icon(Icons.location_on_outlined),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -1023,36 +1014,27 @@ class ProfileScreen extends StatelessWidget {
                     Expanded(
                       child: TextButton(
                         onPressed: () => Get.back(),
-                        child: const Text('Bekor qilish'),
+                        child: Text('cancel'.tr),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () async {
+                          // ✅ FAQAT BIO VA LOCATION YUBORISH
                           final success = await controller.updateProfile(
                             bio: bioController.text.trim(),
                             location: locationController.text.trim(),
-                            firstName: '',
-                            lastName: '',
                           );
 
-                          if (success) {
-                            Get.back();
-                            Get.snackbar(
-                              'Muvaffaqiyatli',
-                              'Ma\'lumotlar yangilandi!',
-                              backgroundColor: Colors.green,
-                              colorText: Colors.white,
-                            );
-                          }
+                          if (success) Get.back();
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.teal,
                         ),
-                        child: const Text(
-                          'Saqlash',
-                          style: TextStyle(color: Colors.white),
+                        child: Text(
+                          'save'.tr,
+                          style: const TextStyle(color: Colors.white),
                         ),
                       ),
                     ),
@@ -1301,7 +1283,7 @@ class ProfileScreen extends StatelessWidget {
           const Divider(height: 32),
           _buildMenuItem(
             Icons.logout_rounded,
-            'logout'.tr,
+            'logout_confirm_msg'.tr, // ← o'zgardi
             AppConstants.errorColor,
             onTap: () => _showLogoutDialog(context),
           ),
@@ -2648,155 +2630,157 @@ class ProfileScreen extends StatelessWidget {
   }
 
   void _showLogoutDialog(BuildContext context) {
-  Get.dialog(
-    AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      title: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.red.withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.logout_rounded,
-              color: Colors.red,
-              size: 40,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'confirm_logout'.tr,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ],
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Rostdan ham tizimdan chiqmoqchimisiz?',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 15,
-              color: Colors.grey[700],
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.orange.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.info_outline, color: Colors.orange, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Qayta kirish uchun login va parol kerak bo\'ladi',
-                    style: TextStyle(fontSize: 12, color: Colors.grey[700]),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-      actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-      actions: [
-        Row(
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Column(
           children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: () => Get.back(),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  side: BorderSide(color: Colors.grey[300]!),
-                ),
-                child: Text(
-                  'cancel'.tr,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey[700],
-                  ),
-                ),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.logout_rounded,
+                color: Colors.red,
+                size: 40,
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: () {
-                  Get.back();
-                  try {
-                    final authController = Get.find<AuthController>();
-                    authController.logout();
-                    Get.snackbar(
-                      'success'.tr,
-                      'logout_success'.tr,
-                      backgroundColor: Colors.green,
-                      colorText: Colors.white,
-                      icon: const Icon(Icons.check_circle, color: Colors.white),
-                      duration: const Duration(seconds: 2),
-                    );
-                  } catch (e) {
-                    Get.snackbar(
-                      'error'.tr,
-                      'logout_failed'.tr,
-                      backgroundColor: Colors.red,
-                      colorText: Colors.white,
-                      icon: const Icon(Icons.error, color: Colors.white),
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            const SizedBox(height: 16),
+            Text(
+              'confirm_logout'.tr,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Rostdan ham tizimdan chiqmoqchimisiz?',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey[700],
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.info_outline,
+                    color: Colors.orange,
+                    size: 20,
                   ),
-                  elevation: 0,
-                ),
-                child: Text(
-                  'yes_logout'.tr,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Qayta kirish uchun login va parol kerak bo\'ladi',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ],
         ),
-      ],
-    ),
-  );
-}
+        actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+        actions: [
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Get.back(),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    side: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  child: Text(
+                    'cancel'.tr,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () {
+                    Get.back();
+                    try {
+                      final authController = Get.find<AuthController>();
+                      authController.logout();
+                      Get.snackbar(
+                        'success'.tr,
+                        'logout_success'.tr,
+                        backgroundColor: Colors.green,
+                        colorText: Colors.white,
+                        icon: const Icon(
+                          Icons.check_circle,
+                          color: Colors.white,
+                        ),
+                        duration: const Duration(seconds: 2),
+                      );
+                    } catch (e) {
+                      Get.snackbar(
+                        'error'.tr,
+                        'logout_failed'.tr,
+                        backgroundColor: Colors.red,
+                        colorText: Colors.white,
+                        icon: const Icon(Icons.error, color: Colors.white),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    'yes_logout'.tr,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
   // ========== SETTINGS DIALOG ==========
   void _showSettingsDialog(
     BuildContext context,
     LanguageController languageController,
   ) {
-    final RxBool notificationsEnabled = true.obs;
-
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.6,
+        height: MediaQuery.of(context).size.height * 0.5, // ← 0.6 dan 0.5 ga
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -2846,24 +2830,7 @@ class ProfileScreen extends StatelessWidget {
                       _showLanguageDialog(context, languageController);
                     },
                   ),
-                  Obx(
-                    () => _buildSwitchSettingItem(
-                      Icons.notifications_outlined,
-                      'notifications'.tr,
-                      notificationsEnabled.value,
-                      (value) {
-                        notificationsEnabled.value = value;
-                        Get.snackbar(
-                          'notifications'.tr,
-                          value
-                              ? 'notifications_enabled'.tr
-                              : 'notifications_disabled'.tr,
-                          backgroundColor: value ? Colors.green : Colors.orange,
-                          colorText: Colors.white,
-                        );
-                      },
-                    ),
-                  ),
+                  // ❌ NOTIFICATIONS ITEMNI O'CHIRILDI
                   _buildSettingItem(
                     Icons.privacy_tip_outlined,
                     'privacy'.tr,
@@ -2951,45 +2918,6 @@ class ProfileScreen extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildSwitchSettingItem(
-    IconData icon,
-    String title,
-    bool value,
-    Function(bool) onChanged,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppConstants.primaryColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: AppConstants.primaryColor, size: 22),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                color: AppConstants.textPrimary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          Switch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: AppConstants.primaryColor,
-          ),
-        ],
       ),
     );
   }

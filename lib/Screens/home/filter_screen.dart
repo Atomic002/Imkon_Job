@@ -4,9 +4,6 @@ import 'package:version1/Widgets/filter_post_card.dart';
 import 'package:version1/config/constants.dart';
 import 'package:version1/controller/filter_controller.dart';
 
-// =====================================================
-// 1. ASOSIY FILTER SCREEN (FAQAT NATIJALAR)
-// =====================================================
 class FilterScreen extends StatelessWidget {
   const FilterScreen({super.key});
 
@@ -22,18 +19,17 @@ class FilterScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         foregroundColor: AppConstants.textPrimary,
         actions: [
-          // Filter tugmasi - Bottom Sheet ochish uchun
           IconButton(
             icon: const Icon(Icons.filter_list_rounded),
             onPressed: () => _showFilterBottomSheet(context, controller),
-            tooltip: 'Filtr sozlamalari',
+            tooltip: 'filter_settings'.tr,
           ),
           Obx(() {
             if (controller.hasActiveFilters()) {
               return IconButton(
                 icon: const Icon(Icons.refresh_rounded),
                 onPressed: controller.resetFilters,
-                tooltip: 'Filtrlarni tozalash',
+                tooltip: 'clear_filters'.tr,
               );
             }
             return const SizedBox.shrink();
@@ -42,13 +38,13 @@ class FilterScreen extends StatelessWidget {
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 16),
-                Text('Qidirilmoqda...'),
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text('searching'.tr),
               ],
             ),
           );
@@ -67,9 +63,6 @@ class FilterScreen extends StatelessWidget {
     );
   }
 
-  // =====================================================
-  // 2. FILTER BOTTOM SHEET - PASTDAN CHIQADIGAN
-  // =====================================================
   void _showFilterBottomSheet(
     BuildContext context,
     FilterController controller,
@@ -86,7 +79,6 @@ class FilterScreen extends StatelessWidget {
         ),
         child: Column(
           children: [
-            // Handle
             Container(
               margin: const EdgeInsets.symmetric(vertical: 12),
               width: 40,
@@ -96,16 +88,14 @@ class FilterScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-
-            // Header
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Filtr sozlamalari',
-                    style: TextStyle(
+                  Text(
+                    'filter_settings'.tr,
+                    style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: AppConstants.textPrimary,
@@ -118,22 +108,18 @@ class FilterScreen extends StatelessWidget {
                 ],
               ),
             ),
-
             const Divider(),
-
-            // Filter Content
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Search TextField
                     Obx(
                       () => TextField(
                         controller: controller.searchController,
                         decoration: InputDecoration(
-                          hintText: 'Sarlovha bo\'yicha qidirish...',
+                          hintText: 'search_by_title'.tr,
                           prefixIcon: const Icon(Icons.search_rounded),
                           suffixIcon: controller.searchText.value.isNotEmpty
                               ? IconButton(
@@ -162,40 +148,35 @@ class FilterScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 24),
-
-                    // Post Type Selection
-                    _buildSectionTitle('E\'lon turi'),
+                    _buildSectionTitle('post_type_filter'.tr),
                     const SizedBox(height: 12),
                     Obx(() => _buildPostTypeSelector(controller)),
                     const SizedBox(height: 24),
-
-                    // Category Selection
                     Obx(() {
                       if (controller.selectedPostType.value != null) {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildExpandableSection(
-                              title: 'Kategoriya',
+                              title: 'category_filter'.tr,
                               icon: Icons.category_rounded,
                               value:
                                   controller.selectedCategory.value?['name'] ??
-                                  'Tanlash',
+                                  'select_option'.tr,
                               onTap: () =>
                                   _showCategoryBottomSheet(context, controller),
                             ),
                             const SizedBox(height: 12),
-
                             if (controller.selectedCategory.value != null &&
                                 controller.subCategories.isNotEmpty)
                               _buildExpandableSection(
-                                title: 'Sub kategoriya',
+                                title: 'subcategory_filter'.tr,
                                 icon: Icons.subdirectory_arrow_right,
                                 value:
                                     controller
                                         .selectedSubCategory
                                         .value?['name'] ??
-                                    'Tanlash',
+                                    'select_option'.tr,
                                 onTap: () => _showSubCategoryBottomSheet(
                                   context,
                                   controller,
@@ -204,9 +185,8 @@ class FilterScreen extends StatelessWidget {
                             if (controller.selectedCategory.value != null &&
                                 controller.subCategories.isNotEmpty)
                               const SizedBox(height: 12),
-
                             _buildExpandableSection(
-                              title: 'Manzil',
+                              title: 'location_filter'.tr,
                               icon: Icons.location_on_rounded,
                               value: controller.getLocationDisplay(),
                               onTap: () =>
@@ -218,14 +198,12 @@ class FilterScreen extends StatelessWidget {
                       }
                       return const SizedBox.shrink();
                     }),
-
-                    // Active Filters Chips
                     Obx(() {
                       if (controller.hasActiveFilters()) {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildSectionTitle('Faol filtrlar'),
+                            _buildSectionTitle('active_filters'.tr),
                             const SizedBox(height: 12),
                             _buildActiveFiltersChips(controller),
                             const SizedBox(height: 24),
@@ -234,8 +212,6 @@ class FilterScreen extends StatelessWidget {
                       }
                       return const SizedBox.shrink();
                     }),
-
-                    // Apply Button
                     Obx(() {
                       if (controller.canSearch()) {
                         return SizedBox(
@@ -260,8 +236,8 @@ class FilterScreen extends StatelessWidget {
                                 : const Icon(Icons.search, color: Colors.white),
                             label: Text(
                               controller.isLoading.value
-                                  ? 'Qidirilmoqda...'
-                                  : 'Qidirish',
+                                  ? 'searching'.tr
+                                  : 'search_button'.tr,
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
@@ -291,9 +267,6 @@ class FilterScreen extends StatelessWidget {
     );
   }
 
-  // =====================================================
-  // 3. CATEGORY BOTTOM SHEET
-  // =====================================================
   void _showCategoryBottomSheet(
     BuildContext context,
     FilterController controller,
@@ -324,9 +297,12 @@ class FilterScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Kategoriya tanlang',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    'select_category'.tr,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
@@ -409,9 +385,6 @@ class FilterScreen extends StatelessWidget {
     );
   }
 
-  // =====================================================
-  // 4. SUB-CATEGORY BOTTOM SHEET
-  // =====================================================
   void _showSubCategoryBottomSheet(
     BuildContext context,
     FilterController controller,
@@ -442,9 +415,12 @@ class FilterScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Sub kategoriya tanlang',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Text(
+                    'select_subcategory'.tr,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close),
@@ -457,9 +433,7 @@ class FilterScreen extends StatelessWidget {
             Expanded(
               child: Obx(() {
                 if (controller.subCategories.isEmpty) {
-                  return const Center(
-                    child: Text('Sub kategoriyalar mavjud emas'),
-                  );
+                  return Center(child: Text('no_subcategories'.tr));
                 }
 
                 return ListView.builder(
@@ -528,9 +502,6 @@ class FilterScreen extends StatelessWidget {
     );
   }
 
-  // =====================================================
-  // 5. LOCATION BOTTOM SHEET
-  // =====================================================
   void _showLocationBottomSheet(
     BuildContext context,
     FilterController controller,
@@ -563,9 +534,9 @@ class FilterScreen extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Manzil tanlang',
-                        style: TextStyle(
+                      Text(
+                        'select_location'.tr,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -670,7 +641,7 @@ class FilterScreen extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: InkWell(
                             onTap: () {
-                              controller.selectWholeRegion(); // ✅ Yangi metod
+                              controller.selectWholeRegion();
                               Navigator.pop(context);
                             },
                             borderRadius: BorderRadius.circular(12),
@@ -686,17 +657,17 @@ class FilterScreen extends StatelessWidget {
                                   width: 2,
                                 ),
                               ),
-                              child: const Row(
+                              child: Row(
                                 children: [
-                                  Icon(
+                                  const Icon(
                                     Icons.location_city,
                                     color: AppConstants.primaryColor,
                                   ),
-                                  SizedBox(width: 12),
+                                  const SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
-                                      'Butun viloyat/shahar',
-                                      style: TextStyle(
+                                      'whole_region'.tr,
+                                      style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
                                         color: AppConstants.primaryColor,
@@ -781,9 +752,6 @@ class FilterScreen extends StatelessWidget {
     );
   }
 
-  // =====================================================
-  // 6. POST TYPE SELECTOR
-  // =====================================================
   Widget _buildPostTypeSelector(FilterController controller) {
     final selectedType = controller.selectedPostType.value;
 
@@ -794,7 +762,7 @@ class FilterScreen extends StatelessWidget {
             controller,
             'employee_needed',
             '💼',
-            'Hodim kerak',
+            'employee_needed_short'.tr,
             selectedType == 'employee_needed',
           ),
         ),
@@ -804,7 +772,7 @@ class FilterScreen extends StatelessWidget {
             controller,
             'job_needed',
             '👤',
-            'Ish kerak',
+            'job_needed_short'.tr,
             selectedType == 'job_needed',
           ),
         ),
@@ -814,7 +782,7 @@ class FilterScreen extends StatelessWidget {
             controller,
             'one_time_job',
             '🛠️',
-            'Bir martalik',
+            'one_time_short'.tr,
             selectedType == 'one_time_job',
           ),
         ),
@@ -863,9 +831,6 @@ class FilterScreen extends StatelessWidget {
     );
   }
 
-  // =====================================================
-  // 7. RESULTS LIST - POST CARDLAR
-  // =====================================================
   Widget _buildResultsList(FilterController controller) {
     return RefreshIndicator(
       onRefresh: controller.applyFilters,
@@ -885,9 +850,6 @@ class FilterScreen extends StatelessWidget {
     );
   }
 
-  // =====================================================
-  // 8. HELPER WIDGETS - CLASS ICHIDA
-  // =====================================================
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
@@ -1018,7 +980,7 @@ class FilterScreen extends StatelessWidget {
           Icon(Icons.filter_list_rounded, size: 80, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
-            'Qidirish uchun tayyor',
+            'ready_to_search'.tr,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -1027,7 +989,7 @@ class FilterScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Yuqoridagi filter tugmasini bosib\nqidiruv parametrlarini tanlang',
+            'tap_filter_button'.tr,
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 14, color: Colors.grey[500]),
           ),
@@ -1035,9 +997,9 @@ class FilterScreen extends StatelessWidget {
           ElevatedButton.icon(
             onPressed: () => _showFilterBottomSheet(context, controller),
             icon: const Icon(Icons.filter_list_rounded, color: Colors.white),
-            label: const Text(
-              'Filtr ochish',
-              style: TextStyle(
+            label: Text(
+              'open_filter'.tr,
+              style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
@@ -1066,7 +1028,7 @@ class FilterScreen extends StatelessWidget {
           Icon(Icons.search_off_rounded, size: 80, color: Colors.grey[300]),
           const SizedBox(height: 16),
           Text(
-            'Hech narsa topilmadi',
+            'no_results_found'.tr,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
@@ -1075,7 +1037,7 @@ class FilterScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Filtrlarni o\'zgartirib\nyana urinib ko\'ring',
+            'try_different_filters'.tr,
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 14, color: Colors.grey[500]),
           ),
@@ -1083,9 +1045,9 @@ class FilterScreen extends StatelessWidget {
           ElevatedButton.icon(
             onPressed: () => _showFilterBottomSheet(context, controller),
             icon: const Icon(Icons.filter_list_rounded, color: Colors.white),
-            label: const Text(
-              'Filtrlarni o\'zgartirish',
-              style: TextStyle(
+            label: Text(
+              'change_filters'.tr,
+              style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),

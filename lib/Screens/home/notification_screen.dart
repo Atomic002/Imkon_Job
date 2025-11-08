@@ -30,8 +30,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) {
         Get.snackbar(
-          'Xato',
-          'Iltimos, tizimga kiring',
+          'error'.tr,
+          'please_login'.tr,
           backgroundColor: Colors.orange,
           colorText: Colors.white,
         );
@@ -57,8 +57,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       setState(() => isLoading = false);
 
       Get.snackbar(
-        'Xato',
-        'Bildirishnomalarni yuklashda xato',
+        'error'.tr,
+        'notification_load_error'.tr,
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -100,8 +100,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     } catch (e) {
       print('❌ Mark all as read error: $e');
       Get.snackbar(
-        'Xato',
-        'Xatolik yuz berdi',
+        'error'.tr,
+        'error_occurred'.tr,
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -123,19 +123,17 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _clearAllNotifications() async {
     final confirmed = await Get.dialog<bool>(
       AlertDialog(
-        title: const Text('Barcha bildirishnomalarni o\'chirish'),
-        content: const Text(
-          'Haqiqatan ham barcha bildirishnomalarni o\'chirmoqchimisiz?',
-        ),
+        title: Text('clear_all_notifications_title'.tr),
+        content: Text('clear_all_notifications_confirm'.tr),
         actions: [
           TextButton(
             onPressed: () => Get.back(result: false),
-            child: const Text('Bekor qilish'),
+            child: Text('cancel'.tr),
           ),
           ElevatedButton(
             onPressed: () => Get.back(result: true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('O\'chirish'),
+            child: Text('delete'.tr),
           ),
         ],
       ),
@@ -154,16 +152,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       });
 
       Get.snackbar(
-        'Muvaffaqiyatli',
-        'Barcha bildirishnomalar o\'chirildi',
+        'success'.tr,
+        'all_notifications_deleted'.tr,
         backgroundColor: Colors.green,
         colorText: Colors.white,
       );
     } catch (e) {
       print('❌ Clear all notifications error: $e');
       Get.snackbar(
-        'Xato',
-        'Xatolik yuz berdi',
+        'error'.tr,
+        'error_occurred'.tr,
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -217,7 +215,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   String _getTimeAgo(String? createdAt) {
-    if (createdAt == null) return 'Noma\'lum';
+    if (createdAt == null) return 'unknown_time'.tr;
 
     try {
       final dateTime = DateTime.parse(createdAt);
@@ -225,18 +223,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       final difference = now.difference(dateTime);
 
       if (difference.inMinutes < 1) {
-        return 'Hozir';
+        return 'just_now'.tr;
       } else if (difference.inMinutes < 60) {
-        return '${difference.inMinutes}m oldin';
+        return '${difference.inMinutes}${'minutes_ago_short'.tr}';
       } else if (difference.inHours < 24) {
-        return '${difference.inHours}h oldin';
+        return '${difference.inHours}${'hours_ago_short'.tr}';
       } else if (difference.inDays < 7) {
-        return '${difference.inDays}d oldin';
+        return '${difference.inDays}${'days_ago_short'.tr}';
       } else {
         return DateFormat('dd.MM.yyyy').format(dateTime);
       }
     } catch (e) {
-      return 'Noma\'lum';
+      return 'unknown_time'.tr;
     }
   }
 
@@ -255,13 +253,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Bildirishnomalar',
-              style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
+            Text(
+              'notifications'.tr,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
             ),
             if (unreadCount > 0)
               Text(
-                '$unreadCount ta o\'qilmagan',
+                '$unreadCount ${'unread_notifications'.tr}',
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey[600],
@@ -282,25 +280,29 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 }
               },
               itemBuilder: (context) => [
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'mark_all',
                   child: Row(
                     children: [
-                      Icon(Icons.done_all, size: 20),
-                      SizedBox(width: 12),
-                      Text('Hammasini o\'qilgan'),
+                      const Icon(Icons.done_all, size: 20),
+                      const SizedBox(width: 12),
+                      Text('mark_all_as_read'.tr),
                     ],
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'clear_all',
                   child: Row(
                     children: [
-                      Icon(Icons.delete_sweep, size: 20, color: Colors.red),
-                      SizedBox(width: 12),
+                      const Icon(
+                        Icons.delete_sweep,
+                        size: 20,
+                        color: Colors.red,
+                      ),
+                      const SizedBox(width: 12),
                       Text(
-                        'Hammasini o\'chirish',
-                        style: TextStyle(color: Colors.red),
+                        'clear_all_notifications'.tr,
+                        style: const TextStyle(color: Colors.red),
                       ),
                     ],
                   ),
@@ -340,7 +342,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Bildirishnomalar yo\'q',
+            'no_notifications'.tr,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -349,7 +351,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Yangi bildirishnomalar bu yerda ko\'rinadi',
+            'notifications_will_appear_here'.tr,
             style: TextStyle(fontSize: 14, color: Colors.grey[500]),
           ),
         ],
@@ -360,19 +362,16 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget _buildNotificationCard(Map<String, dynamic> notification) {
     final isRead = notification['is_read'] ?? false;
     final type = notification['type'];
-    final title = notification['title'] ?? 'Bildirishnoma';
+    final title = notification['title'] ?? 'notification_title'.tr;
     final body = notification['body'] ?? '';
     final createdAt = notification['created_at'];
 
-    // Debug uchun - qanday ma'lumot kelayotganini ko'rish
+    // Debug uchun
     print('🔔 Notification DEBUG:');
     print('   ID: ${notification['id']}');
     print('   Type: $type');
     print('   Title: $title');
     print('   Body: $body');
-    print('   Body length: ${body.length}');
-    print('   Body is empty: ${body.isEmpty}');
-    print('   Full notification: $notification');
 
     return Dismissible(
       key: Key(notification['id']),
@@ -454,7 +453,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // BODY (sabab) ni har doim ko'rsatish
+                // BODY ni har doim ko'rsatish
                 if (body.isNotEmpty) ...[
                   const SizedBox(height: 6),
                   // Agar post_rejected bo'lsa, maxsus dizaynda
@@ -483,7 +482,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Rad etilish sababi:',
+                                  'rejection_reason'.tr,
                                   style: TextStyle(
                                     fontSize: 11,
                                     color: Colors.red[900],
