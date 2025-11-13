@@ -566,6 +566,25 @@ class CreatePostController extends GetxController {
           colorText: Colors.orange.shade900,
         );
         return false;
+      } else if (formData['postType'] == 'service_offering') {
+        if (skillsController.text.trim().isEmpty) {
+          Get.snackbar(
+            'warning'.tr,
+            'skills_required'.tr,
+            backgroundColor: Colors.orange.withOpacity(0.1),
+            colorText: Colors.orange.shade900,
+          );
+          return false;
+        }
+        if (experienceController.text.trim().isEmpty) {
+          Get.snackbar(
+            'warning'.tr,
+            'experience_required'.tr,
+            backgroundColor: Colors.orange.withOpacity(0.1),
+            colorText: Colors.orange.shade900,
+          );
+          return false;
+        }
       }
     }
     return true;
@@ -699,114 +718,118 @@ class CreatePostController extends GetxController {
         await Get.dialog(
           WillPopScope(
             onWillPop: () async => false,
-            child: AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              contentPadding: EdgeInsets.zero,
-              content: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
+            child: SingleChildScrollView(
+              child: AlertDialog(
+                shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Colors.green.shade50, Colors.white],
-                  ),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.check_circle_outline,
-                        size: 64,
-                        color: Colors.green.shade600,
-                      ),
+                contentPadding: EdgeInsets.zero,
+                content: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Colors.green.shade50, Colors.white],
                     ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'success'.tr,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.check_circle_outline,
+                          size: 64,
+                          color: Colors.green.shade600,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'post_submitted_success'.tr,
-                      style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 24),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                      const SizedBox(height: 24),
+                      Text(
+                        'success'.tr,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.info_outline,
-                                size: 20,
-                                color: Colors.blue.shade700,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                'next_steps'.tr,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
+                      const SizedBox(height: 12),
+                      Text(
+                        'post_submitted_success'.tr,
+                        style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 24),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.withOpacity(0.05),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.blue.withOpacity(0.2),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  size: 20,
+                                  color: Colors.blue.shade700,
                                 ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          _buildDialogStep('1', 'moderators_will_review'.tr),
-                          const SizedBox(height: 8),
-                          _buildDialogStep('2', 'visible_after_approval'.tr),
-                          const SizedBox(height: 8),
-                          _buildDialogStep('3', 'process_24_hours'.tr),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Get.back();
-                          Get.offAllNamed('/home');
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          'home'.tr,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'next_steps'.tr,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            _buildDialogStep('1', 'moderators_will_review'.tr),
+                            const SizedBox(height: 8),
+                            _buildDialogStep('2', 'visible_after_approval'.tr),
+                            const SizedBox(height: 8),
+                            _buildDialogStep('3', 'process_24_hours'.tr),
+                          ],
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Get.back();
+                            Get.offAllNamed('/home');
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: Text(
+                            'home'.tr,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -937,73 +960,89 @@ class _Step0PostType extends StatelessWidget {
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
-                  shape: BoxShape.circle,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.work_outline,
+                    size: 64,
+                    color: Colors.blue.shade700,
+                  ),
                 ),
-                child: Icon(
-                  Icons.work_outline,
-                  size: 64,
-                  color: Colors.blue.shade700,
+                const SizedBox(height: 24),
+                Text(
+                  'select_post_type'.tr,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[900],
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'select_post_type'.tr,
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[900],
+                const SizedBox(height: 8),
+                Text(
+                  'what_is_your_purpose'.tr,
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  textAlign: TextAlign.center,
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'what_is_your_purpose'.tr,
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 40),
-              Obx(
-                () => _PostTypeCard(
-                  icon: Icons.person_add_alt_1,
-                  title: 'employee_needed'.tr,
-                  subtitle: 'looking_for_permanent_employee'.tr,
-                  value: 'employee_needed',
-                  isSelected: controller.postType.value == 'employee_needed',
-                  color: Colors.blue,
-                  onTap: () => controller.setPostType('employee_needed'),
+                const SizedBox(height: 40),
+                Obx(
+                  () => _PostTypeCard(
+                    icon: Icons.person_add_alt_1,
+                    title: 'employee_needed'.tr,
+                    subtitle: 'looking_for_permanent_employee'.tr,
+                    value: 'employee_needed',
+                    isSelected: controller.postType.value == 'employee_needed',
+                    color: Colors.blue,
+                    onTap: () => controller.setPostType('employee_needed'),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Obx(
-                () => _PostTypeCard(
-                  icon: Icons.work_outline,
-                  title: 'job_needed'.tr,
-                  subtitle: 'looking_for_job_myself'.tr,
-                  value: 'job_needed',
-                  isSelected: controller.postType.value == 'job_needed',
-                  color: Colors.green,
-                  onTap: () => controller.setPostType('job_needed'),
+                const SizedBox(height: 16),
+                Obx(
+                  () => _PostTypeCard(
+                    icon: Icons.work_outline,
+                    title: 'job_needed'.tr,
+                    subtitle: 'looking_for_job_myself'.tr,
+                    value: 'job_needed',
+                    isSelected: controller.postType.value == 'job_needed',
+                    color: Colors.green,
+                    onTap: () => controller.setPostType('job_needed'),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Obx(
-                () => _PostTypeCard(
-                  icon: Icons.handyman_outlined,
-                  title: 'one_time_job'.tr,
-                  subtitle: 'short_term_project_specialist'.tr,
-                  value: 'one_time_job',
-                  isSelected: controller.postType.value == 'one_time_job',
-                  color: Colors.orange,
-                  onTap: () => controller.setPostType('one_time_job'),
+                const SizedBox(height: 16),
+                Obx(
+                  () => _PostTypeCard(
+                    icon: Icons.handyman_outlined,
+                    title: 'one_time_job'.tr,
+                    subtitle: 'short_term_project_specialist'.tr,
+                    value: 'one_time_job',
+                    isSelected: controller.postType.value == 'one_time_job',
+                    color: Colors.orange,
+                    onTap: () => controller.setPostType('one_time_job'),
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(
+                  height: 16,
+                ), // Employee Needed va Job Needed dan keyin
+                Obx(
+                  () => _PostTypeCard(
+                    icon: Icons.room_service_outlined,
+                    title: 'service_offering'.tr,
+                    subtitle: 'looking_to_provide_service'.tr,
+                    value: 'service_offering',
+                    isSelected: controller.postType.value == 'service_offering',
+                    color: Colors.purple,
+                    onTap: () => controller.setPostType('service_offering'),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1317,6 +1356,8 @@ class _Step3Details extends StatelessWidget {
         return _JobNeededForm(controller: controller);
       } else if (postType == 'one_time_job') {
         return _OneTimeJobForm(controller: controller);
+      } else if (postType == 'service_offering') {
+        return _ServiceOfferingForm(controller: controller); // 🆕
       }
 
       return const SizedBox();
@@ -1863,6 +1904,94 @@ class _Step4Images extends StatelessWidget {
             text: 'create_post'.tr,
             icon: Icons.send_rounded,
             onPressed: controller.submitPost,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// SERVICE OFFERING FORM (Xizmat ko'rsatish)
+class _ServiceOfferingForm extends StatelessWidget {
+  final CreatePostController controller;
+  const _ServiceOfferingForm({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _StepIndicator(current: 3, total: 4),
+          const SizedBox(height: 32),
+          _SectionHeader(
+            icon: Icons.handshake_outlined,
+            title: 'service_details'.tr,
+            subtitle: 'service_offering_details'.tr,
+          ),
+          const SizedBox(height: 24),
+          _ModernTextField(
+            controller: controller.skillsController,
+            label: '${'skills'.tr} *',
+            hint: 'skills_hint'.tr,
+            icon: Icons.star_outline,
+            maxLines: 4,
+            onChanged: (value) => controller.formData['skills'] = value,
+          ),
+          const SizedBox(height: 20),
+          _ModernTextField(
+            controller: controller.experienceController,
+            label: '${'experience'.tr} *',
+            hint: 'experience_hint'.tr,
+            icon: Icons.verified_outlined,
+            maxLines: 4,
+            onChanged: (value) => controller.formData['experience'] = value,
+          ),
+          const SizedBox(height: 24),
+          _Label('expected_salary'.tr, Icons.account_balance_wallet),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _ModernTextField(
+                  controller: controller.salaryMinController,
+                  label: 'salary_min'.tr,
+                  hint: '1 000 000',
+                  icon: Icons.attach_money,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [ThousandsSeparatorInputFormatter()],
+                  suffix: 'UZS',
+                  onChanged: (value) {
+                    controller.formData['salaryMin'] =
+                        int.tryParse(value.replaceAll(RegExp(r'\s'), '')) ?? 0;
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _ModernTextField(
+                  controller: controller.salaryMaxController,
+                  label: 'salary_max'.tr,
+                  hint: '3 000 000',
+                  icon: Icons.trending_up,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [ThousandsSeparatorInputFormatter()],
+                  suffix: 'UZS',
+                  onChanged: (value) {
+                    controller.formData['salaryMax'] =
+                        int.tryParse(value.replaceAll(RegExp(r'\s'), '')) ?? 0;
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 40),
+          _PrimaryButton(
+            text: 'next'.tr,
+            onPressed: () {
+              if (controller.validateStep3()) controller.nextStep();
+            },
           ),
         ],
       ),

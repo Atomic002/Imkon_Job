@@ -522,47 +522,4 @@ class CreatePostController extends GetxController {
       ],
     );
   }
-
-  String getCategoryEmoji(String categoryName) {
-    final name = categoryName.toLowerCase();
-
-    if (name.contains('dasturlash') ||
-        name.contains('it') ||
-        name.contains('coding') ||
-        name.contains('developer')) {
-      return '💻';
-    } else if (name.contains('flutter') || name.contains('mobil')) {
-      return '📱';
-    } else if (name.contains('design') || name.contains('dizayn')) {
-      return '🎨';
-    } else if (name.contains('marketing') || name.contains('bozor')) {
-      return '📊';
-    } else if (name.contains('video') || name.contains('montaj')) {
-      return '🎬';
-    } else if (name.contains('tutor') ||
-        name.contains('o\'qitish') ||
-        name.contains('ta\'lim')) {
-      return '👨‍🏫';
-    } else if (name.contains('musiqa') || name.contains('music')) {
-      return '🎵';
-    } else if (name.contains('sport') || name.contains('fitness')) {
-      return '⚽';
-    } else if (name.contains('sog\'liq') ||
-        name.contains('health') ||
-        name.contains('tibbiyot')) {
-      return '🏥';
-    } else if (name.contains('qurilish') || name.contains('construction')) {
-      return '🏗️';
-    } else if (name.contains('transport') || name.contains('haydovchi')) {
-      return '🚗';
-    } else if (name.contains('savdo') || name.contains('sotuvchi')) {
-      return '🛒';
-    } else if (name.contains('moliya') || name.contains('finance')) {
-      return '💰';
-    } else if (name.contains('ish') || name.contains('vakansiya')) {
-      return '💼';
-    }
-
-    return '📁';
-  }
 }

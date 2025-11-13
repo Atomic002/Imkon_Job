@@ -102,6 +102,7 @@ class AppTranslations extends Translations {
       'edit_user_type_desc': 'Ish qidiruvchi yoki Ish beruvchi',
       'edit_bio_location': 'Bio va Manzil',
       'edit_bio_location_desc': 'Qo\'shimcha ma\'lumotlarni o\'zgartirish',
+      'redirecting_to_home': 'Bosh sahifaga yo\'naltirilmoqda...',
 
       // Profile edit dialogs
       'name_and_surname': 'Ism va Familya',
@@ -153,7 +154,11 @@ class AppTranslations extends Translations {
       'yes_complete': 'Ha, yakunlash',
       'post_marked_completed': 'E\'lon bajarilgan deb belgilandi',
       'no_completed_posts': 'Hozircha tarix yo\'q',
-
+      'service_offering': 'Xizmat ko\'rsatish',
+      'service_offering_short': 'Xizmat',
+      'looking_to_provide_service':
+          'Xizmat ko\'rsatmoqchiman va o\'z xizmatlarimni taqdim etaman',
+      'service_offering_details': 'Xizmat turini va narxlarni kiriting',
       // My posts dialog
       'edit_post_title': 'E\'lonni tahrirlash',
       'post_type_label': 'E\'lon turi *',
@@ -852,6 +857,11 @@ class AppTranslations extends Translations {
       'select_district': 'Туманни танланг',
       'select_village': 'Қишлоқни танланг',
       'enter_full_address': 'Кўча, уй рақами ва бошқалар',
+      'service_offering': 'Хизмат кўрсатиш',
+      'service_offering_short': 'Хизмат',
+      'looking_to_provide_service':
+          'Хизмат кўрсатмоқчиман ва ўз хизматларимни тақдим этаман',
+      'service_offering_details': 'Хизмат турини ва нархларни киритинг',
 
       // Buttons
       'back': 'Орқага',
@@ -930,6 +940,7 @@ class AppTranslations extends Translations {
       'no_completed_posts': 'Пока нет истории',
       'app_name': 'Job Hunter',
       'welcome': 'Добро пожаловать!',
+      'redirecting_to_home': 'Перенаправление на главную...',
 
       // Onboarding
       'onboarding_title_1': 'Найти работу легко!',
@@ -1318,7 +1329,11 @@ class AppTranslations extends Translations {
       'passwords_mismatch': 'Пароли не совпадают!',
       'password_updated_success': 'Пароль обновлен!',
       'phone_updated_success': 'Номер обновлен!',
-
+      'service_offering': 'Предложение услуг',
+      'service_offering_short': 'Услуга',
+      'looking_to_provide_service':
+          'Я предлагаю услуги и готов предоставить свой сервис',
+      'service_offering_details': 'Введите тип услуги и цены',
       'account_type_dialog': 'Тип аккаунта',
       'job_seeker_title': 'Ищу работу',
       'job_seeker_subtitle': 'Для ищущих работу',
@@ -1920,7 +1935,7 @@ class AppTranslations extends Translations {
           'I would like to get more details about this position.',
       'ready_to_answer': 'Ready to answer any additional questions.',
       'best_regards': 'Best regards!',
-
+      'redirecting_to_home': 'Redirecting to home...',
       // Empty states
       'no_data_available': 'No data available',
       // ignore: equal_keys_in_map
@@ -1984,6 +1999,12 @@ class AppTranslations extends Translations {
       'share': 'Share',
       'chat_button': 'Chat',
       'apply': 'Apply',
+
+      'service_offering': 'Service Offering',
+      'service_offering_short': 'Service',
+      'looking_to_provide_service':
+          'I am offering a service and ready to provide my expertise',
+      'service_offering_details': 'Enter service type and pricing',
 
       // Messages
       'success': 'Success',
