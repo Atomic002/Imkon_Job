@@ -59,6 +59,33 @@ class HomeController extends GetxController {
     }
   }
 
+  // Shares tracking
+  Future<void> recordShare(String postId) async {
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      String? deviceId;
+      if (userId == null) {
+        deviceId = 'device_${DateTime.now().millisecondsSinceEpoch}';
+      }
+
+      await supabase.from('post_shares').insert({
+        'post_id': postId,
+        'user_id': userId,
+        'device_id': deviceId,
+        'shared_at': DateTime.now().toIso8601String(),
+      });
+
+      // Update local count
+      final index = posts.indexWhere((p) => p.id == postId);
+      if (index != -1) {
+        posts[index].shares++;
+        posts.refresh();
+      }
+    } catch (e) {
+      print('Share tracking error: $e');
+    }
+  }
+
   // ==================== LOAD NOTIFICATION COUNT ====================
   Future<void> loadNotificationCount() async {
     try {

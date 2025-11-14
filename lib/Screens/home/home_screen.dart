@@ -87,7 +87,6 @@ class HomeScreen extends StatelessWidget {
                       onLike: () => controller.toggleLike(post.id),
                       isLiked: controller.likedPosts[post.id] ?? false,
                       onTap: () {
-                        // Show post details bottom sheet
                         _showPostDetails(context, post, controller);
                       },
                     );

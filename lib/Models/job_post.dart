@@ -7,6 +7,7 @@ class JobPost {
   final String location;
   final int salaryMin;
   final int salaryMax;
+  int shares;
   int views;
   int likes;
   final int? categoryIdNum;
@@ -38,6 +39,7 @@ class JobPost {
     required this.location,
     required this.salaryMin,
     required this.salaryMax,
+    required this.shares,
     required this.views,
     required this.likes,
     this.categoryIdNum,
@@ -69,6 +71,7 @@ class JobPost {
             if (img == null || img is! Map) return '';
             final url = img['image_url']?.toString() ?? '';
             if (url.isEmpty) return '';
+
             if (url.startsWith('http')) return url;
             return 'https://lebttvzssavbjkoumebf.supabase.co/storage/v1/object/public/post-images/$url';
           })
@@ -159,6 +162,7 @@ class JobPost {
       experience: json['experience']?.toString(),
       categoryName: categoryName,
       subCategoryName: subCategoryName,
+      shares: json['shares_count'] ?? 0,
     );
   }
 
@@ -270,6 +274,7 @@ class JobPost {
       experience: experience ?? this.experience,
       categoryName: categoryName ?? this.categoryName,
       subCategoryName: subCategoryName ?? this.subCategoryName,
+      shares: shares,
     );
   }
 

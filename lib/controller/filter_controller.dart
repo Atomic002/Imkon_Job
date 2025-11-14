@@ -121,33 +121,37 @@ class FilterController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _initializeController();
+  }
+
+  void _initializeController() {
+    // FAQAT KATEGORIYA VA LIKED POSTS YUKLASH
+    // applyFilters() ni bu yerda chaqirmaydi!
     loadCategories();
     loadLikedPosts();
+
     searchController.addListener(() {
       searchText.value = searchController.text;
     });
   }
 
+  // ✅ KATEGORIYALARNI YUKLASH
   Future<void> loadCategories() async {
     try {
-      isLoading.value = true;
       final response = await _supabase
           .from('categories')
           .select('id, name')
           .order('name', ascending: true);
+
       categories.value = List<Map<String, dynamic>>.from(response);
+      print('✅ ${categories.length} ta kategoriya yuklandi');
     } catch (e) {
-      print('❌ Category load error: $e');
-      Get.snackbar(
-        'Xatolik',
-        'Kategoriyalarni yuklashda xatolik',
-        snackPosition: SnackPosition.BOTTOM,
-      );
-    } finally {
-      isLoading.value = false;
+      print('❌ Kategoriya yuklash xatosi: $e');
+      _showError('failed_to_load_categories'.tr);
     }
   }
 
+  // ✅ YOQTIRILGAN POSTLARNI YUKLASH
   Future<void> loadLikedPosts() async {
     try {
       final userId = _supabase.auth.currentUser?.id;
@@ -161,17 +165,20 @@ class FilterController extends GetxController {
       likedPostIds.value = List<String>.from(
         response.map((item) => item['post_id'].toString()),
       );
+      print('✅ ${likedPostIds.length} ta liked post yuklandi');
     } catch (e) {
-      print('⚠️ Liked posts load error: $e');
+      print('⚠️ Liked posts yuklash xatosi: $e');
     }
   }
 
+  // ✅ POST TURINI TANLASH
   void selectPostType(String type) {
     if (selectedPostType.value == type) {
       selectedPostType.value = null;
     } else {
       selectedPostType.value = type;
     }
+    // Post turi o'zgarganda boshqa filtrlarni tozalash
     selectedCategory.value = null;
     selectedSubCategory.value = null;
     subCategories.clear();
@@ -179,6 +186,7 @@ class FilterController extends GetxController {
     filteredPosts.clear();
   }
 
+  // ✅ KATEGORIYANI TANLASH
   Future<void> selectCategory(Map<String, dynamic> category) async {
     selectedCategory.value = category;
     selectedSubCategory.value = null;
@@ -192,13 +200,16 @@ class FilterController extends GetxController {
           .order('name', ascending: true);
 
       subCategories.value = List<Map<String, dynamic>>.from(response);
+      print('✅ ${subCategories.length} ta sub-kategoriya yuklandi');
     } catch (e) {
-      print('❌ Sub-category load error: $e');
+      print('❌ Sub-kategoriya yuklash xatosi: $e');
+      _showError('failed_to_load_subcategories'.tr);
     } finally {
       isLoading.value = false;
     }
   }
 
+  // ✅ SUB-KATEGORIYANI TANLASH
   void selectSubCategory(Map<String, dynamic> subCategory) {
     if (selectedSubCategory.value?['id'] == subCategory['id']) {
       selectedSubCategory.value = null;
@@ -207,55 +218,61 @@ class FilterController extends GetxController {
     }
   }
 
+  // ✅ VILOYATNI TANLASH
   void selectRegion(String region) {
     selectedRegion.value = region;
     selectedDistrict.value = null;
   }
 
-  // ✅ TUZATILGAN - Butun viloyat uchun
+  // ✅ TUMANNI TANLASH
   void selectDistrict(String district) {
     selectedDistrict.value = district;
   }
 
-  // ✅ YANGI METOD - Butun viloyatni tanlash
+  // ✅ BUTUN VILOYATNI TANLASH
   void selectWholeRegion() {
-    // Faqat region saqlanadi, district null bo'ladi
     selectedDistrict.value = null;
     print('✅ Butun viloyat tanlandi: ${selectedRegion.value}');
   }
 
+  // ✅ QIDIRUV TEXTNI TOZALASH
   void clearSearchText() {
     searchController.clear();
     searchText.value = '';
   }
 
+  // ✅ KATEGORIYANI TOZALASH
   void clearCategory() {
     selectedCategory.value = null;
     selectedSubCategory.value = null;
     subCategories.clear();
   }
 
+  // ✅ SUB-KATEGORIYANI TOZALASH
   void clearSubCategory() {
     selectedSubCategory.value = null;
   }
 
+  // ✅ MANZILNI TOZALASH
   void clearLocation() {
     selectedRegion.value = null;
     selectedDistrict.value = null;
   }
 
-  // ✅ TUZATILGAN - Display text
+  // ✅ MANZIL DISPLAYI
   String getLocationDisplay() {
     if (selectedDistrict.value != null) {
       return '${selectedRegion.value}, ${selectedDistrict.value}';
     } else if (selectedRegion.value != null) {
-      return selectedRegion.value!; // Faqat viloyat nomi
+      return selectedRegion.value!;
     }
-    return 'Tanlash';
+    return 'select_option'.tr;
   }
 
+  // ✅ QIDIRUV MUMKINLIGINI TEKSHIRISH
   bool canSearch() => selectedPostType.value != null;
 
+  // ✅ AKTIV FILTRLAR BORLIGINI TEKSHIRISH
   bool hasActiveFilters() {
     return selectedCategory.value != null ||
         selectedSubCategory.value != null ||
@@ -264,14 +281,10 @@ class FilterController extends GetxController {
         searchText.value.isNotEmpty;
   }
 
-  // ✅ TUZATILGAN - Qidiruv logikasi
+  // ✅ FILTRLARNI QO'LLASH (ASOSIY QIDIRUV FUNKSIYASI)
   Future<void> applyFilters() async {
     if (!canSearch()) {
-      Get.snackbar(
-        'Ogohlantirish',
-        'Iltimos e\'lon turini tanlang',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      _showWarning('post_type_filter'.tr, 'select_post_type'.tr);
       return;
     }
 
@@ -282,8 +295,13 @@ class FilterController extends GetxController {
     final region = selectedRegion.value;
     final district = selectedDistrict.value;
 
-    print('🔍 Qidiruv boshlandi: $postType');
-    print('📍 Region: $region, District: $district');
+    print('🔍 Qidiruv boshlandi:');
+    print('   Post turi: $postType');
+    print('   Qidiruv matni: $searchQuery');
+    print('   Kategoriya ID: $categoryId');
+    print('   Sub-kategoriya ID: $subCategoryId');
+    print('   Viloyat: $region');
+    print('   Tuman: $district');
 
     try {
       isLoading.value = true;
@@ -300,129 +318,132 @@ class FilterController extends GetxController {
         post_images(image_url)
       ''');
 
+      // Asosiy filtrlar
       query = query
           .eq('is_active', true)
           .eq('status', 'approved')
           .eq('post_type', postType);
 
+      // Qidiruv matni bo'yicha filter
       if (searchQuery.isNotEmpty) {
         query = query.ilike('title', '%$searchQuery%');
       }
 
+      // Kategoriya filtri
       if (categoryId != null) {
         query = query.eq('category_id', categoryId);
       }
 
+      // Sub-kategoriya filtri
       if (subCategoryId != null) {
         query = query.eq('sub_category_id', subCategoryId);
       }
 
-      // ✅ TUZATILGAN - Location filter
+      // ✅ MANZIL FILTRI (Tuzatilgan)
       if (region != null) {
         if (district != null) {
-          // Agar tuman tanlangan bo'lsa: "Farg'ona, Beshariq"
+          // Tuman tanlangan: "Farg'ona, Beshariq"
           query = query.ilike('location', '%$region%$district%');
-          print('🔍 Qidiruv patterni (tuman): $region, $district');
         } else {
-          // Agar faqat viloyat tanlangan bo'lsa: "Farg'ona"
+          // Faqat viloyat: "Farg'ona"
           query = query.ilike('location', '%$region%');
-          print('🔍 Qidiruv patterni (viloyat): $region');
         }
       }
 
       final response = await query
           .order('created_at', ascending: false)
-          .limit(100);
+          .limit(50); // 100 dan 50 ga kamaytirildi
 
       print('✅ ${response.length} ta e\'lon topildi');
 
-      final List<JobPost> posts = [];
-
-      for (var i = 0; i < response.length; i++) {
-        try {
-          final json = response[i];
-
-          if (json['post_images'] != null && json['post_images'] is List) {
-            List<dynamic> processedImages = [];
-
-            for (var img in json['post_images']) {
-              if (img['image_url'] != null) {
-                String imagePath = img['image_url'];
-
-                if (imagePath.startsWith('http://') ||
-                    imagePath.startsWith('https://')) {
-                  processedImages.add({'image_url': imagePath});
-                } else {
-                  try {
-                    final publicUrl = _supabase.storage
-                        .from('post_images')
-                        .getPublicUrl(imagePath);
-
-                    processedImages.add({'image_url': publicUrl});
-                  } catch (imgError) {
-                    print('⚠️ Image URL conversion error: $imgError');
-                  }
-                }
-              }
-            }
-
-            json['post_images'] = processedImages;
-          }
-
-          final post = JobPost.fromJson(json);
-          posts.add(post);
-        } catch (e) {
-          print('❌ Post parsing error at index $i: $e');
-          continue;
-        }
-      }
+      // Postlarni parse qilish
+      final List<JobPost> posts = await _parsePosts(response);
 
       filteredPosts.assignAll(posts);
       isSearchPerformed.value = true;
 
-      print('✅ ${posts.length} ta post muvaffaqiyatli yuklandi');
-
       if (posts.isEmpty) {
+        _showInfo('no_results_found'.tr, 'try_different_filters'.tr);
+      } else {
         Get.snackbar(
-          'Natija yo\'q',
-          'Hech qanday e\'lon topilmadi',
+          'success'.tr,
+          '${posts.length} ta e\'lon topildi',
           snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
           duration: const Duration(seconds: 2),
         );
       }
     } catch (e, stackTrace) {
       print('❌ Qidiruv xatosi: $e');
       print('Stack trace: $stackTrace');
-
+      _showError('Qidiruv amalga oshmadi');
       filteredPosts.clear();
       isSearchPerformed.value = true;
-
-      Get.snackbar(
-        'Xatolik',
-        'Qidirishda xatolik yuz berdi: ${e.toString()}',
-        snackPosition: SnackPosition.BOTTOM,
-        duration: const Duration(seconds: 3),
-      );
     } finally {
       isLoading.value = false;
     }
   }
 
+  // ✅ POSTLARNI PARSE QILISH (OPTIMALLASHTIRILGAN)
+  Future<List<JobPost>> _parsePosts(List<dynamic> response) async {
+    final List<JobPost> posts = [];
+
+    for (var i = 0; i < response.length; i++) {
+      try {
+        final json = Map<String, dynamic>.from(response[i]);
+
+        // Rasmlarni qayta ishlash (PARALLEL EMAS, KETMA-KET)
+        if (json['post_images'] != null && json['post_images'] is List) {
+          List<dynamic> processedImages = [];
+
+          for (var img in json['post_images']) {
+            if (img['image_url'] != null) {
+              String imagePath = img['image_url'];
+
+              if (imagePath.startsWith('http://') ||
+                  imagePath.startsWith('https://')) {
+                processedImages.add({'image_url': imagePath});
+              } else {
+                try {
+                  final publicUrl = _supabase.storage
+                      .from('post_images')
+                      .getPublicUrl(imagePath);
+                  processedImages.add({'image_url': publicUrl});
+                } catch (imgError) {
+                  print('⚠️ Rasm URL xatosi: $imgError');
+                }
+              }
+            }
+          }
+
+          json['post_images'] = processedImages;
+        }
+
+        final post = JobPost.fromJson(json);
+        posts.add(post);
+      } catch (e) {
+        print('❌ Post parsing xatosi (index $i): $e');
+        continue;
+      }
+    }
+
+    return posts;
+  }
+
+  // ✅ LIKE/UNLIKE FUNKSIYASI
   Future<void> toggleLike(String postId) async {
     try {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) {
-        Get.snackbar(
-          'Xatolik',
-          'Iltimos tizimga kiring',
-          snackPosition: SnackPosition.BOTTOM,
-        );
+        _showWarning('error'.tr, 'please_login'.tr);
         return;
       }
 
       final isLiked = likedPostIds.contains(postId);
 
       if (isLiked) {
+        // Unlike
         await _supabase
             .from('post_likes')
             .delete()
@@ -430,42 +451,39 @@ class FilterController extends GetxController {
             .eq('user_id', userId);
 
         likedPostIds.remove(postId);
-
-        final postIndex = filteredPosts.indexWhere((p) => p.id == postId);
-        if (postIndex != -1) {
-          final updatedPost = filteredPosts[postIndex];
-          updatedPost.likes = (updatedPost.likes - 1).clamp(0, 999999);
-          filteredPosts[postIndex] = updatedPost;
-          filteredPosts.refresh();
-        }
+        _updatePostLikeCount(postId, -1);
       } else {
+        // Like
         await _supabase.from('post_likes').insert({
           'post_id': postId,
           'user_id': userId,
+          'liked_at': DateTime.now().toIso8601String(),
         });
 
         likedPostIds.add(postId);
-
-        final postIndex = filteredPosts.indexWhere((p) => p.id == postId);
-        if (postIndex != -1) {
-          final updatedPost = filteredPosts[postIndex];
-          updatedPost.likes++;
-          filteredPosts[postIndex] = updatedPost;
-          filteredPosts.refresh();
-        }
+        _updatePostLikeCount(postId, 1);
       }
     } catch (e) {
-      print('❌ Like error: $e');
-      Get.snackbar(
-        'Xatolik',
-        'Like qo\'shishda xatolik',
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      print('❌ Like xatosi: $e');
+      _showError('error'.tr);
     }
   }
 
+  // ✅ POST LIKE COUNTNI YANGILASH
+  void _updatePostLikeCount(String postId, int change) {
+    final postIndex = filteredPosts.indexWhere((p) => p.id == postId);
+    if (postIndex != -1) {
+      final updatedPost = filteredPosts[postIndex];
+      updatedPost.likes = (updatedPost.likes + change).clamp(0, 999999);
+      filteredPosts[postIndex] = updatedPost;
+      filteredPosts.refresh();
+    }
+  }
+
+  // ✅ POST YOQTIRILGANLIGINI TEKSHIRISH
   bool isPostLiked(String postId) => likedPostIds.contains(postId);
 
+  // ✅ BARCHA FILTRLARNI TOZALASH
   void resetFilters() {
     searchController.clear();
     searchText.value = '';
@@ -477,6 +495,49 @@ class FilterController extends GetxController {
     subCategories.clear();
     filteredPosts.clear();
     isSearchPerformed.value = false;
+
+    Get.snackbar(
+      'success'.tr,
+      'Filtrlar tozalandi',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.blue,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  // ✅ HELPER FUNKSIYALAR
+  void _showError(String message) {
+    Get.snackbar(
+      'Xatolik',
+      message,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.red,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 3),
+    );
+  }
+
+  void _showWarning(String title, String message) {
+    Get.snackbar(
+      title,
+      message,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.orange,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  void _showInfo(String title, String message) {
+    Get.snackbar(
+      title,
+      message,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.blue,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 2),
+    );
   }
 
   @override

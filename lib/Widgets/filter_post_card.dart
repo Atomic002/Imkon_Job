@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:version1/Screens/home/user_profile_screen.dart';
 import '../Models/job_post.dart';
 import '../config/constants.dart';
@@ -27,15 +29,24 @@ class _FilterPostCardState extends State<FilterPostCard> {
   int _currentImageIndex = 0;
   bool _isViewRecorded = false;
   final _supabase = Supabase.instance.client;
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _recordView();
-    });
+    // VIEW RECORDING NI FAQAT BOTTOM SHEET OCHILGANDA QILAMIZ
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   _recordView();
+    // });
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  // ✅ VIEW NI FAQAT BOTTOM SHEET OCHILGANDA YOZISH
   Future<void> _recordView() async {
     if (_isViewRecorded) return;
 
@@ -103,13 +114,76 @@ class _FilterPostCardState extends State<FilterPostCard> {
     }
   }
 
+  Future<void> _sharePost() async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      String? deviceId;
+      if (userId == null) {
+        deviceId = 'device_${DateTime.now().millisecondsSinceEpoch}';
+      }
+
+      // Share tracking
+      try {
+        await _supabase.from('post_shares').insert({
+          'post_id': widget.post.id,
+          'user_id': userId,
+          'device_id': deviceId,
+          'shared_at': DateTime.now().toIso8601String(),
+        });
+
+        if (mounted) {
+          setState(() {
+            widget.post.shares++;
+          });
+        }
+      } catch (e) {
+        // Ignore duplicate share errors
+      }
+
+      final postLink = 'https://imkonjob.uz/post/${widget.post.id}';
+
+      final shareText =
+          '''
+📢 ${widget.post.title}
+
+🏢 ${widget.post.company}
+📍 ${widget.post.location}
+💰 ${widget.post.getSalaryRange()}
+${widget.post.salaryType != null ? '⏰ ${_getSalaryTypeText(widget.post.salaryType!)}' : ''}
+
+${widget.post.description.length > 150 ? widget.post.description.substring(0, 150) + '...' : widget.post.description}
+
+🔗 To'liq ma'lumot: $postLink
+
+📱 ImkonJob - Ish topish oson!
+''';
+
+      await Share.share(shareText, subject: widget.post.title);
+
+      Get.snackbar(
+        'success'.tr,
+        'post_shared'.tr,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: const Duration(seconds: 2),
+      );
+    } catch (e) {
+      print('Share error: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final hasImages = widget.post.hasImages;
 
     return GestureDetector(
-      onTap: () => _showPostDetailsBottomSheet(context),
+      onTap: () {
+        _recordView();
+        _showPostDetailsBottomSheet(context);
+      },
       child: Container(
+        height: 520, // ✅ 1. BU QATOR QO'SHILDI
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(AppConstants.radiusLarge),
@@ -122,27 +196,30 @@ class _FilterPostCardState extends State<FilterPostCard> {
           ],
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min, // ✅ 2. BU QATOR QO'SHILDI
           children: [
             if (hasImages) _buildImageCarousel() else _buildPlaceholder(),
-            Padding(
-              padding: const EdgeInsets.all(AppConstants.paddingLarge),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildPostTypeBadge(),
-                  const SizedBox(height: 12),
-                  _buildTitleSection(),
-                  if (widget.post.description.isNotEmpty)
-                    _buildDescriptionSection(),
-                  const SizedBox(height: 12),
-                  _buildLocationSection(),
-                  const SizedBox(height: 12),
-                  _buildCategorySection(),
-                  const SizedBox(height: 12),
-                  _buildSalarySection(),
-                  const SizedBox(height: 16),
-                  _buildStatsSection(),
-                ],
+            Expanded(
+              child: SingleChildScrollView(
+                controller: _scrollController,
+                padding: const EdgeInsets.all(AppConstants.paddingLarge),
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildPostTypeBadge(),
+                    const SizedBox(height: 12),
+                    _buildTitleSection(),
+                    if (widget.post.description.isNotEmpty)
+                      _buildDescriptionSection(),
+                    const SizedBox(height: 12),
+                    _buildLocationCategorySection(),
+                    const SizedBox(height: 12),
+                    _buildSalarySection(),
+                    const SizedBox(height: 16),
+                    _buildStatsSection(),
+                  ],
+                ),
               ),
             ),
           ],
@@ -163,17 +240,22 @@ class _FilterPostCardState extends State<FilterPostCard> {
       case 'employee_needed':
         badgeColor = Colors.blue;
         badgeIcon = Icons.person_add_alt_1;
-        badgeText = 'Hodim kerak';
+        badgeText = 'employee_needed_short'.tr;
         break;
       case 'job_needed':
         badgeColor = Colors.green;
         badgeIcon = Icons.work_outline;
-        badgeText = 'Ish kerak';
+        badgeText = 'job_needed_short'.tr;
         break;
       case 'one_time_job':
         badgeColor = Colors.orange;
         badgeIcon = Icons.handyman_outlined;
-        badgeText = 'Bir martalik ish';
+        badgeText = 'one_time_short'.tr;
+        break;
+      case 'service_offering':
+        badgeColor = Colors.purple;
+        badgeIcon = Icons.business_center;
+        badgeText = 'service_offering_short'.tr;
         break;
       default:
         return const SizedBox.shrink();
@@ -205,44 +287,50 @@ class _FilterPostCardState extends State<FilterPostCard> {
   }
 
   Widget _buildImageCarousel() {
-    return Stack(
-      children: [
-        CarouselSlider(
-          options: CarouselOptions(
-            height: 280,
-            viewportFraction: 1.0,
-            autoPlay: false,
-            enlargeCenterPage: false,
-            onPageChanged: (index, reason) {
-              if (mounted) {
-                setState(() => _currentImageIndex = index);
-              }
-            },
-          ),
-          items: widget.post.imageUrls!.map((imageUrl) {
-            return GestureDetector(
-              onTap: () => _showFullScreenImageViewer(
-                context,
-                widget.post.imageUrls!,
-                _currentImageIndex,
-              ),
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(AppConstants.radiusLarge),
-                  ),
-                  color: Colors.grey[200],
+    return SizedBox(
+      // ✅ 3. Stack ni SizedBox bilan o'rang
+      height: 250, // ✅ 4. Fixed height
+      child: Stack(
+        children: [
+          CarouselSlider(
+            options: CarouselOptions(
+              height: 250, // ✅ 5. 280 dan 250 ga
+              viewportFraction: 1.0,
+              autoPlay: false,
+              enlargeCenterPage: false,
+              onPageChanged: (index, reason) {
+                if (mounted) {
+                  setState(() => _currentImageIndex = index);
+                }
+              },
+            ),
+            items: widget.post.imageUrls!.map((imageUrl) {
+              return GestureDetector(
+                onTap: () => _showFullScreenImageViewer(
+                  context,
+                  widget.post.imageUrls!,
+                  _currentImageIndex,
                 ),
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(AppConstants.radiusLarge),
+                child: Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(AppConstants.radiusLarge),
+                    ),
+                    color: Colors.grey[200],
                   ),
-                  child: Image.network(
-                    imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(AppConstants.radiusLarge),
+                    ),
+                    child: CachedNetworkImage(
+                      imageUrl: imageUrl,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: Colors.grey[200],
+                        child: const Center(child: CircularProgressIndicator()),
+                      ),
+                      errorWidget: (context, url, error) => Container(
                         color: Colors.grey[300],
                         child: const Center(
                           child: Icon(
@@ -251,68 +339,60 @@ class _FilterPostCardState extends State<FilterPostCard> {
                             color: Colors.grey,
                           ),
                         ),
-                      );
-                    },
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Center(
-                        child: CircularProgressIndicator(
-                          value: loadingProgress.expectedTotalBytes != null
-                              ? loadingProgress.cumulativeBytesLoaded /
-                                    loadingProgress.expectedTotalBytes!
-                              : null,
-                        ),
-                      );
-                    },
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          if (widget.post.imageUrls!.length > 1)
+            Positioned(
+              bottom: 12,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: widget.post.imageUrls!.asMap().entries.map((entry) {
+                  return Container(
+                    width: 8,
+                    height: 8,
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: _currentImageIndex == entry.key
+                          ? Colors.white
+                          : Colors.white.withOpacity(0.5),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          if (widget.post.isNew)
+            Positioned(
+              top: 12,
+              right: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.green,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  'new_badge'.tr,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
-            );
-          }).toList(),
-        ),
-        if (widget.post.imageUrls!.length > 1)
-          Positioned(
-            bottom: 12,
-            left: 0,
-            right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: widget.post.imageUrls!.asMap().entries.map((entry) {
-                return Container(
-                  width: 8,
-                  height: 8,
-                  margin: const EdgeInsets.symmetric(horizontal: 4),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _currentImageIndex == entry.key
-                        ? Colors.white
-                        : Colors.white.withOpacity(0.5),
-                  ),
-                );
-              }).toList(),
             ),
-          ),
-        if (widget.post.isNew)
-          Positioned(
-            top: 12,
-            right: 12,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.green,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Text(
-                'Yangi',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -334,7 +414,7 @@ class _FilterPostCardState extends State<FilterPostCard> {
 
   Widget _buildPlaceholder() {
     return Container(
-      height: 280,
+      height: 250,
       decoration: BoxDecoration(
         borderRadius: const BorderRadius.vertical(
           top: Radius.circular(AppConstants.radiusLarge),
@@ -356,7 +436,7 @@ class _FilterPostCardState extends State<FilterPostCard> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Imkon Job',
+              'app_name'.tr,
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -391,8 +471,27 @@ class _FilterPostCardState extends State<FilterPostCard> {
               if (widget.post.companyLogo != null)
                 CircleAvatar(
                   radius: 12,
-                  backgroundImage: NetworkImage(widget.post.companyLogo!),
                   backgroundColor: Colors.grey[300],
+                  child: ClipOval(
+                    child: CachedNetworkImage(
+                      imageUrl: widget.post.companyLogo!,
+                      fit: BoxFit.cover,
+                      width: 24,
+                      height: 24,
+                      placeholder: (context, url) => const Center(
+                        child: SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => const Icon(
+                        Icons.person,
+                        size: 16,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
                 ),
               if (widget.post.companyLogo != null) const SizedBox(width: 8),
               Expanded(
@@ -428,7 +527,7 @@ class _FilterPostCardState extends State<FilterPostCard> {
         Text(
           widget.post.description,
           style: const TextStyle(
-            fontSize: 13,
+            fontSize: 12,
             color: AppConstants.textSecondary,
             height: 1.5,
           ),
@@ -439,26 +538,35 @@ class _FilterPostCardState extends State<FilterPostCard> {
     );
   }
 
-  Widget _buildLocationSection() {
-    return Row(
+  Widget _buildLocationCategorySection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Icon(
-          Icons.location_on_rounded,
-          size: 16,
-          color: AppConstants.primaryColor,
-        ),
-        const SizedBox(width: 4),
-        Expanded(
-          child: Text(
-            widget.post.location,
-            style: const TextStyle(
-              fontSize: 13,
-              color: AppConstants.textSecondary,
+        Row(
+          children: [
+            const Icon(
+              Icons.location_on_rounded,
+              size: 16,
+              color: AppConstants.primaryColor,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                widget.post.location,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppConstants.textSecondary,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
+        if (widget.post.categoryIdNum != null) ...[
+          const SizedBox(height: 12),
+          _buildCategorySection(),
+        ],
       ],
     );
   }
@@ -471,6 +579,7 @@ class _FilterPostCardState extends State<FilterPostCard> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
             Icons.category_rounded,
@@ -489,11 +598,14 @@ class _FilterPostCardState extends State<FilterPostCard> {
                     fontWeight: FontWeight.bold,
                     color: AppConstants.primaryColor,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 if (widget.post.subCategoryName != null &&
                     widget.post.subCategoryName!.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Icon(
                         Icons.subdirectory_arrow_right,
@@ -509,7 +621,7 @@ class _FilterPostCardState extends State<FilterPostCard> {
                             color: Colors.grey[700],
                             fontWeight: FontWeight.w500,
                           ),
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -525,58 +637,57 @@ class _FilterPostCardState extends State<FilterPostCard> {
   }
 
   Widget _buildSalarySection() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.green.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.payments_rounded, size: 20, color: Colors.green),
-              const SizedBox(width: 8),
-              Text(
-                widget.post.getSalaryRange(),
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green,
-                ),
-              ),
-            ],
-          ),
-          if (widget.post.salaryType != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.green,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                _getSalaryTypeText(widget.post.salaryType!),
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(
+              Icons.payments_rounded,
+              size: 18,
+              color: AppConstants.primaryColor,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              widget.post.getSalaryRange(),
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppConstants.primaryColor,
               ),
             ),
+          ],
+        ),
+        if (widget.post.salaryType != null) ...[
+          const SizedBox(height: 4),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              _getSalaryTypeText(widget.post.salaryType!),
+              style: const TextStyle(
+                fontSize: 11,
+                color: Colors.green,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
         ],
-      ),
+      ],
     );
   }
 
   String _getSalaryTypeText(String salaryType) {
     switch (salaryType) {
       case 'daily':
-        return 'Kunlik';
+        return 'daily_short'.tr;
       case 'monthly':
-        return 'Oylik';
+        return 'monthly_short'.tr;
       case 'freelance':
-        return 'Freelance';
+        return 'freelance_short'.tr;
       default:
         return salaryType;
     }
@@ -593,7 +704,7 @@ class _FilterPostCardState extends State<FilterPostCard> {
               color: AppConstants.textSecondary,
               size: 18,
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 4),
             Text(
               '${widget.post.views}',
               style: const TextStyle(
@@ -603,99 +714,94 @@ class _FilterPostCardState extends State<FilterPostCard> {
             ),
           ],
         ),
-        Row(
-          children: [
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: widget.onLike,
-                borderRadius: BorderRadius.circular(20),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        widget.isLiked ? Icons.favorite : Icons.favorite_border,
-                        color: widget.isLiked
-                            ? Colors.red
-                            : AppConstants.textSecondary,
-                        size: 22,
-                      ),
-                      const SizedBox(width: 2),
-                      Text(
-                        '${widget.post.likes}',
-                        style: const TextStyle(
-                          color: AppConstants.textSecondary,
-                          fontSize: 14,
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: widget.onLike,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          widget.isLiked
+                              ? Icons.favorite
+                              : Icons.favorite_border,
+                          color: widget.isLiked
+                              ? Colors.red
+                              : AppConstants.textSecondary,
+                          size: 22,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 2),
+                        Text(
+                          '${widget.post.likes}',
+                          style: const TextStyle(
+                            color: AppConstants.textSecondary,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => _sharePost(),
-                borderRadius: BorderRadius.circular(20),
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  child: Icon(
-                    Icons.share_outlined,
-                    color: AppConstants.textSecondary,
-                    size: 20,
+              const SizedBox(width: 16),
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: _sharePost,
+                  borderRadius: BorderRadius.circular(20),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.share_outlined,
+                          color: AppConstants.textSecondary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          '${widget.post.shares}',
+                          style: const TextStyle(
+                            color: AppConstants.textSecondary,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-        Text(
-          widget.post.getFormattedDate(),
-          style: TextStyle(color: Colors.grey[600], fontSize: 12),
+        Flexible(
+          child: Text(
+            widget.post.getFormattedDate(),
+            style: TextStyle(color: Colors.grey[600], fontSize: 11),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.end,
+          ),
         ),
       ],
     );
   }
 
-  Future<void> _sharePost() async {
-    try {
-      final postLink = 'https://imkonjob.uz/post/${widget.post.id}';
-
-      final shareText =
-          '''
-📢 ${widget.post.title}
-
-🏢 ${widget.post.company}
-📍 ${widget.post.location}
-💰 ${widget.post.getSalaryRange()}
-${widget.post.salaryType != null ? '⏰ ${_getSalaryTypeText(widget.post.salaryType!)}' : ''}
-
-${widget.post.description.length > 150 ? widget.post.description.substring(0, 150) + '...' : widget.post.description}
-
-🔗 To'liq ma'lumot: $postLink
-
-📱 ImkonJob - Ish topish oson!
-''';
-
-      final result = await Share.share(shareText, subject: widget.post.title);
-
-      if (result.status == ShareResultStatus.success) {
-        await _supabase
-            .from('posts')
-            .update({'shares_count': (widget.post.sharesCount ?? 0) + 1})
-            .eq('id', widget.post.id);
-      }
-    } catch (e) {
-      print('Share error: $e');
-    }
-  }
-
-  void _navigateToUserProfile() {
+  Future<void> _navigateToUserProfile() async {
     Get.to(
       () => OtherUserProfilePage(userId: widget.post.userId),
       transition: Transition.rightToLeft,
@@ -747,7 +853,7 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
                     const SizedBox(height: 16),
                     _buildDetailRow(
                       Icons.location_on_rounded,
-                      'Joylashuv',
+                      'location_label_info'.tr,
                       widget.post.location,
                     ),
                     const SizedBox(height: 16),
@@ -758,9 +864,9 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
                       const SizedBox(height: 24),
                     ],
                     if (widget.post.description.isNotEmpty) ...[
-                      const Text(
-                        'Tasnif',
-                        style: TextStyle(
+                      Text(
+                        'description_title'.tr,
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: AppConstants.textPrimary,
@@ -779,9 +885,9 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
                     ],
                     if (widget.post.requirementsMain != null &&
                         widget.post.requirementsMain!.isNotEmpty) ...[
-                      const Text(
-                        'Asosiy Talablar',
-                        style: TextStyle(
+                      Text(
+                        'main_requirements_title'.tr,
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: AppConstants.textPrimary,
@@ -811,9 +917,9 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
                     ],
                     if (widget.post.requirementsBasic != null &&
                         widget.post.requirementsBasic!.isNotEmpty) ...[
-                      const Text(
-                        'Qo\'shimcha Talablar',
-                        style: TextStyle(
+                      Text(
+                        'additional_requirements_title'.tr,
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: AppConstants.textPrimary,
@@ -843,9 +949,9 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
                     ],
                     if (widget.post.skills != null &&
                         widget.post.skills!.isNotEmpty) ...[
-                      const Text(
-                        'Ko\'nikmalar',
-                        style: TextStyle(
+                      Text(
+                        'skills_title'.tr,
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: AppConstants.textPrimary,
@@ -882,7 +988,7 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
                         widget.post.experience!.isNotEmpty) ...[
                       _buildDetailRow(
                         Icons.work_history_rounded,
-                        'Tajriba',
+                        'experience_title'.tr,
                         widget.post.experience!,
                       ),
                       const SizedBox(height: 20),
@@ -915,13 +1021,22 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
           children: [
             CircleAvatar(
               radius: 24,
-              backgroundImage: widget.post.companyLogo != null
-                  ? NetworkImage(widget.post.companyLogo!)
-                  : null,
               backgroundColor: Colors.grey[300],
-              child: widget.post.companyLogo == null
-                  ? const Icon(Icons.person, color: Colors.grey)
-                  : null,
+              child: widget.post.companyLogo != null
+                  ? ClipOval(
+                      child: CachedNetworkImage(
+                        imageUrl: widget.post.companyLogo!,
+                        fit: BoxFit.cover,
+                        width: 48,
+                        height: 48,
+                        placeholder: (context, url) => const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        errorWidget: (context, url, error) =>
+                            const Icon(Icons.person, color: Colors.grey),
+                      ),
+                    )
+                  : const Icon(Icons.person, color: Colors.grey),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -937,9 +1052,9 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
                     ),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Profilga o\'tish',
-                    style: TextStyle(
+                  Text(
+                    'go_to_profile'.tr,
+                    style: const TextStyle(
                       fontSize: 12,
                       color: AppConstants.primaryColor,
                       fontWeight: FontWeight.w500,
@@ -965,8 +1080,8 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
 
       if (currentUserId == null) {
         Get.snackbar(
-          'Xatolik',
-          'Ariza berish uchun tizimga kiring',
+          'error'.tr,
+          'must_login_to_apply'.tr,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.orange,
           colorText: Colors.white,
@@ -976,8 +1091,8 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
 
       if (currentUserId == widget.post.userId) {
         Get.snackbar(
-          'Xatolik',
-          'O\'z postingizga ariza bera olmaysiz',
+          'error'.tr,
+          'cannot_apply_own_post'.tr,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.orange,
           colorText: Colors.white,
@@ -986,16 +1101,16 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
       }
 
       Get.dialog(
-        const Center(
+        Center(
           child: Card(
             child: Padding(
-              padding: EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Ariza tayyorlanmoqda...'),
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text('preparing_application'.tr),
                 ],
               ),
             ),
@@ -1005,7 +1120,6 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
       );
 
       String chatId = await _getOrCreateChat(currentUserId, widget.post.userId);
-
       String applicationMessage = _prepareApplicationMessage();
 
       Get.back();
@@ -1023,8 +1137,8 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
 
       if (result == true) {
         Get.snackbar(
-          'Muvaffaqiyatli',
-          'Arizangiz yuborildi',
+          'success'.tr,
+          'application_sent'.tr,
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.green,
           colorText: Colors.white,
@@ -1036,8 +1150,8 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
       if (Get.isDialogOpen ?? false) Get.back();
       print('Apply error: $e');
       Get.snackbar(
-        'Xatolik',
-        'Ariza yuborishda xatolik yuz berdi',
+        'error'.tr,
+        'application_error'.tr,
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red,
         colorText: Colors.white,
@@ -1091,6 +1205,10 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
       greeting = '👋 Assalomu aleykum!\n\n';
       greeting +=
           '🔹 *"${widget.post.title}"* loyihasi ustida ishlashga tayyorman.\n\n';
+    } else if (postType == 'service_offering') {
+      greeting = '👋 Assalomu aleykum!\n\n';
+      greeting +=
+          '🔹 *"${widget.post.title}"* xizmatiga qiziqish bildirdim.\n\n';
     } else {
       greeting = '👋 Assalomu aleykum!\n\n';
       greeting +=
@@ -1133,8 +1251,8 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
             children: [
               Text(
                 widget.post.postType == 'one_time_job'
-                    ? 'Loyiha Byudjeti'
-                    : 'Maosh',
+                    ? 'project_budget'.tr
+                    : 'salary_title'.tr,
                 style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),
               if (widget.post.salaryType != null)
@@ -1176,9 +1294,9 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Kategoriya',
-          style: TextStyle(
+        Text(
+          'category_label'.tr,
+          style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
             color: AppConstants.textPrimary,
@@ -1186,7 +1304,7 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
         ),
         const SizedBox(height: 8),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: AppConstants.primaryColor.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
@@ -1194,24 +1312,57 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
               color: AppConstants.primaryColor.withOpacity(0.3),
             ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                widget.post.getCategoryEmoji(widget.post.categoryIdNum),
-                style: const TextStyle(fontSize: 20),
-              ),
-              const SizedBox(width: 10),
-              Flexible(
-                child: Text(
-                  widget.post.getCategoryDisplay(),
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppConstants.primaryColor,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.post.getCategoryEmoji(widget.post.categoryIdNum),
+                    style: const TextStyle(fontSize: 20),
                   ),
-                ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      widget.post.getCategoryDisplay(),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppConstants.primaryColor,
+                      ),
+                      maxLines: 3,
+                    ),
+                  ),
+                ],
               ),
+              if (widget.post.subCategoryName != null &&
+                  widget.post.subCategoryName!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(width: 30),
+                    Icon(
+                      Icons.subdirectory_arrow_right,
+                      size: 16,
+                      color: Colors.grey[600],
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        widget.post.subCategoryName!,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 3,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -1226,32 +1377,17 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
         _buildStatItem(
           icon: Icons.visibility_outlined,
           value: widget.post.views.toString(),
-          label: 'Ko\'rishlar',
+          label: 'views_label'.tr,
         ),
         _buildStatItem(
           icon: Icons.favorite_outline,
           value: widget.post.likes.toString(),
-          label: 'Yoqtirishlar',
+          label: 'likes_label'.tr,
         ),
-        GestureDetector(
-          onTap: () => _sharePost(),
-          child: Column(
-            children: [
-              Icon(
-                Icons.share_outlined,
-                color: AppConstants.primaryColor,
-                size: 24,
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Ulashish',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppConstants.textSecondary,
-                ),
-              ),
-            ],
-          ),
+        _buildStatItem(
+          icon: Icons.share_outlined,
+          value: widget.post.shares.toString(),
+          label: 'share_label'.tr,
         ),
       ],
     );
@@ -1267,9 +1403,9 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
           await _handleApplyForJob();
         },
         icon: const Icon(Icons.send_rounded, color: Colors.white),
-        label: const Text(
-          'Ariza berish',
-          style: TextStyle(
+        label: Text(
+          'apply_for_job'.tr,
+          style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
             color: Colors.white,
@@ -1305,7 +1441,7 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
               ),
               const SizedBox(height: 4),
               Text(
-                value.isEmpty ? 'Ma\'lumot yo\'q' : value,
+                value.isEmpty ? 'no_data'.tr : value,
                 style: const TextStyle(
                   fontSize: 15,
                   color: AppConstants.textPrimary,
@@ -1378,6 +1514,8 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
     for (int i = 0; i < widget.imageUrls.length; i++) {
       _transformationControllers[i] = TransformationController();
     }
+
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   }
 
   @override
@@ -1386,6 +1524,10 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
     for (var controller in _transformationControllers.values) {
       controller.dispose();
     }
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
     super.dispose();
   }
 
@@ -1417,29 +1559,33 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
                 transformationController: _transformationControllers[index],
                 minScale: 0.5,
                 maxScale: 4.0,
-                child: Center(
-                  child: Image.network(
-                    widget.imageUrls[index],
+                panEnabled: true,
+                scaleEnabled: true,
+                child: Container(
+                  width: double.infinity,
+                  height: double.infinity,
+                  color: Colors.black,
+                  child: CachedNetworkImage(
+                    imageUrl: widget.imageUrls[index],
                     fit: BoxFit.contain,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Center(
-                        child: CircularProgressIndicator(
-                          value: loadingProgress.expectedTotalBytes != null
-                              ? loadingProgress.cumulativeBytesLoaded /
-                                    loadingProgress.expectedTotalBytes!
-                              : null,
-                          color: Colors.white,
-                        ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Center(
-                        child: Icon(
-                          Icons.error_outline,
-                          color: Colors.white,
-                          size: 64,
-                        ),
+                    width: double.infinity,
+                    height: double.infinity,
+                    placeholder: (context, url) => const Center(
+                      child: CircularProgressIndicator(color: Colors.white),
+                    ),
+                    errorWidget: (context, url, error) => const Center(
+                      child: Icon(
+                        Icons.error_outline,
+                        color: Colors.white,
+                        size: 64,
+                      ),
+                    ),
+                    imageBuilder: (context, imageProvider) {
+                      return Image(
+                        image: imageProvider,
+                        fit: BoxFit.contain,
+                        width: double.infinity,
+                        height: double.infinity,
                       );
                     },
                   ),
