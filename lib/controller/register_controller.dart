@@ -1,39 +1,321 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:version1/controller/auth_controller.dart';
 import 'dart:io';
 
 class RegisterController extends GetxController {
-  final SupabaseClient supabase = Supabase.instance.client;
+  final supabase = Supabase.instance.client;
+  final storage = GetStorage();
   final ImagePicker _picker = ImagePicker();
 
-  // ✅ SCREEN CONTROL
-  var currentScreen = 0.obs; // 0 = Register Form, 1 = Profile Photo
+  var currentScreen = 0.obs;
+  var userType = 'job_seeker'.obs;
+  var isPasswordHidden = true.obs;
+  var isLoading = false.obs;
+  var profilePhotoPath = ''.obs;
+  File? profilePhotoFile;
 
-  // ✅ ACCOUNT TYPE
-  var userType = 'job_seeker'.obs; // Default: Ish qidiruvchi
-
-  // ✅ PERSONAL INFO
   final firstNameController = TextEditingController();
   final lastNameController = TextEditingController();
   final companyNameController = TextEditingController();
-
-  // ✅ CONTACT INFO
   final phoneController = TextEditingController();
   final usernameController = TextEditingController();
   final passwordController = TextEditingController();
 
-  // ✅ PROFILE PHOTO
-  var profilePhotoPath = ''.obs;
-  File? profilePhotoFile;
-
-  var isPasswordHidden = true.obs;
-  var isLoading = false.obs;
-
-  // ✅ Telefon formatter
   final phoneFormatter = PhoneInputFormatter();
+
+  /// ✅ REGISTER - Supabase Auth bilan
+  Future<void> registerUser() async {
+    final phoneDigits = phoneController.text.replaceAll(RegExp(r'\D'), '');
+    final phone = '+998$phoneDigits';
+    final password = passwordController.text.trim();
+    final username = usernameController.text.trim();
+    final type = userType.value;
+
+    // Validatsiya
+    if (password.length < 6) {
+      _showError('Parol kamida 6 ta belgidan iborat bo\'lishi kerak');
+      return;
+    }
+
+    if (phoneDigits.length != 9) {
+      _showError('To\'g\'ri telefon raqam kiriting');
+      return;
+    }
+
+    if (username.length < 3) {
+      _showError('Username kamida 3 ta belgidan iborat bo\'lishi kerak');
+      return;
+    }
+
+    String? authUserId;
+
+    try {
+      isLoading.value = true;
+
+      print('📝 ===== REGISTRATION START =====');
+      print('   Username: $username');
+      print('   Phone: $phone');
+
+      // ✅ 1️⃣ Database'da tekshirish
+      final existingUsername = await supabase
+          .from('users')
+          .select('username')
+          .eq('username', username)
+          .maybeSingle();
+
+      if (existingUsername != null) {
+        _showError('Bu username allaqachon ishlatilgan');
+        isLoading.value = false;
+        return;
+      }
+
+      final existingPhone = await supabase
+          .from('users')
+          .select('phone_number')
+          .eq('phone_number', phone)
+          .maybeSingle();
+
+      if (existingPhone != null) {
+        _showError('Bu telefon raqam allaqachon ro\'yxatdan o\'tgan');
+        isLoading.value = false;
+        return;
+      }
+
+      // ✅ 2️⃣ Ism/Kompaniya
+      String firstName = '';
+      String lastName = '';
+      if (type == 'employer') {
+        firstName = companyNameController.text.trim();
+        if (firstName.isEmpty) {
+          _showError('Kompaniya nomini kiriting');
+          isLoading.value = false;
+          return;
+        }
+      } else {
+        firstName = firstNameController.text.trim();
+        lastName = lastNameController.text.trim();
+        if (firstName.isEmpty) {
+          _showError('Ismingizni kiriting');
+          isLoading.value = false;
+          return;
+        }
+      }
+
+      print('   FirstName: $firstName');
+
+      // ✅ 3️⃣ Supabase Auth - Sign Up
+      final email = '$username@app.local';
+      print('📤 Creating auth user: $email');
+
+      final authResponse = await supabase.auth.signUp(
+        email: email,
+        password: password,
+      );
+
+      if (authResponse.user == null) {
+        throw Exception('Auth user yaratilmadi');
+      }
+
+      authUserId = authResponse.user!.id;
+      print('✅ Auth user created: $authUserId');
+
+      // ✅ 4️⃣ Database'ga yozish (UPDATE yoki INSERT)
+      print('⏳ Waiting for trigger...');
+      await Future.delayed(const Duration(seconds: 2));
+
+      // Trigger yaratganini tekshirish
+      var userExists = await supabase
+          .from('users')
+          .select('id')
+          .eq('id', authUserId)
+          .maybeSingle();
+
+      final userData = {
+        'username': username,
+        'first_name': firstName,
+        'last_name': type == 'employer'
+            ? null
+            : (lastName.isEmpty ? null : lastName),
+        'phone_number': phone,
+        'user_type': type,
+        'is_active': true,
+        'rating': 0.0,
+      };
+
+      if (userExists == null) {
+        // INSERT
+        print('📤 Inserting user...');
+        await supabase.from('users').insert({'id': authUserId, ...userData});
+        print('✅ User inserted');
+      } else {
+        // UPDATE
+        print('📤 Updating user...');
+        await supabase.from('users').update(userData).eq('id', authUserId);
+        print('✅ User updated');
+      }
+
+      // ✅ 5️⃣ Verification
+      final verifyUser = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', authUserId)
+          .single();
+
+      print('✅ User verified:');
+      print('   Username: ${verifyUser['username']}');
+      print('   FirstName: ${verifyUser['first_name']}');
+      print('   Phone: ${verifyUser['phone_number']}');
+
+      // ✅ 6️⃣ Upload photo
+      if (profilePhotoFile != null) {
+        print('📷 Uploading photo...');
+        try {
+          final photoUrl = await uploadProfilePhoto(authUserId);
+          if (photoUrl != null) {
+            await supabase
+                .from('users')
+                .update({'profile_photo_url': photoUrl})
+                .eq('id', authUserId);
+            print('✅ Photo uploaded');
+          }
+        } catch (e) {
+          print('⚠️ Photo upload failed: $e');
+        }
+      }
+
+      // ✅ 7️⃣ Storage'ga saqlash
+      print('💾 Saving to storage...');
+      await storage.write('userId', authUserId);
+      await storage.write('isLoggedIn', true);
+      await storage.write('username', username);
+      await storage.write('userType', type);
+
+      // ✅ 8️⃣ AuthController'ni yangilash
+      try {
+        final authController = Get.find<AuthController>();
+        await authController.refreshUser();
+        print('✅ AuthController refreshed');
+      } catch (e) {
+        print('⚠️ AuthController not found: $e');
+      }
+
+      print('✅ ===== REGISTRATION COMPLETE =====');
+
+      _showSuccess('Xush kelibsiz, $firstName!');
+
+      // ✅ FIX: clearForm() ni OLDIN chaqiring
+      _clearFormSafely();
+
+      // KEYIN screen'ga o'ting
+      await Future.delayed(const Duration(milliseconds: 500));
+      Get.offAllNamed('/home');
+    } catch (e, stackTrace) {
+      print('❌ ===== REGISTRATION ERROR =====');
+      print('   Error: $e');
+      print('   Stack: $stackTrace');
+
+      // Rollback
+      if (authUserId != null) {
+        print('🔄 Rolling back...');
+        try {
+          await supabase.auth.signOut();
+          print('✅ Auth user logged out');
+        } catch (rollbackError) {
+          print('❌ Rollback error: $rollbackError');
+        }
+      }
+
+      String errorMessage = e.toString();
+
+      if (errorMessage.contains('User already registered')) {
+        errorMessage = 'Bu username allaqachon ro\'yxatdan o\'tgan';
+      } else if (errorMessage.contains('password')) {
+        errorMessage = 'Parol kamida 6 ta belgidan iborat bo\'lishi kerak';
+      }
+
+      _showError(errorMessage);
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  void _showError(String message) {
+    Get.snackbar(
+      'Xato',
+      message,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.redAccent,
+      colorText: Colors.white,
+      duration: const Duration(seconds: 3),
+    );
+  }
+
+  void _showSuccess(String message) {
+    Get.snackbar(
+      'Muvaffaqiyatli',
+      message,
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.green,
+      colorText: Colors.white,
+      icon: const Icon(Icons.check_circle, color: Colors.white),
+      duration: const Duration(seconds: 2),
+    );
+  }
+
+  /// ✅ Xavfsiz tozalash (controller dispose bo'lmagan bo'lsa)
+  void _clearFormSafely() {
+    try {
+      // ignore: invalid_use_of_protected_member
+      if (firstNameController.hasListeners) {
+        firstNameController.clear();
+        lastNameController.clear();
+        companyNameController.clear();
+        phoneController.clear();
+        passwordController.clear();
+        usernameController.clear();
+      }
+      userType.value = 'job_seeker';
+      profilePhotoPath.value = '';
+      profilePhotoFile = null;
+      currentScreen.value = 0;
+    } catch (e) {
+      print('⚠️ Clear form error (ignored): $e');
+    }
+  }
+
+  /// Public clearForm (agar boshqa joyda kerak bo'lsa)
+  void clearForm() => _clearFormSafely();
+
+  Future<String?> uploadProfilePhoto(String userId) async {
+    if (profilePhotoFile == null) return null;
+
+    try {
+      final fileExt = profilePhotoFile!.path.split('.').last;
+      final fileName = '$userId.$fileExt';
+
+      try {
+        await supabase.storage.from('user-pictures').remove([fileName]);
+      } catch (e) {}
+
+      await supabase.storage
+          .from('user-pictures')
+          .upload(
+            fileName,
+            profilePhotoFile!,
+            fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
+          );
+
+      return supabase.storage.from('user-pictures').getPublicUrl(fileName);
+    } catch (e) {
+      print('❌ Photo upload error: $e');
+      return null;
+    }
+  }
 
   void togglePasswordVisibility() {
     isPasswordHidden.value = !isPasswordHidden.value;
@@ -43,66 +325,7 @@ class RegisterController extends GetxController {
     userType.value = type;
   }
 
-  // ✅ Go to Profile Photo Screen
   void goToProfilePhotoScreen() {
-    // Validation
-    final phoneDigits = phoneController.text.replaceAll(RegExp(r'\D'), '');
-    final username = usernameController.text.trim();
-    final password = passwordController.text.trim();
-
-    if (userType.value == 'employer') {
-      if (companyNameController.text.trim().isEmpty) {
-        Get.snackbar(
-          'Xato',
-          'Kompaniya nomini kiriting',
-          backgroundColor: Colors.redAccent,
-          colorText: Colors.white,
-        );
-        return;
-      }
-    } else {
-      if (firstNameController.text.trim().isEmpty ||
-          lastNameController.text.trim().isEmpty) {
-        Get.snackbar(
-          'Xato',
-          'Ism va familyangizni kiriting',
-          backgroundColor: Colors.redAccent,
-          colorText: Colors.white,
-        );
-        return;
-      }
-    }
-
-    if (phoneDigits.length != 9) {
-      Get.snackbar(
-        'Xato',
-        'Telefon raqam 9 ta raqamdan iborat bo\'lishi kerak',
-        backgroundColor: Colors.redAccent,
-        colorText: Colors.white,
-      );
-      return;
-    }
-
-    if (username.length < 3) {
-      Get.snackbar(
-        'Xato',
-        'Username kamida 3 ta belgidan iborat bo\'lishi kerak',
-        backgroundColor: Colors.redAccent,
-        colorText: Colors.white,
-      );
-      return;
-    }
-
-    if (password.length < 6) {
-      Get.snackbar(
-        'Xato',
-        'Parol kamida 6 ta belgidan iborat bo\'lishi kerak',
-        backgroundColor: Colors.redAccent,
-        colorText: Colors.white,
-      );
-      return;
-    }
-
     currentScreen.value = 1;
   }
 
@@ -110,7 +333,6 @@ class RegisterController extends GetxController {
     currentScreen.value = 0;
   }
 
-  // ✅ PROFILE PHOTO FUNCTIONS
   Future<void> pickProfilePhoto() async {
     try {
       final XFile? image = await _picker.pickImage(
@@ -125,12 +347,7 @@ class RegisterController extends GetxController {
         profilePhotoPath.value = image.path;
       }
     } catch (e) {
-      Get.snackbar(
-        'Xato',
-        'Rasm tanlanmadi: $e',
-        backgroundColor: Colors.redAccent,
-        colorText: Colors.white,
-      );
+      _showError('Rasm tanlanmadi');
     }
   }
 
@@ -148,202 +365,8 @@ class RegisterController extends GetxController {
         profilePhotoPath.value = image.path;
       }
     } catch (e) {
-      Get.snackbar(
-        'Xato',
-        'Rasm olinmadi: $e',
-        backgroundColor: Colors.redAccent,
-        colorText: Colors.white,
-      );
+      _showError('Rasm olinmadi');
     }
-  }
-
-  // ✅ UPLOAD PHOTO TO SUPABASE STORAGE
-  Future<String?> uploadProfilePhoto(String userId) async {
-    if (profilePhotoFile == null) return null;
-
-    try {
-      final fileExt = profilePhotoFile!.path.split('.').last;
-      final filePath = '$userId.$fileExt';
-
-      try {
-        await supabase.storage.from('user-pictures').remove([filePath]);
-      } catch (e) {
-        // Ignore if file doesn't exist
-      }
-
-      await supabase.storage
-          .from('user-pictures')
-          .upload(
-            filePath,
-            profilePhotoFile!,
-            fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
-          );
-
-      final publicUrl = supabase.storage
-          .from('user-pictures')
-          .getPublicUrl(filePath);
-
-      return publicUrl;
-    } catch (e) {
-      print('❌ Photo upload error: $e');
-      return null;
-    }
-  }
-
-  // ✅ REGISTER USER
-  Future<void> registerUser() async {
-    final phoneDigits = phoneController.text.replaceAll(RegExp(r'\D'), '');
-    final phone = '+998$phoneDigits';
-    final password = passwordController.text.trim();
-    final username = usernameController.text.trim();
-    final type = userType.value;
-
-    // Fake email yaratish
-    final email =
-        '${username}_${DateTime.now().millisecondsSinceEpoch}@jobhub.uz';
-
-    try {
-      isLoading.value = true;
-
-      // 1️⃣ Username bandligini tekshirish
-      final existingUsername = await supabase
-          .from('users')
-          .select()
-          .eq('username', username)
-          .maybeSingle();
-
-      if (existingUsername != null) {
-        Get.snackbar(
-          'Xato',
-          'Bu username allaqachon ishlatilgan',
-          backgroundColor: Colors.redAccent,
-          colorText: Colors.white,
-        );
-        isLoading.value = false;
-        return;
-      }
-
-      // 2️⃣ Telefon raqam bandligini tekshirish
-      final existingPhone = await supabase
-          .from('users')
-          .select()
-          .eq('phone_number', phone)
-          .maybeSingle();
-
-      if (existingPhone != null) {
-        Get.snackbar(
-          'Xato',
-          'Bu telefon raqam allaqachon ro\'yxatdan o\'tgan',
-          backgroundColor: Colors.redAccent,
-          colorText: Colors.white,
-        );
-        isLoading.value = false;
-        return;
-      }
-
-      // 3️⃣ Supabase Auth orqali ro'yxatdan o'tish
-      final authResponse = await supabase.auth.signUp(
-        email: email,
-        password: password,
-      );
-
-      final user = authResponse.user;
-      if (user == null) {
-        Get.snackbar(
-          'Xato',
-          'Ro\'yxatdan o\'tishda muammo yuz berdi',
-          backgroundColor: Colors.redAccent,
-          colorText: Colors.white,
-        );
-        isLoading.value = false;
-        return;
-      }
-
-      // 4️⃣ Profile photo upload (agar tanlangan bo'lsa)
-      String? photoUrl;
-      if (profilePhotoFile != null) {
-        photoUrl = await uploadProfilePhoto(user.id);
-      }
-
-      // 5️⃣ Ism/Kompaniya nomini aniqlash
-      String firstName = '';
-      String lastName = '';
-      if (type == 'employer') {
-        firstName = companyNameController.text.trim();
-        lastName = '';
-      } else {
-        firstName = firstNameController.text.trim();
-        lastName = lastNameController.text.trim();
-      }
-
-      // 6️⃣ "users" jadvaliga qo'shish
-      await supabase.from('users').insert({
-        'id': user.id,
-        'first_name': firstName,
-        'last_name': lastName,
-        'username': username,
-        'email': email,
-        'phone_number': phone,
-        'profile_photo_url': photoUrl,
-        'user_type': type,
-        'is_email_verified': false,
-        'is_active': true,
-        'rating': 0.0,
-        'created_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
-      });
-
-      Get.snackbar(
-        'Muvaffaqiyatli',
-        'Xush kelibsiz! Profilingizni to\'ldiring.',
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-        duration: const Duration(seconds: 2),
-      );
-
-      // ✅ TO'G'RIDAN-TO'G'RI PROFILE SAHIFASIGA
-      await Future.delayed(const Duration(milliseconds: 500));
-      Get.offAllNamed('/home'); // Yoki '/profile' bo'lishi mumkin
-      clearForm();
-    } on AuthException catch (e) {
-      if (e.message.contains('already registered')) {
-        Get.snackbar(
-          'Xato',
-          'Bu email allaqachon ro\'yxatdan o\'tgan',
-          backgroundColor: Colors.redAccent,
-          colorText: Colors.white,
-        );
-      } else {
-        Get.snackbar(
-          'Auth Xatosi',
-          e.message,
-          backgroundColor: Colors.redAccent,
-          colorText: Colors.white,
-        );
-      }
-    } catch (e) {
-      Get.snackbar(
-        'Xato',
-        e.toString(),
-        backgroundColor: Colors.redAccent,
-        colorText: Colors.white,
-      );
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  void clearForm() {
-    firstNameController.clear();
-    lastNameController.clear();
-    companyNameController.clear();
-    phoneController.clear();
-    passwordController.clear();
-    usernameController.clear();
-    userType.value = 'job_seeker';
-    profilePhotoPath.value = '';
-    profilePhotoFile = null;
-    currentScreen.value = 0;
   }
 
   @override
@@ -358,7 +381,6 @@ class RegisterController extends GetxController {
   }
 }
 
-// ✅ TELEFON FORMATTER CLASS
 class PhoneInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(

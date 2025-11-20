@@ -4,6 +4,10 @@ class AppTranslations extends Translations {
   @override
   Map<String, Map<String, String>> get keys => {
     'uz_UZ': {
+      'phone_call_error': 'Qo\'ng\'iroq qilish imkonsiz',
+      'contact_via_chat': 'E\'lon yaratuvchisi bilan chat orqali bog\'laning',
+      'phone_number_label': 'Telefon raqam',
+      'phone_hint_post': '90 123 45 67',
       // Profile screen - hardcoded texts
       'edit_profile_title': 'Profilni tahrirlash',
       'phone_number': 'Telefon raqam',
@@ -21,6 +25,71 @@ class AppTranslations extends Translations {
       'password_confirm': 'Parolingiz (tasdiqlash uchun) *',
       'security_message': 'Xavfsizlik uchun parolingizni kiriting',
       'full_phone_password': 'To\'liq telefon raqam va parolni kiriting!',
+
+      'chats': 'Chatlar',
+      'no_chats': 'Hozircha chatlar yo\'q',
+      'start_chat': 'Chat boshlash',
+      'no_messages': 'Xabarlar yo\'q',
+      'no_messages_yet': 'Hali xabarlar yo\'q',
+      'send_first_message': 'Birinchi xabar yuboring',
+      'write_message': 'Xabar yozing...',
+      'send_location': 'Joylashuv yuborish',
+      'current_location': 'Joriy joylashuv',
+      'current_location_desc': 'Hozirgi manzilingizni yuboring',
+      'choose_from_map': 'Xaritadan tanlash',
+      'choose_from_map_desc': 'Xaritadan joy tanlang',
+      'detecting_location': 'Joylashuv aniqlanmoqda...',
+      'location_sent': 'Joylashuv yuborildi',
+      'location_not_detected': 'Joylashuv aniqlanmadi',
+      'location_send_error': 'Joylashuv yuborishda xato',
+      'location_message': 'Joylashuv',
+      'open_in_map': 'Xaritada ochish',
+      'message_too_long': 'Xabar juda uzun (%s ta belgidan oshmasligi kerak)',
+
+      // Message options
+      'copy': 'Nusxa olish',
+      'reply': 'Javob berish',
+      'edit': 'Tahrirlash',
+      'forward': 'Yuborish',
+      'delete': 'O\'chirish',
+      'replying_to': 'Javob berilmoqda:',
+      'edit_message': 'Xabarni tahrirlash',
+      'save': 'Saqlash',
+      'forward_to': 'Kimga yuborish:',
+      'delete_message': 'Xabarni o\'chirish',
+      'delete_message_confirm': 'Xabarni o\'chirishni xohlaysizmi?',
+
+      // Message status
+      'edited': 'tahrirlangan',
+      'message_copied': 'Xabar nusxalandi',
+      'message_edited': 'Xabar tahrirlandi',
+      'message_deleted': 'Xabar o\'chirildi',
+      'message_forwarded': 'Xabar yuborildi',
+      'send_message_error': 'Xabar yuborishda xato',
+      'edit_message_error': 'Tahrirlashda xato',
+      'delete_message_error': 'O\'chirishda xato',
+      'message_empty': 'Xabar bo\'sh',
+
+      // Reactions
+      'choose_reaction': 'Reaksiya tanlang',
+
+      // Chat management
+      'chat_deleted': 'Chat o\'chirildi',
+      'delete_chat_error': 'Chatni o\'chirishda xato',
+
+      // Application dialog
+      'application_title': 'Ariza yuborish',
+      'application_message': 'Siz ushbu ish e\'loniga ariza yuboryapsiz:',
+      'cancel': 'Bekor qilish',
+      'edit_application': 'Arizani tahrirlash',
+      'send_application': 'Ariza yuborish',
+
+      // Time
+      'yesterday': 'Kecha',
+
+      // General
+      'success': 'Muvaffaqiyatli',
+      'error': 'Xato',
 
       // Password dialog
       'change_password_title': 'Parolni o\'zgartirish',
@@ -1050,7 +1119,70 @@ class AppTranslations extends Translations {
       'minutes_ago_short': 'м назад',
       'hours_ago_short': 'ч назад',
       'days_ago_short': 'д назад',
+      'chats': 'Чаты',
+      'no_chats': 'Пока нет чатов',
+      'start_chat': 'Начать чат',
+      'no_messages': 'Нет сообщений',
+      'no_messages_yet': 'Пока нет сообщений',
+      'send_first_message': 'Отправьте первое сообщение',
+      'write_message': 'Написать сообщение...',
+      'send_location': 'Отправить местоположение',
+      'current_location': 'Текущее местоположение',
+      'current_location_desc': 'Отправить ваше текущее местоположение',
+      'choose_from_map': 'Выбрать на карте',
+      'choose_from_map_desc': 'Выберите место на карте',
+      'detecting_location': 'Определение местоположения...',
+      'location_sent': 'Местоположение отправлено',
+      'location_not_detected': 'Местоположение не определено',
+      'location_send_error': 'Ошибка отправки местоположения',
+      'location_message': 'Местоположение',
+      'open_in_map': 'Открыть на карте',
+      'message_too_long': 'Сообщение слишком длинное (не более %s символов)',
 
+      // Message options
+      'copy': 'Копировать',
+      'reply': 'Ответить',
+      'edit': 'Редактировать',
+      'forward': 'Переслать',
+      'delete': 'Удалить',
+      'replying_to': 'Ответ на:',
+      'edit_message': 'Редактировать сообщение',
+      'save': 'Сохранить',
+      'forward_to': 'Переслать кому:',
+      'delete_message': 'Удалить сообщение',
+      'delete_message_confirm': 'Вы хотите удалить сообщение?',
+
+      // Message status
+      'edited': 'изменено',
+      'message_copied': 'Сообщение скопировано',
+      'message_edited': 'Сообщение отредактировано',
+      'message_deleted': 'Сообщение удалено',
+      'message_forwarded': 'Сообщение переслано',
+      'send_message_error': 'Ошибка отправки сообщения',
+      'edit_message_error': 'Ошибка редактирования',
+      'delete_message_error': 'Ошибка удаления',
+      'message_empty': 'Сообщение пустое',
+
+      // Reactions
+      'choose_reaction': 'Выберите реакцию',
+
+      // Chat management
+      'chat_deleted': 'Чат удален',
+      'delete_chat_error': 'Ошибка удаления чата',
+
+      // Application dialog
+      'application_title': 'Отправить заявку',
+      'application_message': 'Вы отправляете заявку на эту вакансию:',
+      'cancel': 'Отмена',
+      'edit_application': 'Редактировать заявку',
+      'send_application': 'Отправить заявку',
+
+      // Time
+      'yesterday': 'Вчера',
+
+      // General
+      'success': 'Успешно',
+      'error': 'Ошибка',
       // Form Fields
       'first_name': 'Имя',
       'last_name': 'Фамилия',
@@ -2064,6 +2196,70 @@ class AppTranslations extends Translations {
       'release_date': 'Release Date',
       'app_description':
           'JobHub - the most convenient platform for job search and hiring.',
+      'chats': 'Chats',
+      'no_chats': 'No chats yet',
+      'start_chat': 'Start chat',
+      'no_messages': 'No messages',
+      'no_messages_yet': 'No messages yet',
+      'send_first_message': 'Send the first message',
+      'write_message': 'Write a message...',
+      'send_location': 'Send location',
+      'current_location': 'Current location',
+      'current_location_desc': 'Send your current location',
+      'choose_from_map': 'Choose from map',
+      'choose_from_map_desc': 'Choose a location on the map',
+      'detecting_location': 'Detecting location...',
+      'location_sent': 'Location sent',
+      'location_not_detected': 'Location not detected',
+      'location_send_error': 'Error sending location',
+      'location_message': 'Location',
+      'open_in_map': 'Open in map',
+      'message_too_long': 'Message too long (max %s characters)',
+
+      // Message options
+      'copy': 'Copy',
+      'reply': 'Reply',
+      'edit': 'Edit',
+      'forward': 'Forward',
+      'delete': 'Delete',
+      'replying_to': 'Replying to:',
+      'edit_message': 'Edit message',
+      'save': 'Save',
+      'forward_to': 'Forward to:',
+      'delete_message': 'Delete message',
+      'delete_message_confirm': 'Do you want to delete this message?',
+
+      // Message status
+      'edited': 'edited',
+      'message_copied': 'Message copied',
+      'message_edited': 'Message edited',
+      'message_deleted': 'Message deleted',
+      'message_forwarded': 'Message forwarded',
+      'send_message_error': 'Error sending message',
+      'edit_message_error': 'Error editing',
+      'delete_message_error': 'Error deleting',
+      'message_empty': 'Message is empty',
+
+      // Reactions
+      'choose_reaction': 'Choose reaction',
+
+      // Chat management
+      'chat_deleted': 'Chat deleted',
+      'delete_chat_error': 'Error deleting chat',
+
+      // Application dialog
+      'application_title': 'Send application',
+      'application_message': 'You are sending an application for this job:',
+      'cancel': 'Cancel',
+      'edit_application': 'Edit application',
+      'send_application': 'Send application',
+
+      // Time
+      'yesterday': 'Yesterday',
+
+      // General
+      'success': 'Success',
+      'error': 'Error',
 
       // Privacy & Security
       // ignore: equal_keys_in_map

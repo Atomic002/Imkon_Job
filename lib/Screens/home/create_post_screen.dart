@@ -1,10 +1,34 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+// ==================== PHONE FORMATTER ====================
+class PhoneNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    String text = newValue.text;
+    String digitsOnly = text.replaceAll(RegExp(r'[^\d]'), '');
+    if (digitsOnly.length > 9) digitsOnly = digitsOnly.substring(0, 9);
+
+    String formatted = '';
+    for (int i = 0; i < digitsOnly.length; i++) {
+      if (i == 2 || i == 5 || i == 7) formatted += ' ';
+      formatted += digitsOnly[i];
+    }
+
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
 
 // ==================== NUMBER FORMATTER ====================
 class ThousandsSeparatorInputFormatter extends TextInputFormatter {
@@ -13,27 +37,14 @@ class ThousandsSeparatorInputFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
-    if (newValue.text.isEmpty) {
-      return newValue;
-    }
-
-    // Remove all non-digit characters
+    if (newValue.text.isEmpty) return newValue;
     String digitsOnly = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
-
-    // Limit to 18 digits
-    if (digitsOnly.length > 18) {
-      digitsOnly = digitsOnly.substring(0, 18);
-    }
-
-    // Format with spaces every 3 digits
+    if (digitsOnly.length > 18) digitsOnly = digitsOnly.substring(0, 18);
     String formatted = '';
     for (int i = 0; i < digitsOnly.length; i++) {
-      if (i > 0 && (digitsOnly.length - i) % 3 == 0) {
-        formatted += ' ';
-      }
+      if (i > 0 && (digitsOnly.length - i) % 3 == 0) formatted += ' ';
       formatted += digitsOnly[i];
     }
-
     return TextEditingValue(
       text: formatted,
       selection: TextSelection.collapsed(offset: formatted.length),
@@ -46,7 +57,6 @@ class CreatePostController extends GetxController {
   final supabase = Supabase.instance.client;
   final ImagePicker _imagePicker = ImagePicker();
 
-  // Observables
   final currentStep = 0.obs;
   final isLoading = false.obs;
   final isLoadingCategories = false.obs;
@@ -54,8 +64,9 @@ class CreatePostController extends GetxController {
   final selectedImages = <File>[].obs;
   final categories = <Map<String, dynamic>>[].obs;
   final subCategories = <Map<String, dynamic>>[].obs;
+  final selectedSubCategories = <int>[].obs;
+  final savedPhoneNumbers = <String>[].obs;
 
-  // Controllers
   final titleController = TextEditingController();
   final descriptionController = TextEditingController();
   final salaryMinController = TextEditingController();
@@ -65,8 +76,8 @@ class CreatePostController extends GetxController {
   final durationDaysController = TextEditingController();
   final skillsController = TextEditingController();
   final experienceController = TextEditingController();
+  final phoneNumberController = TextEditingController();
 
-  // Form data
   final formData = {
     'postType': '',
     'title': '',
@@ -75,7 +86,8 @@ class CreatePostController extends GetxController {
     'district': '',
     'village': '',
     'categoryId': null,
-    'subCategoryId': null,
+    'categoryName': '',
+    'subCategoryIds': <int>[],
     'salaryType': '',
     'salaryMin': 0,
     'salaryMax': 0,
@@ -84,6 +96,7 @@ class CreatePostController extends GetxController {
     'durationDays': null,
     'skills': '',
     'experience': '',
+    'phoneNumber': null,
   }.obs;
 
   final Map<String, List<String>> regions = {
@@ -356,6 +369,7 @@ class CreatePostController extends GetxController {
   void onInit() {
     super.onInit();
     loadCategories();
+    _loadSavedPhoneNumbers();
   }
 
   @override
@@ -369,7 +383,41 @@ class CreatePostController extends GetxController {
     durationDaysController.dispose();
     skillsController.dispose();
     experienceController.dispose();
+    phoneNumberController.dispose();
     super.onClose();
+  }
+
+  Future<void> _loadSavedPhoneNumbers() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final numbers = prefs.getStringList('saved_phone_numbers') ?? [];
+      savedPhoneNumbers.value = numbers;
+    } catch (e) {
+      print('Telefon raqamlarni yuklashda xato: $e');
+    }
+  }
+
+  Future<void> _savePhoneNumber(String phoneNumber) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      List<String> numbers = savedPhoneNumbers.toList();
+      numbers.remove(phoneNumber);
+      numbers.insert(0, phoneNumber);
+      if (numbers.length > 5) numbers = numbers.sublist(0, 5);
+      await prefs.setStringList('saved_phone_numbers', numbers);
+      savedPhoneNumbers.value = numbers;
+    } catch (e) {
+      print('Telefon raqamni saqlashda xato: $e');
+    }
+  }
+
+  String _formatPhoneDisplay(String digits) {
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 5)
+      return '${digits.substring(0, 2)} ${digits.substring(2)}';
+    if (digits.length <= 7)
+      return '${digits.substring(0, 2)} ${digits.substring(2, 5)} ${digits.substring(5)}';
+    return '${digits.substring(0, 2)} ${digits.substring(2, 5)} ${digits.substring(5, 7)} ${digits.substring(7)}';
   }
 
   Future<void> loadCategories() async {
@@ -377,7 +425,7 @@ class CreatePostController extends GetxController {
     try {
       final response = await supabase
           .from('categories')
-          .select('id, name, icon_url')
+          .select('id, name')
           .order('name');
       categories.value = List<Map<String, dynamic>>.from(response);
     } catch (e) {
@@ -400,7 +448,7 @@ class CreatePostController extends GetxController {
           .eq('category_id', categoryId)
           .order('name');
       subCategories.value = List<Map<String, dynamic>>.from(response);
-      formData['subCategoryId'] = null;
+      selectedSubCategories.clear();
     } catch (e) {
       Get.snackbar(
         'error'.tr,
@@ -409,6 +457,16 @@ class CreatePostController extends GetxController {
         colorText: Colors.red,
       );
     }
+  }
+
+  void toggleSubCategory(int subCatId) {
+    if (selectedSubCategories.contains(subCatId)) {
+      selectedSubCategories.remove(subCatId);
+    } else {
+      selectedSubCategories.add(subCatId);
+    }
+    formData['subCategoryIds'] = selectedSubCategories.toList();
+    formData.refresh();
   }
 
   Future<void> pickImages() async {
@@ -432,9 +490,7 @@ class CreatePostController extends GetxController {
   void setPostType(String type) {
     postType.value = type;
     formData['postType'] = type;
-    Future.delayed(const Duration(milliseconds: 300), () {
-      nextStep();
-    });
+    Future.delayed(const Duration(milliseconds: 300), nextStep);
   }
 
   void nextStep() => currentStep.value++;
@@ -468,10 +524,10 @@ class CreatePostController extends GetxController {
       );
       return false;
     }
-    if (formData['subCategoryId'] == null && subCategories.isNotEmpty) {
+    if (subCategories.isNotEmpty && selectedSubCategories.isEmpty) {
       Get.snackbar(
         'warning'.tr,
-        'subcategory_required'.tr,
+        'select_at_least_one_subcategory'.tr,
         backgroundColor: Colors.orange.withOpacity(0.1),
         colorText: Colors.orange.shade900,
       );
@@ -503,7 +559,6 @@ class CreatePostController extends GetxController {
   }
 
   bool validateStep3() {
-    // Employee Needed (Hodim kerak)
     if (formData['postType'] == 'employee_needed') {
       if ((formData['salaryType'] as String?)?.isEmpty ?? true) {
         Get.snackbar(
@@ -523,20 +578,46 @@ class CreatePostController extends GetxController {
         );
         return false;
       }
-      if (formData['salaryType'] == 'freelance') {
-        if (durationDaysController.text.trim().isEmpty) {
-          Get.snackbar(
-            'warning'.tr,
-            'duration_required'.tr,
-            backgroundColor: Colors.orange.withOpacity(0.1),
-            colorText: Colors.orange.shade900,
-          );
-          return false;
-        }
+      if (formData['salaryType'] == 'freelance' &&
+          durationDaysController.text.trim().isEmpty) {
+        Get.snackbar(
+          'warning'.tr,
+          'duration_required'.tr,
+          backgroundColor: Colors.orange.withOpacity(0.1),
+          colorText: Colors.orange.shade900,
+        );
+        return false;
       }
-    }
-    // Job Needed (Ish kerak)
-    else if (formData['postType'] == 'job_needed') {
+    } else if (formData['postType'] == 'job_needed') {
+      if (skillsController.text.trim().isEmpty) {
+        Get.snackbar(
+          'warning'.tr,
+          'skills_required'.tr,
+          backgroundColor: Colors.orange.withOpacity(0.1),
+          colorText: Colors.orange.shade900,
+        );
+        return false;
+      }
+      if (experienceController.text.trim().isEmpty) {
+        Get.snackbar(
+          'warning'.tr,
+          'experience_required'.tr,
+          backgroundColor: Colors.orange.withOpacity(0.1),
+          colorText: Colors.orange.shade900,
+        );
+        return false;
+      }
+    } else if (formData['postType'] == 'one_time_job') {
+      if (durationDaysController.text.trim().isEmpty) {
+        Get.snackbar(
+          'warning'.tr,
+          'duration_required'.tr,
+          backgroundColor: Colors.orange.withOpacity(0.1),
+          colorText: Colors.orange.shade900,
+        );
+        return false;
+      }
+    } else if (formData['postType'] == 'service_offering') {
       if (skillsController.text.trim().isEmpty) {
         Get.snackbar(
           'warning'.tr,
@@ -556,41 +637,45 @@ class CreatePostController extends GetxController {
         return false;
       }
     }
-    // One-time Job (Bir martalik ish)
-    else if (formData['postType'] == 'one_time_job') {
-      if (durationDaysController.text.trim().isEmpty) {
-        Get.snackbar(
-          'warning'.tr,
-          'duration_required'.tr,
-          backgroundColor: Colors.orange.withOpacity(0.1),
-          colorText: Colors.orange.shade900,
-        );
-        return false;
-      } else if (formData['postType'] == 'service_offering') {
-        if (skillsController.text.trim().isEmpty) {
-          Get.snackbar(
-            'warning'.tr,
-            'skills_required'.tr,
-            backgroundColor: Colors.orange.withOpacity(0.1),
-            colorText: Colors.orange.shade900,
-          );
-          return false;
-        }
-        if (experienceController.text.trim().isEmpty) {
-          Get.snackbar(
-            'warning'.tr,
-            'experience_required'.tr,
-            backgroundColor: Colors.orange.withOpacity(0.1),
-            colorText: Colors.orange.shade900,
-          );
-          return false;
-        }
-      }
-    }
     return true;
   }
 
   Future<void> submitPost() async {
+    // ✅ AVVAL FOYDALANUVCHINI TEKSHIRISH
+    final userId = supabase.auth.currentUser?.id;
+
+    if (userId == null) {
+      Get.snackbar(
+        'Xatolik',
+        'Iltimos, avval tizimga kiring!',
+        backgroundColor: Colors.red.withOpacity(0.1),
+        colorText: Colors.red.shade900,
+        duration: const Duration(seconds: 3),
+      );
+      // Tizimga kirish sahifasiga yo'naltirish
+      Get.offAllNamed('/login'); // yoki sizning login route'ingiz
+      return;
+    }
+
+    // TELEFON RAQAMNI VALIDATSIYA VA FORMATLASH
+    String? phoneNumber;
+    final rawPhone = phoneNumberController.text.trim();
+    if (rawPhone.isNotEmpty) {
+      final digitsOnly = rawPhone.replaceAll(RegExp(r'[^\d]'), '');
+      if (digitsOnly.length == 9) {
+        phoneNumber = '+998$digitsOnly';
+        await _savePhoneNumber(phoneNumber);
+      } else {
+        Get.snackbar(
+          'error'.tr,
+          'Telefon raqam noto\'g\'ri formatda. 9 ta raqam kiriting.',
+          backgroundColor: Colors.red.withOpacity(0.1),
+          colorText: Colors.red.shade900,
+        );
+        return;
+      }
+    }
+
     Get.dialog(
       WillPopScope(
         onWillPop: () async => false,
@@ -622,17 +707,7 @@ class CreatePostController extends GetxController {
     );
 
     try {
-      final userId = supabase.auth.currentUser?.id;
-      if (userId == null) {
-        Get.back();
-        Get.snackbar(
-          'error'.tr,
-          'please_login'.tr,
-          backgroundColor: Colors.red.withOpacity(0.1),
-          colorText: Colors.red.shade900,
-        );
-        return;
-      }
+      // ✅ userId allaqachon tekshirilgan
 
       String fullLocation = formData['region'] as String;
       if ((formData['district'] as String?)?.isNotEmpty ?? false)
@@ -640,9 +715,6 @@ class CreatePostController extends GetxController {
       if ((formData['village'] as String?)?.isNotEmpty ?? false)
         fullLocation += ', ${formData['village']}';
 
-      String postTypeDb = formData['postType'] as String;
-
-      // Parse salary values (remove spaces)
       int salaryMin =
           int.tryParse(
             salaryMinController.text.replaceAll(RegExp(r'\s'), ''),
@@ -654,13 +726,17 @@ class CreatePostController extends GetxController {
           ) ??
           0;
 
+      final firstSubCatId = selectedSubCategories.isNotEmpty
+          ? selectedSubCategories.first
+          : null;
+
       final postResponse = await supabase.from('posts').insert({
         'user_id': userId,
-        'post_type': postTypeDb,
+        'post_type': formData['postType'],
         'title': titleController.text.trim(),
         'description': descriptionController.text.trim(),
         'category_id': formData['categoryId'],
-        'sub_category_id': formData['subCategoryId'],
+        'sub_category_id': firstSubCatId,
         'location': fullLocation,
         'salary_type': formData['salaryType'],
         'salary_min': salaryMin,
@@ -680,6 +756,7 @@ class CreatePostController extends GetxController {
         'experience': experienceController.text.trim().isEmpty
             ? null
             : experienceController.text.trim(),
+        'phone_number': phoneNumber,
         'status': 'pending',
         'is_active': true,
         'created_at': DateTime.now().toIso8601String(),
@@ -687,6 +764,44 @@ class CreatePostController extends GetxController {
 
       if (postResponse.isNotEmpty) {
         final postId = postResponse[0]['id'];
+
+        if (selectedSubCategories.length > 1) {
+          for (int i = 1; i < selectedSubCategories.length; i++) {
+            await supabase.from('posts').insert({
+              'user_id': userId,
+              'post_type': formData['postType'],
+              'title': titleController.text.trim(),
+              'description': descriptionController.text.trim(),
+              'category_id': formData['categoryId'],
+              'sub_category_id': selectedSubCategories[i],
+              'location': fullLocation,
+              'salary_type': formData['salaryType'],
+              'salary_min': salaryMin,
+              'salary_max': salaryMax,
+              'requirements_main':
+                  requirementsMainController.text.trim().isEmpty
+                  ? null
+                  : requirementsMainController.text.trim(),
+              'requirements_basic':
+                  requirementsBasicController.text.trim().isEmpty
+                  ? null
+                  : requirementsBasicController.text.trim(),
+              'duration_days': durationDaysController.text.trim().isEmpty
+                  ? null
+                  : int.tryParse(durationDaysController.text),
+              'skills': skillsController.text.trim().isEmpty
+                  ? null
+                  : skillsController.text.trim(),
+              'experience': experienceController.text.trim().isEmpty
+                  ? null
+                  : experienceController.text.trim(),
+              'phone_number': phoneNumber,
+              'status': 'pending',
+              'is_active': true,
+              'created_at': DateTime.now().toIso8601String(),
+            });
+          }
+        }
 
         if (selectedImages.isNotEmpty) {
           for (var i = 0; i < selectedImages.length; i++) {
@@ -715,133 +830,21 @@ class CreatePostController extends GetxController {
         }
 
         Get.back();
-        await Get.dialog(
-          WillPopScope(
-            onWillPop: () async => false,
-            child: SingleChildScrollView(
-              child: AlertDialog(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                contentPadding: EdgeInsets.zero,
-                content: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(20),
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Colors.green.shade50, Colors.white],
-                    ),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.check_circle_outline,
-                          size: 64,
-                          color: Colors.green.shade600,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        'success'.tr,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'post_submitted_success'.tr,
-                        style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 24),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.blue.withOpacity(0.2),
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.info_outline,
-                                  size: 20,
-                                  color: Colors.blue.shade700,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'next_steps'.tr,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            _buildDialogStep('1', 'moderators_will_review'.tr),
-                            const SizedBox(height: 8),
-                            _buildDialogStep('2', 'visible_after_approval'.tr),
-                            const SizedBox(height: 8),
-                            _buildDialogStep('3', 'process_24_hours'.tr),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Get.back();
-                            Get.offAllNamed('/home');
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: Text(
-                            'home'.tr,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          barrierDismissible: false,
-        );
+        await _showSuccessDialog();
       }
     } catch (e) {
       Get.back();
+
+      // ✅ XATOLIKNI ANIQROQ KO'RSATISH
+      String errorMessage = e.toString();
+      if (errorMessage.contains('foreign key')) {
+        errorMessage = 'Tizimda xatolik. Iltimos, qaytadan tizimga kiring.';
+        Get.offAllNamed('/login');
+      }
+
       Get.snackbar(
         'error'.tr,
-        '${'post_creation_error'.tr}: ${e.toString()}',
+        errorMessage,
         backgroundColor: Colors.red.withOpacity(0.1),
         colorText: Colors.red.shade900,
         duration: const Duration(seconds: 4),
@@ -849,47 +852,77 @@ class CreatePostController extends GetxController {
     }
   }
 
-  Widget _buildDialogStep(String number, String text) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 24,
-          height: 24,
-          decoration: BoxDecoration(
-            color: Colors.blue.shade100,
-            shape: BoxShape.circle,
+  Future<void> _showSuccessDialog() async {
+    await Get.dialog(
+      WillPopScope(
+        onWillPop: () async => false,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
-          child: Center(
-            child: Text(
-              number,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue.shade700,
-              ),
+          content: Container(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.check_circle_outline,
+                    size: 64,
+                    color: Colors.green.shade600,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'success'.tr,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'post_submitted_success'.tr,
+                  style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Get.back();
+                      Get.offAllNamed('/home');
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'home'.tr,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(child: Text(text, style: const TextStyle(fontSize: 14))),
-      ],
+      ),
+      barrierDismissible: false,
     );
-  }
-
-  String getCategoryEmoji(String categoryName) {
-    final name = categoryName.toLowerCase();
-    if (name.contains('dasturlash') || name.contains('it')) return '💻';
-    if (name.contains('qurilish')) return '🏗️';
-    if (name.contains('ta\'lim') || name.contains('talim')) return '📚';
-    if (name.contains('transport')) return '🚗';
-    if (name.contains('savdo')) return '🛒';
-    if (name.contains('tibbiyot') || name.contains('sog\'liq')) return '🏥';
-    if (name.contains('marketing')) return '📊';
-    if (name.contains('dizayn') || name.contains('design')) return '🎨';
-    if (name.contains('moliya') || name.contains('finance')) return '💰';
-    if (name.contains('xizmat') || name.contains('service')) return '🛎️';
-    return '📁';
   }
 }
 
@@ -933,7 +966,7 @@ class CreatePostScreen extends GetView<CreatePostController> {
           case 3:
             return _Step3Details(controller: controller);
           case 4:
-            return _Step4Images(controller: controller);
+            return _Step4ImagesAndPhone(controller: controller);
           default:
             return const SizedBox();
         }
@@ -942,7 +975,7 @@ class CreatePostScreen extends GetView<CreatePostController> {
   }
 }
 
-// ==================== STEP 0: POST TYPE ====================
+// ==================== STEP 0 ====================
 class _Step0PostType extends StatelessWidget {
   final CreatePostController controller;
   const _Step0PostType({required this.controller});
@@ -962,7 +995,6 @@ class _Step0PostType extends StatelessWidget {
           padding: const EdgeInsets.all(24),
           child: SingleChildScrollView(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -1027,9 +1059,7 @@ class _Step0PostType extends StatelessWidget {
                     onTap: () => controller.setPostType('one_time_job'),
                   ),
                 ),
-                const SizedBox(
-                  height: 16,
-                ), // Employee Needed va Job Needed dan keyin
+                const SizedBox(height: 16),
                 Obx(
                   () => _PostTypeCard(
                     icon: Icons.room_service_outlined,
@@ -1198,18 +1228,7 @@ class _Step1BasicInfo extends StatelessWidget {
             onChanged: (value) => controller.formData['description'] = value,
           ),
           const SizedBox(height: 24),
-          _Label('category'.tr, Icons.category),
-          const SizedBox(height: 12),
-          Obx(
-            () => controller.isLoadingCategories.value
-                ? const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(32),
-                      child: CircularProgressIndicator(),
-                    ),
-                  )
-                : _CategorySelector(controller: controller),
-          ),
+          _CategorySelectorButton(controller: controller),
           const SizedBox(height: 20),
           Obx(() {
             if (controller.formData['categoryId'] != null &&
@@ -1217,12 +1236,7 @@ class _Step1BasicInfo extends StatelessWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _Label(
-                    '${'subcategory'.tr} *',
-                    Icons.subdirectory_arrow_right,
-                  ),
-                  const SizedBox(height: 12),
-                  _SubCategorySelector(controller: controller),
+                  _SubCategorySelectorButton(controller: controller),
                   const SizedBox(height: 20),
                 ],
               );
@@ -1242,7 +1256,562 @@ class _Step1BasicInfo extends StatelessWidget {
   }
 }
 
-// ==================== STEP 2: LOCATION ====================
+// ==================== CATEGORY SELECTOR BUTTON ====================
+class _CategorySelectorButton extends StatelessWidget {
+  final CreatePostController controller;
+  const _CategorySelectorButton({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final selectedCategoryName =
+          controller.formData['categoryName'] as String;
+      return GestureDetector(
+        onTap: () => _showCategoryBottomSheet(context),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selectedCategoryName.isEmpty
+                  ? Colors.grey[300]!
+                  : Colors.blue,
+              width: selectedCategoryName.isEmpty ? 1 : 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.category,
+                color: selectedCategoryName.isEmpty
+                    ? Colors.grey[600]
+                    : Colors.blue,
+                size: 22,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'category'.tr + ' *',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      selectedCategoryName.isEmpty
+                          ? 'select_category'.tr
+                          : selectedCategoryName,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: selectedCategoryName.isEmpty
+                            ? Colors.grey[400]
+                            : Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
+  void _showCategoryBottomSheet(BuildContext context) {
+    final searchController = TextEditingController();
+    // ❌ BU QATOR NOTO'G'RI:
+    // final filteredCategories = controller.categories.obs;
+
+    // ✅ TO'G'RI:
+    final filteredCategories = <Map<String, dynamic>>[].obs;
+    filteredCategories.value = controller.categories.toList();
+
+    Get.bottomSheet(
+      Container(
+        height: Get.height * 0.75,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'select_category'.tr,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Get.back(),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: searchController,
+                    decoration: InputDecoration(
+                      hintText: 'search_category'.tr,
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Colors.blue,
+                          width: 2,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[50],
+                    ),
+                    onChanged: (value) {
+                      // ✅ QIDIRUV FUNKSIYASI
+                      if (value.isEmpty) {
+                        filteredCategories.value = controller.categories
+                            .toList();
+                      } else {
+                        filteredCategories.value = controller.categories
+                            .where(
+                              (category) => category['name']
+                                  .toString()
+                                  .toLowerCase()
+                                  .contains(value.toLowerCase()),
+                            )
+                            .toList();
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Obx(
+                () => ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: filteredCategories.length, // ✅ TO'G'RI
+                  itemBuilder: (context, index) {
+                    final category = filteredCategories[index]; // ✅ TO'G'RI
+                    final isSelected =
+                        controller.formData['categoryId'] == category['id'];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: GestureDetector(
+                        onTap: () async {
+                          controller.formData['categoryId'] = category['id'];
+                          controller.formData['categoryName'] =
+                              category['name'];
+                          controller.subCategories.clear();
+                          controller.selectedSubCategories.clear();
+                          await controller.loadSubCategories(category['id']);
+                          controller.formData.refresh();
+                          Get.back();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? Colors.blue.withOpacity(0.1)
+                                : Colors.white,
+                            border: Border.all(
+                              color: isSelected
+                                  ? Colors.blue
+                                  : Colors.grey[300]!,
+                              width: isSelected ? 2 : 1,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? Colors.blue.withOpacity(0.2)
+                                      : Colors.grey[100],
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  Icons.category,
+                                  color: isSelected
+                                      ? Colors.blue
+                                      : Colors.grey[600],
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  category['name'],
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w700
+                                        : FontWeight.w600,
+                                    color: isSelected
+                                        ? Colors.blue
+                                        : Colors.black87,
+                                  ),
+                                ),
+                              ),
+                              if (isSelected)
+                                const Icon(
+                                  Icons.check_circle,
+                                  color: Colors.blue,
+                                  size: 24,
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      isDismissible: true,
+      enableDrag: true,
+    );
+  }
+}
+
+// ==================== SUB-CATEGORY SELECTOR BUTTON ====================
+class _SubCategorySelectorButton extends StatelessWidget {
+  final CreatePostController controller;
+  const _SubCategorySelectorButton({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final selectedCount = controller.selectedSubCategories.length;
+      return GestureDetector(
+        onTap: () => _showSubCategoryBottomSheet(context),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: selectedCount == 0 ? Colors.grey[300]! : Colors.blue,
+              width: selectedCount == 0 ? 1 : 2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.subdirectory_arrow_right,
+                color: selectedCount == 0 ? Colors.grey[600] : Colors.blue,
+                size: 22,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'subcategory'.tr + ' *',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      selectedCount == 0
+                          ? 'select_subcategories'.tr
+                          : '$selectedCount ${'selected'.tr}',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: selectedCount == 0
+                            ? Colors.grey[400]
+                            : Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (selectedCount > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.blue,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '$selectedCount',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              const SizedBox(width: 8),
+              Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+
+  void _showSubCategoryBottomSheet(BuildContext context) {
+    final searchController = TextEditingController();
+    // ✅ TO'G'RI:
+    final filteredSubCategories = <Map<String, dynamic>>[].obs;
+    filteredSubCategories.value = controller.subCategories.toList();
+
+    Get.bottomSheet(
+      Container(
+        height: Get.height * 0.75,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(20),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'select_subcategories'.tr,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => Get.back(),
+                        child: Text('done'.tr),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: searchController,
+                    decoration: InputDecoration(
+                      hintText: 'search_subcategory'.tr,
+                      prefixIcon: const Icon(Icons.search),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey[300]!),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(
+                          color: Colors.blue,
+                          width: 2,
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[50],
+                    ),
+                    onChanged: (value) {
+                      if (value.isEmpty) {
+                        filteredSubCategories.value = controller.subCategories
+                            .toList();
+                      } else {
+                        filteredSubCategories.value = controller.subCategories
+                            .where(
+                              (subCat) => subCat['name']
+                                  .toString()
+                                  .toLowerCase()
+                                  .contains(value.toLowerCase()),
+                            )
+                            .toList();
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: Obx(
+                () => ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: filteredSubCategories.length,
+                  itemBuilder: (context, index) {
+                    final subCategory = filteredSubCategories[index];
+                    final isSelected = controller.selectedSubCategories
+                        .contains(subCategory['id']);
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: GestureDetector(
+                        onTap: () {
+                          controller.toggleSubCategory(subCategory['id']);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? Colors.blue.withOpacity(0.1)
+                                : Colors.white,
+                            border: Border.all(
+                              color: isSelected
+                                  ? Colors.blue
+                                  : Colors.grey[300]!,
+                              width: isSelected ? 2 : 1,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? Colors.blue
+                                      : Colors.transparent,
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? Colors.blue
+                                        : Colors.grey[400]!,
+                                    width: 2,
+                                  ),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: isSelected
+                                    ? const Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 16,
+                                      )
+                                    : null,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  subCategory['name'],
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w700
+                                        : FontWeight.w600,
+                                    color: isSelected
+                                        ? Colors.blue
+                                        : Colors.black87,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      isDismissible: true,
+      enableDrag: true,
+    );
+  }
+}
+
+// ==================== STEP 2: LOCATION (unchanged) ====================
 class _Step2Location extends StatelessWidget {
   final CreatePostController controller;
   const _Step2Location({required this.controller});
@@ -1340,7 +1909,7 @@ class _Step2Location extends StatelessWidget {
   }
 }
 
-// ==================== STEP 3: DETAILS (Different for each post type) ====================
+// ==================== STEP 3: DETAILS ====================
 class _Step3Details extends StatelessWidget {
   final CreatePostController controller;
   const _Step3Details({required this.controller});
@@ -1349,7 +1918,6 @@ class _Step3Details extends StatelessWidget {
   Widget build(BuildContext context) {
     return Obx(() {
       final postType = controller.postType.value;
-
       if (postType == 'employee_needed') {
         return _EmployeeNeededForm(controller: controller);
       } else if (postType == 'job_needed') {
@@ -1357,15 +1925,16 @@ class _Step3Details extends StatelessWidget {
       } else if (postType == 'one_time_job') {
         return _OneTimeJobForm(controller: controller);
       } else if (postType == 'service_offering') {
-        return _ServiceOfferingForm(controller: controller); // 🆕
+        return _ServiceOfferingForm(controller: controller);
       }
-
       return const SizedBox();
     });
   }
 }
 
-// EMPLOYEE NEEDED FORM (Hodim kerak)
+// Forms remain the same as in document 3...
+// (Employee, Job, OneTime, Service forms - copying from document 3)
+
 class _EmployeeNeededForm extends StatelessWidget {
   final CreatePostController controller;
   const _EmployeeNeededForm({required this.controller});
@@ -1511,7 +2080,6 @@ class _EmployeeNeededForm extends StatelessWidget {
   }
 }
 
-// JOB NEEDED FORM (Ish kerak)
 class _JobNeededForm extends StatelessWidget {
   final CreatePostController controller;
   const _JobNeededForm({required this.controller});
@@ -1599,7 +2167,6 @@ class _JobNeededForm extends StatelessWidget {
   }
 }
 
-// ONE-TIME JOB FORM (Bir martalik ish)
 class _OneTimeJobForm extends StatelessWidget {
   final CreatePostController controller;
   const _OneTimeJobForm({required this.controller});
@@ -1690,228 +2257,6 @@ class _OneTimeJobForm extends StatelessWidget {
   }
 }
 
-class _SalaryTypeChip extends StatelessWidget {
-  final String label, value;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _SalaryTypeChip({
-    required this.label,
-    required this.value,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-        decoration: BoxDecoration(
-          gradient: isSelected
-              ? LinearGradient(
-                  colors: [Colors.blue.shade400, Colors.blue.shade600],
-                )
-              : null,
-          color: isSelected ? null : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? Colors.blue.shade700 : Colors.grey[300]!,
-            width: isSelected ? 2 : 1,
-          ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: Colors.blue.withOpacity(0.3),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : [],
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-            color: isSelected ? Colors.white : Colors.black87,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ==================== STEP 4: IMAGES ====================
-class _Step4Images extends StatelessWidget {
-  final CreatePostController controller;
-  const _Step4Images({required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _StepIndicator(current: 4, total: 4),
-          const SizedBox(height: 32),
-          _SectionHeader(
-            icon: Icons.add_photo_alternate_outlined,
-            title: 'images'.tr,
-            subtitle: 'add_images_optional'.tr,
-          ),
-          const SizedBox(height: 24),
-          GestureDetector(
-            onTap: controller.pickImages,
-            child: Container(
-              height: 200,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.blue.shade50,
-                    Colors.blue.shade100.withOpacity(0.3),
-                  ],
-                ),
-                border: Border.all(color: Colors.blue.shade200, width: 2),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.cloud_upload_outlined,
-                      size: 48,
-                      color: Colors.blue.shade600,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'tap_to_add_image'.tr,
-                    style: TextStyle(
-                      color: Colors.blue.shade900,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'max_3_images'.tr,
-                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Obx(() {
-            if (controller.selectedImages.isEmpty)
-              return const SizedBox.shrink();
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 32),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.check_circle,
-                      color: Colors.green,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${'selected_images'.tr}: ${controller.selectedImages.length}/3',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                  ),
-                  itemCount: controller.selectedImages.length,
-                  itemBuilder: (context, index) {
-                    return Stack(
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                            image: DecorationImage(
-                              image: FileImage(
-                                controller.selectedImages[index],
-                              ),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          right: 4,
-                          top: 4,
-                          child: GestureDetector(
-                            onTap: () => controller.removeImage(index),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.red.withOpacity(0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              padding: const EdgeInsets.all(6),
-                              child: const Icon(
-                                Icons.close,
-                                color: Colors.white,
-                                size: 16,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-              ],
-            );
-          }),
-          const SizedBox(height: 40),
-          _PrimaryButton(
-            text: 'create_post'.tr,
-            icon: Icons.send_rounded,
-            onPressed: controller.submitPost,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// SERVICE OFFERING FORM (Xizmat ko'rsatish)
 class _ServiceOfferingForm extends StatelessWidget {
   final CreatePostController controller;
   const _ServiceOfferingForm({required this.controller});
@@ -1995,6 +2340,439 @@ class _ServiceOfferingForm extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// ==================== STEP 4: IMAGES AND PHONE ====================
+class _Step4ImagesAndPhone extends StatelessWidget {
+  final CreatePostController controller;
+  const _Step4ImagesAndPhone({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _StepIndicator(current: 4, total: 4),
+          const SizedBox(height: 32),
+          _SectionHeader(
+            icon: Icons.add_photo_alternate_outlined,
+            title: 'final_step'.tr,
+            subtitle: 'add_images_and_contact'.tr,
+          ),
+          const SizedBox(height: 24),
+
+          // IMAGES SECTION
+          GestureDetector(
+            onTap: controller.pickImages,
+            child: Container(
+              height: 180,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.blue.shade50,
+                    Colors.blue.shade100.withOpacity(0.3),
+                  ],
+                ),
+                border: Border.all(color: Colors.blue.shade200, width: 2),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.cloud_upload_outlined,
+                      size: 48,
+                      color: Colors.blue.shade600,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'tap_to_add_image'.tr,
+                    style: TextStyle(
+                      color: Colors.blue.shade900,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'max_3_images'.tr,
+                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          Obx(() {
+            if (controller.selectedImages.isEmpty)
+              return const SizedBox.shrink();
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.check_circle,
+                      color: Colors.green,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${'selected_images'.tr}: ${controller.selectedImages.length}/3',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemCount: controller.selectedImages.length,
+                  itemBuilder: (context, index) {
+                    return Stack(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                            image: DecorationImage(
+                              image: FileImage(
+                                controller.selectedImages[index],
+                              ),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          right: 4,
+                          top: 4,
+                          child: GestureDetector(
+                            onTap: () => controller.removeImage(index),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.red.withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              padding: const EdgeInsets.all(6),
+                              child: const Icon(
+                                Icons.close,
+                                color: Colors.white,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            );
+          }),
+
+          const SizedBox(height: 32),
+
+          // PHONE NUMBER SECTION
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Colors.green.shade50,
+                  Colors.green.shade100.withOpacity(0.3),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.phone,
+                    color: Colors.green.shade700,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Bog\'lanish uchun telefon',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Ixtiyoriy - faqat kerak bo\'lsa qo\'shing',
+                        style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          _PhoneNumberField(controller: controller),
+
+          const SizedBox(height: 40),
+          _PrimaryButton(
+            text: 'create_post'.tr,
+            icon: Icons.send_rounded,
+            onPressed: controller.submitPost,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ==================== PHONE NUMBER FIELD ====================
+class _PhoneNumberField extends StatelessWidget {
+  final CreatePostController controller;
+  const _PhoneNumberField({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: TextField(
+            controller: controller.phoneNumberController,
+            keyboardType: TextInputType.phone,
+            inputFormatters: [PhoneNumberFormatter()],
+            style: const TextStyle(fontSize: 15),
+            decoration: InputDecoration(
+              hintText: '90 123 45 67',
+              hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+              prefixIcon: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.phone, color: Colors.grey[600], size: 22),
+                    const SizedBox(width: 8),
+                    Text(
+                      '+998',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                    Container(
+                      width: 1,
+                      height: 24,
+                      color: Colors.grey[300],
+                      margin: const EdgeInsets.only(left: 12),
+                    ),
+                  ],
+                ),
+              ),
+              suffixIcon: controller.phoneNumberController.text.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 20),
+                      onPressed: () => controller.phoneNumberController.clear(),
+                    )
+                  : (controller.savedPhoneNumbers.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.history, size: 20),
+                            onPressed: () => _showSavedNumbers(context),
+                          )
+                        : null),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey[300]!),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: const BorderSide(color: Colors.green, width: 2),
+              ),
+              contentPadding: const EdgeInsets.symmetric(vertical: 16),
+              filled: true,
+              fillColor: Colors.white,
+            ),
+          ),
+        ),
+        if (controller.savedPhoneNumbers.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: GestureDetector(
+              onTap: () => _showSavedNumbers(context),
+              child: Row(
+                children: [
+                  Icon(Icons.history, size: 16, color: Colors.blue[700]),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Avval ishlatilgan raqamlar',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.blue[700],
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  void _showSavedNumbers(BuildContext context) {
+    Get.bottomSheet(
+      Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.history, color: Colors.blue),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Avval ishlatilgan raqamlar',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Get.back(),
+                  ),
+                ],
+              ),
+            ),
+            ListView.builder(
+              shrinkWrap: true,
+              padding: const EdgeInsets.all(16),
+              itemCount: controller.savedPhoneNumbers.length,
+              itemBuilder: (context, index) {
+                final phoneNumber = controller.savedPhoneNumbers[index];
+                final displayNumber = phoneNumber.replaceAll('+998', '');
+                final formattedDisplay = controller._formatPhoneDisplay(
+                  displayNumber,
+                );
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: GestureDetector(
+                    onTap: () {
+                      controller.phoneNumberController.text = formattedDisplay;
+                      Get.back();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.phone,
+                              color: Colors.green,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            '+998 $formattedDisplay',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+      isDismissible: true,
+      enableDrag: true,
     );
   }
 }
@@ -2248,13 +3026,19 @@ class _ModernDropdown extends StatelessWidget {
                     hint,
                     style: TextStyle(color: Colors.grey[400], fontSize: 14),
                   ),
-                  style: const TextStyle(fontSize: 15, color: Colors.black87),
-                  items: items
-                      .map(
-                        (item) =>
-                            DropdownMenuItem(value: item, child: Text(item)),
-                      )
-                      .toList(),
+                  style: const TextStyle(
+                    // ==================== DROPDOWN NING DAVOMI ====================
+                    fontSize: 15,
+                    color: Colors.black87,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  icon: Icon(Icons.arrow_drop_down, color: Colors.grey[600]),
+                  items: items.map((item) {
+                    return DropdownMenuItem<String>(
+                      value: item,
+                      child: Text(item),
+                    );
+                  }).toList(),
                   onChanged: onChanged,
                 ),
               ),
@@ -2266,147 +3050,65 @@ class _ModernDropdown extends StatelessWidget {
   }
 }
 
-class _CategorySelector extends StatelessWidget {
-  final CreatePostController controller;
-  const _CategorySelector({required this.controller});
+// ==================== SALARY TYPE CHIP ====================
+class _SalaryTypeChip extends StatelessWidget {
+  final String label, value;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _SalaryTypeChip({
+    required this.label,
+    required this.value,
+    required this.isSelected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Obx(
-      () => Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        children: controller.categories.map((cat) {
-          final isSelected = controller.formData['categoryId'] == cat['id'];
-          final emoji = controller.getCategoryEmoji(
-            cat['name'] ?? 'Kategoriya',
-          );
-          return GestureDetector(
-            onTap: () {
-              controller.formData['categoryId'] = cat['id'];
-              controller.formData['subCategoryId'] = null;
-              controller.subCategories.clear();
-              controller.loadSubCategories(cat['id']);
-              controller.formData.refresh();
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                gradient: isSelected
-                    ? LinearGradient(
-                        colors: [Colors.blue.shade400, Colors.blue.shade600],
-                      )
-                    : null,
-                color: isSelected ? null : Colors.white,
-                border: Border.all(
-                  color: isSelected ? Colors.blue.shade700 : Colors.grey[300]!,
-                  width: isSelected ? 2 : 1,
-                ),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: Colors.blue.withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ]
-                    : [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.1),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(emoji, style: TextStyle(fontSize: isSelected ? 24 : 20)),
-                  const SizedBox(width: 8),
-                  Text(
-                    cat['name'] ?? 'Kategoriya',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: isSelected
-                          ? FontWeight.w700
-                          : FontWeight.w600,
-                      color: isSelected ? Colors.white : Colors.black87,
-                    ),
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: isSelected
+              ? LinearGradient(
+                  colors: [Colors.blue.shade400, Colors.blue.shade600],
+                )
+              : null,
+          color: isSelected ? null : Colors.white,
+          border: Border.all(
+            color: isSelected ? Colors.blue : Colors.grey[300]!,
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.blue.withOpacity(0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
-                ],
-              ),
-            ),
-          );
-        }).toList(),
+                ]
+              : [],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.grey[700],
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            fontSize: 14,
+          ),
+        ),
       ),
     );
   }
 }
 
-class _SubCategorySelector extends StatelessWidget {
-  final CreatePostController controller;
-  const _SubCategorySelector({required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    return Obx(
-      () => Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        children: controller.subCategories.map((subCat) {
-          final isSelected =
-              controller.formData['subCategoryId'] == subCat['id'];
-          return GestureDetector(
-            onTap: () {
-              controller.formData['subCategoryId'] = subCat['id'];
-              controller.formData.refresh();
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                gradient: isSelected
-                    ? LinearGradient(
-                        colors: [Colors.blue.shade400, Colors.blue.shade600],
-                      )
-                    : null,
-                color: isSelected ? null : Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: isSelected ? Colors.blue.shade700 : Colors.grey[300]!,
-                  width: isSelected ? 2 : 1,
-                ),
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: Colors.blue.withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ]
-                    : [],
-              ),
-              child: Text(
-                subCat['name'],
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                  color: isSelected ? Colors.white : Colors.black87,
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
-
+// ==================== PRIMARY BUTTON ====================
 class _PrimaryButton extends StatelessWidget {
   final String text;
-  final VoidCallback? onPressed;
+  final VoidCallback onPressed;
   final IconData? icon;
 
   const _PrimaryButton({
@@ -2417,39 +3119,54 @@ class _PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    return Container(
       width: double.infinity,
       height: 56,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.blue.shade600, Colors.blue.shade800],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.blue.withOpacity(0.4),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.blue,
-          disabledBackgroundColor: Colors.grey[300],
+          backgroundColor: Colors.transparent,
           foregroundColor: Colors.white,
+          shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          elevation: onPressed == null ? 0 : 4,
-          shadowColor: Colors.blue.withOpacity(0.3),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            if (icon != null) ...[
+              Icon(icon, size: 24),
+              const SizedBox(width: 12),
+            ],
             Text(
               text,
               style: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
                 letterSpacing: 0.5,
               ),
             ),
-            if (icon != null) ...[
-              const SizedBox(width: 8),
-              Icon(icon, size: 22),
-            ],
           ],
         ),
       ),
     );
   }
 }
+
+// ==================== STEP 4: IMAGES AND PHONE (TO'LIQ) ====================
+
+// ==================== PHONE NUMBER FIELD ====================

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:version1/Models/job_post.dart';
 import 'package:version1/Models/user_model.dart';
@@ -12,24 +13,47 @@ class ProfileController extends GetxController {
   final stats = <String, int>{'posts': 0, 'views': 0, 'likes': 0}.obs;
 
   final supabase = Supabase.instance.client;
+  final storage = GetStorage();
+
+  bool _hasCheckedAuth = false; // ✅ Auth tekshiruv flagі
 
   @override
   void onInit() {
     super.onInit();
-    loadUserData();
+    // ✅ Faqat 1 marta tekshirish
+    if (!_hasCheckedAuth) {
+      _hasCheckedAuth = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        loadUserData();
+      });
+    }
   }
 
   // ==================== LOAD USER DATA ====================
   Future<void> loadUserData() async {
+    // ✅ Agar yuklanayotgan bo'lsa, qayta yuklash kerak emas
+    if (isLoading.value) return;
+
     try {
       isLoading.value = true;
 
-      final userId = supabase.auth.currentUser?.id;
-      if (userId == null) {
-        print('❌ User not logged in');
+      final userId = storage.read('userId');
+
+      if (userId == null || userId.toString().isEmpty) {
+        print('❌ User not logged in - redirecting to login');
         user.value = null;
+        clearData();
+
+        // ✅ Login sahifasiga o'tkazish
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (Get.currentRoute != '/login') {
+            Get.offAllNamed('/login');
+          }
+        });
         return;
       }
+
+      print('🔍 Loading user data for ID: $userId');
 
       final response = await supabase
           .from('users')
@@ -44,19 +68,36 @@ class ProfileController extends GetxController {
       calculateStats();
     } catch (e) {
       print('❌ Load user data error: $e');
-      user.value = null;
+
+      // ✅ Agar user topilmasa yoki auth xato bo'lsa
+      if (e.toString().contains('JWT') ||
+          e.toString().contains('PGRST') ||
+          e.toString().contains('No rows') ||
+          e.toString().contains('not found')) {
+        user.value = null;
+        clearData();
+        await storage.remove('userId');
+        await storage.write('isLoggedIn', false);
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (Get.currentRoute != '/login') {
+            Get.offAllNamed('/login');
+          }
+        });
+      }
     } finally {
       isLoading.value = false;
     }
   }
 
-  // ==================== LOAD USER POSTS (FIXED) ====================
+  // ==================== LOAD USER POSTS ====================
   Future<void> loadUserPosts() async {
     try {
-      final userId = supabase.auth.currentUser?.id;
+      final userId = storage.read('userId');
       if (userId == null) return;
 
-      // ✅ 'posts' jadvalidan ma'lumot olish
+      print('📝 Loading posts for user: $userId');
+
       final response = await supabase
           .from('posts')
           .select('''
@@ -102,7 +143,6 @@ class ProfileController extends GetxController {
   }
 
   // ==================== UPDATE PROFILE ====================
-  // ==================== UPDATE PROFILE (FIXED) ====================
   Future<bool> updateProfile({
     String? firstName,
     String? lastName,
@@ -112,18 +152,17 @@ class ProfileController extends GetxController {
     try {
       isLoading.value = true;
 
-      final userId = supabase.auth.currentUser?.id;
+      final userId = storage.read('userId');
       if (userId == null) {
         Get.snackbar(
-          'error'.tr,
-          'user_not_found'.tr,
+          'Xato',
+          'User topilmadi',
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
         return false;
       }
 
-      // ✅ FAQAT YUBORILGAN QIYMATLARNI YANGILASH
       final Map<String, dynamic> updateData = {
         'updated_at': DateTime.now().toIso8601String(),
       };
@@ -146,8 +185,8 @@ class ProfileController extends GetxController {
       await loadUserData();
 
       Get.snackbar(
-        'success'.tr,
-        'profile_updated'.tr,
+        'Muvaffaqiyatli',
+        'Profil yangilandi',
         backgroundColor: Colors.green,
         colorText: Colors.white,
         icon: const Icon(Icons.check_circle, color: Colors.white),
@@ -157,8 +196,8 @@ class ProfileController extends GetxController {
     } catch (e) {
       print('❌ Update profile error: $e');
       Get.snackbar(
-        'error'.tr,
-        'update_failed'.tr,
+        'Xato',
+        'Profilni yangilashda xato',
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -168,15 +207,14 @@ class ProfileController extends GetxController {
     }
   }
 
-  // ==================== UPLOAD PROFILE PHOTO (FIXED) ====================
+  // ==================== UPLOAD PROFILE PHOTO ====================
   Future<bool> uploadProfilePhoto(File imageFile) async {
     try {
       isLoading.value = true;
 
-      final userId = supabase.auth.currentUser?.id;
+      final userId = storage.read('userId');
       if (userId == null) return false;
 
-      // Eski rasmni o'chirish
       if (user.value?.profilePhotoUrl != null) {
         try {
           final oldPath = user.value!.profilePhotoUrl!
@@ -188,7 +226,6 @@ class ProfileController extends GetxController {
         }
       }
 
-      // Yangi rasmni yuklash
       final fileExt = imageFile.path.split('.').last.toLowerCase();
       final fileName =
           '${userId}_${DateTime.now().millisecondsSinceEpoch}.$fileExt';
@@ -201,12 +238,10 @@ class ProfileController extends GetxController {
             fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
           );
 
-      // Public URL olish
       final imageUrl = supabase.storage
           .from('user-pictures')
           .getPublicUrl(fileName);
 
-      // Database yangilash
       await supabase
           .from('users')
           .update({
@@ -218,8 +253,8 @@ class ProfileController extends GetxController {
       await loadUserData();
 
       Get.snackbar(
-        'success'.tr,
-        'photo_updated'.tr,
+        'Muvaffaqiyatli',
+        'Rasm yangilandi',
         backgroundColor: Colors.green,
         colorText: Colors.white,
       );
@@ -228,8 +263,8 @@ class ProfileController extends GetxController {
     } catch (e) {
       print('❌ Upload photo error: $e');
       Get.snackbar(
-        'error'.tr,
-        'photo_upload_failed'.tr,
+        'Xato',
+        'Rasm yuklanmadi',
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -244,7 +279,7 @@ class ProfileController extends GetxController {
     try {
       isLoading.value = true;
 
-      final userId = supabase.auth.currentUser?.id;
+      final userId = storage.read('userId');
       if (userId == null) return false;
 
       if (user.value?.profilePhotoUrl != null) {
@@ -261,7 +296,7 @@ class ProfileController extends GetxController {
       await supabase
           .from('users')
           .update({
-            'user_photo_url': null,
+            'profile_photo_url': null,
             'updated_at': DateTime.now().toIso8601String(),
           })
           .eq('id', userId);
@@ -269,8 +304,8 @@ class ProfileController extends GetxController {
       await loadUserData();
 
       Get.snackbar(
-        'success'.tr,
-        'photo_deleted'.tr,
+        'Muvaffaqiyatli',
+        'Rasm o\'chirildi',
         backgroundColor: Colors.green,
         colorText: Colors.white,
       );
@@ -289,27 +324,25 @@ class ProfileController extends GetxController {
     try {
       isLoading.value = true;
 
-      final userId = supabase.auth.currentUser?.id;
+      final userId = storage.read('userId');
       if (userId == null) return false;
 
-      // Parolni tekshirish
-      final email = user.value?.email ?? '';
-      final authResult = await supabase.auth.signInWithPassword(
-        email: email,
-        password: password,
-      );
+      final userResponse = await supabase
+          .from('users')
+          .select('password')
+          .eq('id', userId)
+          .single();
 
-      if (authResult.user == null) {
+      if (userResponse['password'] != password) {
         Get.snackbar(
-          'error'.tr,
-          'incorrect_password'.tr,
+          'Xato',
+          'Parol noto\'g\'ri',
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
         return false;
       }
 
-      // Telefon raqam bandligini tekshirish
       final existing = await supabase
           .from('users')
           .select()
@@ -318,15 +351,14 @@ class ProfileController extends GetxController {
 
       if (existing != null) {
         Get.snackbar(
-          'error'.tr,
-          'phone_already_exists'.tr,
+          'Xato',
+          'Bu telefon raqam band',
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
         return false;
       }
 
-      // Telefon raqamni yangilash
       await supabase
           .from('users')
           .update({
@@ -338,8 +370,8 @@ class ProfileController extends GetxController {
       await loadUserData();
 
       Get.snackbar(
-        'success'.tr,
-        'phone_updated'.tr,
+        'Muvaffaqiyatli',
+        'Telefon raqam yangilandi',
         backgroundColor: Colors.green,
         colorText: Colors.white,
         icon: const Icon(Icons.check_circle, color: Colors.white),
@@ -349,8 +381,8 @@ class ProfileController extends GetxController {
     } catch (e) {
       print('❌ Update phone error: $e');
       Get.snackbar(
-        'error'.tr,
-        'phone_update_failed'.tr,
+        'Xato',
+        'Telefon yangilanmadi',
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -365,30 +397,36 @@ class ProfileController extends GetxController {
     try {
       isLoading.value = true;
 
-      final email = user.value?.email ?? '';
+      final userId = storage.read('userId');
+      if (userId == null) return false;
 
-      // Eski parolni tekshirish
-      final authResult = await supabase.auth.signInWithPassword(
-        email: email,
-        password: oldPassword,
-      );
+      final userResponse = await supabase
+          .from('users')
+          .select('password')
+          .eq('id', userId)
+          .single();
 
-      if (authResult.user == null) {
+      if (userResponse['password'] != oldPassword) {
         Get.snackbar(
-          'error'.tr,
-          'incorrect_old_password'.tr,
+          'Xato',
+          'Eski parol noto\'g\'ri',
           backgroundColor: Colors.red,
           colorText: Colors.white,
         );
         return false;
       }
 
-      // Yangi parolni o'rnatish
-      await supabase.auth.updateUser(UserAttributes(password: newPassword));
+      await supabase
+          .from('users')
+          .update({
+            'password': newPassword,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', userId);
 
       Get.snackbar(
-        'success'.tr,
-        'password_updated'.tr,
+        'Muvaffaqiyatli',
+        'Parol yangilandi',
         backgroundColor: Colors.green,
         colorText: Colors.white,
         icon: const Icon(Icons.check_circle, color: Colors.white),
@@ -398,8 +436,8 @@ class ProfileController extends GetxController {
     } catch (e) {
       print('❌ Update password error: $e');
       Get.snackbar(
-        'error'.tr,
-        'password_update_failed'.tr,
+        'Xato',
+        'Parol yangilanmadi',
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -414,7 +452,7 @@ class ProfileController extends GetxController {
     try {
       isLoading.value = true;
 
-      final userId = supabase.auth.currentUser?.id;
+      final userId = storage.read('userId');
       if (userId == null) return false;
 
       await supabase
@@ -428,8 +466,8 @@ class ProfileController extends GetxController {
       await loadUserData();
 
       Get.snackbar(
-        'success'.tr,
-        'user_type_updated'.tr,
+        'Muvaffaqiyatli',
+        'Foydalanuvchi turi yangilandi',
         backgroundColor: Colors.green,
         colorText: Colors.white,
         icon: const Icon(Icons.check_circle, color: Colors.white),
@@ -439,8 +477,8 @@ class ProfileController extends GetxController {
     } catch (e) {
       print('❌ Update user type error: $e');
       Get.snackbar(
-        'error'.tr,
-        'user_type_update_failed'.tr,
+        'Xato',
+        'Tur yangilanmadi',
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -451,7 +489,6 @@ class ProfileController extends GetxController {
   }
 
   // ==================== UPDATE POST ====================
-  // ==================== UPDATE POST (TO'LIQ VERSIYA) ====================
   Future<bool> updatePost({
     required String postId,
     required String title,
@@ -481,7 +518,6 @@ class ProfileController extends GetxController {
         'updated_at': DateTime.now().toIso8601String(),
       };
 
-      // Ixtiyoriy fieldlar
       if (salaryType != null) updateData['salary_type'] = salaryType;
       if (postType != null) updateData['post_type'] = postType;
       if (categoryId != null) updateData['category_id'] = categoryId;
@@ -533,8 +569,8 @@ class ProfileController extends GetxController {
       calculateStats();
 
       Get.snackbar(
-        'success'.tr,
-        'post_deleted'.tr,
+        'Muvaffaqiyatli',
+        'Post o\'chirildi',
         backgroundColor: Colors.green,
         colorText: Colors.white,
       );
@@ -543,8 +579,8 @@ class ProfileController extends GetxController {
     } catch (e) {
       print('❌ Delete post error: $e');
       Get.snackbar(
-        'error'.tr,
-        'post_delete_failed'.tr,
+        'Xato',
+        'Post o\'chirilmadi',
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
@@ -554,7 +590,7 @@ class ProfileController extends GetxController {
     }
   }
 
-  // ==================== RESTORE POST (Tarixdan qaytarish) ====================
+  // ==================== RESTORE POST ====================
   Future<bool> restorePost(String postId) async {
     try {
       isLoading.value = true;
@@ -597,10 +633,9 @@ class ProfileController extends GetxController {
   Future<bool> markPostAsCompleted(String postId, String? applicantId) async {
     try {
       isLoading.value = true;
-      final userId = supabase.auth.currentUser?.id;
+      final userId = storage.read('userId');
       if (userId == null) return false;
 
-      // ✅ FAQAT STATUS O'ZGARTIRISH
       await supabase
           .from('posts')
           .update({
@@ -609,9 +644,6 @@ class ProfileController extends GetxController {
             'updated_at': DateTime.now().toIso8601String(),
           })
           .eq('id', postId);
-
-      // ❌ BU QATORLARNI O'CHIRING (completed_posts jadvaliga qo'shish kerak emas)
-      // await supabase.from('completed_posts').insert({...});
 
       await loadUserPosts();
       calculateStats();
@@ -641,11 +673,11 @@ class ProfileController extends GetxController {
   // ==================== GET COMPLETED POSTS ====================
   Future<List<JobPost>> getCompletedPosts() async {
     try {
-      final userId = supabase.auth.currentUser?.id;
+      final userId = storage.read('userId');
       if (userId == null) return [];
 
       final response = await supabase
-          .from('posts') // ✅ TO'G'RIDAN-TO'G'RI posts jadvalidan
+          .from('posts')
           .select('''
           *,
           users!inner(
@@ -657,7 +689,7 @@ class ProfileController extends GetxController {
           )
         ''')
           .eq('user_id', userId)
-          .eq('status', 'successfully_completed') // ✅ Status bo'yicha filter
+          .eq('status', 'successfully_completed')
           .order('updated_at', ascending: false);
 
       return (response as List)
@@ -672,7 +704,7 @@ class ProfileController extends GetxController {
   // ==================== GET SAVED POSTS ====================
   Future<List<JobPost>> getSavedPosts() async {
     try {
-      final userId = supabase.auth.currentUser?.id;
+      final userId = storage.read('userId');
       if (userId == null) return [];
 
       final response = await supabase
@@ -705,10 +737,10 @@ class ProfileController extends GetxController {
     }
   }
 
-  // ==================== SAVE/UNSAVE POST ====================
+  // ==================== SAVE POST ====================
   Future<bool> savePost(String postId) async {
     try {
-      final userId = supabase.auth.currentUser?.id;
+      final userId = storage.read('userId');
       if (userId == null) return false;
 
       await supabase.from('saved_posts').insert({
@@ -717,8 +749,8 @@ class ProfileController extends GetxController {
       });
 
       Get.snackbar(
-        'success'.tr,
-        'post_saved'.tr,
+        'Muvaffaqiyatli',
+        'Post saqlandi',
         backgroundColor: Colors.green,
         colorText: Colors.white,
       );
@@ -730,9 +762,10 @@ class ProfileController extends GetxController {
     }
   }
 
+  // ==================== UNSAVE POST ====================
   Future<bool> unsavePost(String postId) async {
     try {
-      final userId = supabase.auth.currentUser?.id;
+      final userId = storage.read('userId');
       if (userId == null) return false;
 
       await supabase
@@ -742,8 +775,8 @@ class ProfileController extends GetxController {
           .eq('post_id', postId);
 
       Get.snackbar(
-        'success'.tr,
-        'post_unsaved'.tr,
+        'Muvaffaqiyatli',
+        'Post o\'chirildi',
         backgroundColor: Colors.orange,
         colorText: Colors.white,
       );
@@ -760,10 +793,8 @@ class ProfileController extends GetxController {
     try {
       isLoading.value = true;
 
-      final userId = supabase.auth.currentUser?.id;
-      final email = user.value?.email;
-
-      if (userId == null || email == null) {
+      final userId = storage.read('userId');
+      if (userId == null) {
         Get.snackbar(
           'Xato',
           'Foydalanuvchi topilmadi!',
@@ -773,23 +804,13 @@ class ProfileController extends GetxController {
         return false;
       }
 
-      // 1. Parolni tekshirish
-      try {
-        final authResult = await supabase.auth.signInWithPassword(
-          email: email,
-          password: password,
-        );
+      final userResponse = await supabase
+          .from('users')
+          .select('password')
+          .eq('id', userId)
+          .single();
 
-        if (authResult.user == null) {
-          Get.snackbar(
-            'Xato',
-            'Parol noto\'g\'ri!',
-            backgroundColor: Colors.red,
-            colorText: Colors.white,
-          );
-          return false;
-        }
-      } catch (e) {
+      if (userResponse['password'] != password) {
         Get.snackbar(
           'Xato',
           'Parol noto\'g\'ri!',
@@ -799,7 +820,6 @@ class ProfileController extends GetxController {
         return false;
       }
 
-      // 2. Postlarni o'chirish
       try {
         await supabase.from('posts').delete().eq('user_id', userId);
         print('✅ Posts deleted');
@@ -807,53 +827,30 @@ class ProfileController extends GetxController {
         print('⚠️ Posts delete error: $e');
       }
 
-      // 3. Saved posts ni o'chirish (agar jadval mavjud bo'lsa)
       try {
         await supabase.from('saved_posts').delete().eq('user_id', userId);
         print('✅ Saved posts deleted');
       } catch (e) {
-        print('⚠️ Saved posts delete error (maybe table doesn\'t exist): $e');
-        // Xato bo'lsa ham davom etamiz
+        print('⚠️ Saved posts delete error: $e');
       }
 
-      // 4. Profile rasmini o'chirish
       if (user.value?.profilePhotoUrl != null) {
         try {
           final path = user.value!.profilePhotoUrl!
-              .split('profile_pictures/')[1]
+              .split('user-pictures/')[1]
               .split('?')[0];
-          await supabase.storage.from('profile_pictures').remove([path]);
+          await supabase.storage.from('user-pictures').remove([path]);
           print('✅ Profile photo deleted');
         } catch (e) {
           print('⚠️ Photo delete error: $e');
         }
       }
 
-      // 5. Users jadvalidan o'chirish
-      try {
-        await supabase.from('users').delete().eq('id', userId);
-        print('✅ User data deleted');
-      } catch (e) {
-        print('❌ User delete error: $e');
-        Get.snackbar(
-          'Xato',
-          'Foydalanuvchi ma\'lumotlarini o\'chirishda xato',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-        );
-        return false;
-      }
+      await supabase.from('users').delete().eq('id', userId);
+      print('✅ User data deleted');
 
-      // 6. Auth dan o'chirish (agar admin API mavjud bo'lsa)
-      try {
-        // Admin API mavjud bo'lsa
-        await supabase.auth.admin.deleteUser(userId);
-        print('✅ Auth user deleted');
-      } catch (e) {
-        print('⚠️ Auth delete error (might need admin): $e');
-        // Oddiy logout qilamiz
-        await supabase.auth.signOut();
-      }
+      await storage.remove('userId');
+      await storage.write('isLoggedIn', false);
 
       clearData();
 
@@ -864,6 +861,10 @@ class ProfileController extends GetxController {
         colorText: Colors.white,
         duration: const Duration(seconds: 3),
       );
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Get.offAllNamed('/login');
+      });
 
       return true;
     } catch (e) {
@@ -895,6 +896,7 @@ class ProfileController extends GetxController {
   @override
   void onClose() {
     clearData();
+    _hasCheckedAuth = false; // ✅ Reset flag
     super.onClose();
   }
 }

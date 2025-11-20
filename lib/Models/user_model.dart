@@ -3,32 +3,32 @@ class UserModel {
   final String username;
   final String? firstName;
   final String? lastName;
-  final String? email;
   final String? phoneNumber;
   final String? bio;
   final String? location;
   final String? profilePhotoUrl;
   final String userType;
-  final bool? isEmailVerified;
-  final bool? isActive;
-  final double? rating;
+  final bool isActive;
+  final double rating;
   final String? createdAt;
+  final String? updatedAt;
+  final String? fcmToken;
 
   UserModel({
     required this.id,
     required this.username,
     this.firstName,
     this.lastName,
-    this.email,
     this.phoneNumber,
     this.bio,
     this.location,
     this.profilePhotoUrl,
     required this.userType,
-    this.isEmailVerified,
-    this.isActive,
-    this.rating,
+    this.fcmToken,
+    required this.isActive,
+    required this.rating,
     this.createdAt,
+    this.updatedAt,
   });
 
   String get fullName {
@@ -44,16 +44,37 @@ class UserModel {
       username: json['username'] ?? '',
       firstName: json['first_name'],
       lastName: json['last_name'],
-      email: json['email'],
       phoneNumber: json['phone_number'],
       bio: json['bio'],
       location: json['location'],
       profilePhotoUrl: json['profile_photo_url'],
       userType: json['user_type'] ?? 'job_seeker',
-      isEmailVerified: json['is_email_verified'],
-      isActive: json['is_active'],
-      rating: json['rating']?.toDouble(),
+      isActive: json['is_active'] ?? true,
+      rating: (json['rating'] is int)
+          ? (json['rating'] as int).toDouble()
+          : (json['rating'] ?? 0.0).toDouble(),
       createdAt: json['created_at'],
+      updatedAt: json['updated_at'],
+      fcmToken: json['fcm_token'],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      "id": id,
+      "username": username,
+      "first_name": firstName,
+      "last_name": lastName,
+      "phone_number": phoneNumber,
+      "bio": bio,
+      "location": location,
+      "profile_photo_url": profilePhotoUrl,
+      "user_type": userType,
+      "is_active": isActive,
+      "rating": rating,
+      "created_at": createdAt,
+      "updated_at": updatedAt,
+      "fcm_token": fcmToken,
+    };
   }
 }

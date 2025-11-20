@@ -1,23 +1,77 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:get/get_state_manager/src/simple/get_controllers.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:version1/controller/auth_controller.dart';
 
+// ==================== PHONE FORMATTER ====================
+class PhoneNumberFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    String text = newValue.text;
+    String digitsOnly = text.replaceAll(RegExp(r'[^\d]'), '');
+    if (digitsOnly.length > 9) {
+      digitsOnly = digitsOnly.substring(0, 9);
+    }
+    String formatted = '';
+    for (int i = 0; i < digitsOnly.length; i++) {
+      if (i == 2 || i == 5 || i == 7) {
+        formatted += ' ';
+      }
+      formatted += digitsOnly[i];
+    }
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+// ==================== NUMBER FORMATTER ====================
+class ThousandsSeparatorInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.isEmpty) return newValue;
+    String digitsOnly = newValue.text.replaceAll(RegExp(r'[^\d]'), '');
+    if (digitsOnly.length > 18) digitsOnly = digitsOnly.substring(0, 18);
+    String formatted = '';
+    for (int i = 0; i < digitsOnly.length; i++) {
+      if (i > 0 && (digitsOnly.length - i) % 3 == 0) formatted += ' ';
+      formatted += digitsOnly[i];
+    }
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+// ==================== CONTROLLER ====================
 class CreatePostController extends GetxController {
   final supabase = Supabase.instance.client;
   final ImagePicker _imagePicker = ImagePicker();
+  final storage = GetStorage();
 
   // Observables
   final currentStep = 0.obs;
   final isLoading = false.obs;
   final isLoadingCategories = false.obs;
-  final userType = Rxn<String>();
+  final postType = Rxn<String>();
   final selectedImages = <File>[].obs;
   final categories = <Map<String, dynamic>>[].obs;
   final subCategories = <Map<String, dynamic>>[].obs;
+  final selectedSubCategories = <int>[].obs;
+  final savedPhoneNumbers = <String>[].obs;
 
   // Controllers
   final titleController = TextEditingController();
@@ -26,26 +80,32 @@ class CreatePostController extends GetxController {
   final salaryMaxController = TextEditingController();
   final requirementsMainController = TextEditingController();
   final requirementsBasicController = TextEditingController();
-  final applicationMessageController = TextEditingController();
+  final durationDaysController = TextEditingController();
+  final skillsController = TextEditingController();
+  final experienceController = TextEditingController();
+  final phoneNumberController = TextEditingController();
 
   // Form data
   final formData = {
-    'userType': '',
+    'postType': '',
     'title': '',
     'description': '',
-    'country': 'Uzbekiston',
     'region': '',
     'district': '',
+    'village': '',
     'categoryId': null,
-    'subCategoryId': null,
+    'subCategoryIds': <int>[],
+    'salaryType': '',
     'salaryMin': 0,
     'salaryMax': 0,
     'requirementsMain': '',
     'requirementsBasic': '',
-    'applicationMessage': '',
+    'durationDays': null,
+    'skills': '',
+    'experience': '',
+    'phoneNumber': null,
   }.obs;
 
-  // O'zbekistonning barcha viloyatlari
   final Map<String, List<String>> regions = {
     'Uzbekiston': [
       'Toshkent shahri',
@@ -65,43 +125,31 @@ class CreatePostController extends GetxController {
     ],
   };
 
-  // Har bir viloyatning tumanlari
-  final Map<String, List<String>> districts = {
-    'Toshkent shahri': [
-      'Bektemir',
-      'Chilonzor',
-      'Mirobod',
-      'Mirzo Ulug\'bek',
-      'Olmazor',
-      'Sergeli',
-      'Shayhontohur',
-      'Uchtepa',
-      'Yashnobod',
-      'Yakkasaroy',
-      'Yunusobod',
-    ],
-    'Toshkent viloyati': [
-      'Angren',
-      'Bekobod',
-      'Bo\'ka',
-      'Bo\'stonliq',
-      'Chinoz',
-      'Ohangaron',
-      'Oqqo\'rg\'on',
-      'Parkent',
-      'Piskent',
-      'Qibray',
-      'Quyi Chirchiq',
-      'O\'rta Chirchiq',
-      'Yuqori Chirchiq',
-      'Zangiota',
-    ],
+  final Map<String, Map<String, List<String>>> districts = {
+    'Toshkent shahri': {
+      'Bektemir': ['Sergeli', 'Qoyliq', 'Salar', 'Yashnobod'],
+      'Chilonzor': ['Chilonzor', 'Navbahor', 'Qatortol', 'Minor'],
+      'Mirobod': ['Mirobod', 'Yakkasaroy', 'Sebzor', 'Paxtakor'],
+      'Mirzo Ulug\'bek': ['Ulug\'bek', 'Qorasu', 'Salar', 'Shayxontohur'],
+      'Olmazor': ['Olmazor', 'Zarqaynar', 'Bodomzor', 'Temir yo\'l'],
+      'Sergeli': ['Sergeli', 'Qibray', 'Halqabad', 'Yangiobod'],
+      'Shayhontohur': ['Shayhontohur', 'Chorsu', 'Eski shahar', 'Ipak yo\'li'],
+      'Uchtepa': ['Uchtepa', 'Sabirabad', 'Qorasaroy', 'Minor'],
+      'Yashnobod': ['Yashnobod', 'Parkent yo\'li', 'Choshtepa', 'Qoraqamish'],
+      'Yakkasaroy': ['Yakkasaroy', 'Uzbekiston', 'Amir Temur', 'Minor'],
+      'Yunusobod': ['Yunusobod', 'TTZ', 'Chilonzor', 'Minor'],
+    },
+    'Toshkent viloyati': {
+      'Angren': ['Angren shahri', 'Shakar', 'Akhangaron', 'Dustlik'],
+      'Bekobod': ['Bekobod shahri', 'Keles', 'Dustlik', 'Chinor'],
+    },
   };
 
   @override
   void onInit() {
     super.onInit();
     loadCategories();
+    _loadSavedPhoneNumbers();
   }
 
   @override
@@ -112,28 +160,67 @@ class CreatePostController extends GetxController {
     salaryMaxController.dispose();
     requirementsMainController.dispose();
     requirementsBasicController.dispose();
-    applicationMessageController.dispose();
+    durationDaysController.dispose();
+    skillsController.dispose();
+    experienceController.dispose();
+    phoneNumberController.dispose();
     super.onClose();
   }
 
-  // ==================== METHODS ====================
+  Future<void> _loadSavedPhoneNumbers() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final numbers = prefs.getStringList('saved_phone_numbers') ?? [];
+      savedPhoneNumbers.value = numbers;
+      if (numbers.isNotEmpty) {
+        final lastNumber = numbers.first;
+        final digits = lastNumber.replaceAll('+998', '').replaceAll(' ', '');
+        phoneNumberController.text = _formatPhoneDisplay(digits);
+      }
+    } catch (e) {
+      print('Telefon raqamlarni yuklashda xato: $e');
+    }
+  }
+
+  Future<void> _savePhoneNumber(String phoneNumber) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      List<String> numbers = savedPhoneNumbers.toList();
+      numbers.remove(phoneNumber);
+      numbers.insert(0, phoneNumber);
+      if (numbers.length > 5) {
+        numbers = numbers.sublist(0, 5);
+      }
+      await prefs.setStringList('saved_phone_numbers', numbers);
+      savedPhoneNumbers.value = numbers;
+    } catch (e) {
+      print('Telefon raqamni saqlashda xato: $e');
+    }
+  }
+
+  String _formatPhoneDisplay(String digits) {
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 5)
+      return '${digits.substring(0, 2)} ${digits.substring(2)}';
+    if (digits.length <= 7)
+      return '${digits.substring(0, 2)} ${digits.substring(2, 5)} ${digits.substring(5)}';
+    return '${digits.substring(0, 2)} ${digits.substring(2, 5)} ${digits.substring(5, 7)} ${digits.substring(7)}';
+  }
+
   Future<void> loadCategories() async {
     isLoadingCategories.value = true;
     try {
       final response = await supabase
           .from('categories')
-          .select('id, name, icon_url')
+          .select('id, name')
           .order('name');
-
       categories.value = List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      print('Kategoriyalarni yuklashda xato: $e');
       Get.snackbar(
-        'Xato',
-        'Kategoriyalarni yuklab bo\'lmadi',
+        'error'.tr,
+        'failed_to_load_categories'.tr,
         backgroundColor: Colors.red.withOpacity(0.1),
         colorText: Colors.red,
-        icon: const Icon(Icons.error_outline, color: Colors.red),
       );
     } finally {
       isLoadingCategories.value = false;
@@ -142,97 +229,94 @@ class CreatePostController extends GetxController {
 
   Future<void> loadSubCategories(dynamic categoryId) async {
     try {
-      print('Sub-kategoriya yuklanyapti: $categoryId');
-
       final response = await supabase
           .from('sub_categories')
           .select('id, name')
           .eq('category_id', categoryId)
           .order('name');
-
-      print('Sub-kategoriya javob: $response');
-
       subCategories.value = List<Map<String, dynamic>>.from(response);
-      formData['subCategoryId'] = null;
-      print('Sub-kategoriyalar o\'zlashtirildi: ${subCategories.length} ta');
+      selectedSubCategories.clear();
     } catch (e) {
-      print('Sub-kategoriyalarni yuklashda xato: $e');
       Get.snackbar(
-        'Xato',
-        'Sub-kategoriyalarni yuklab bo\'lmadi',
+        'error'.tr,
+        'failed_to_load_subcategories'.tr,
         backgroundColor: Colors.red.withOpacity(0.1),
         colorText: Colors.red,
-        icon: const Icon(Icons.error_outline, color: Colors.red),
       );
     }
+  }
+
+  void toggleSubCategory(int subCatId) {
+    if (selectedSubCategories.contains(subCatId)) {
+      selectedSubCategories.remove(subCatId);
+    } else {
+      selectedSubCategories.add(subCatId);
+    }
+    formData['subCategoryIds'] = selectedSubCategories.toList();
+    formData.refresh();
   }
 
   Future<void> pickImages() async {
     if (selectedImages.length >= 3) {
       Get.snackbar(
-        'Diqqat',
-        'Maksimal 3 ta rasm qo\'shish mumkin',
+        'warning'.tr,
+        'max_3_images'.tr,
         backgroundColor: Colors.orange.withOpacity(0.1),
         colorText: Colors.orange.shade900,
-        icon: const Icon(Icons.warning_amber, color: Colors.orange),
       );
       return;
     }
-
     final pickedFiles = await _imagePicker.pickMultiImage();
-
     for (var file in pickedFiles) {
-      if (selectedImages.length < 3) {
-        selectedImages.add(File(file.path));
-      }
+      if (selectedImages.length < 3) selectedImages.add(File(file.path));
     }
   }
 
-  void removeImage(int index) {
-    selectedImages.removeAt(index);
+  void removeImage(int index) => selectedImages.removeAt(index);
+
+  void setPostType(String type) {
+    postType.value = type;
+    formData['postType'] = type;
+    Future.delayed(const Duration(milliseconds: 300), nextStep);
   }
 
-  void setUserType(String type) {
-    userType.value = type;
-    formData['userType'] = type;
-  }
-
-  void nextStep() {
-    currentStep.value++;
-  }
-
-  void previousStep() {
-    currentStep.value--;
-  }
+  void nextStep() => currentStep.value++;
+  void previousStep() => currentStep.value--;
 
   bool validateStep1() {
     if (titleController.text.trim().isEmpty) {
       Get.snackbar(
-        'Diqqat',
-        'Iltimos, sarlavha yoki nomni kiriting',
+        'warning'.tr,
+        'title_required'.tr,
         backgroundColor: Colors.orange.withOpacity(0.1),
         colorText: Colors.orange.shade900,
-        icon: const Icon(Icons.warning_amber, color: Colors.orange),
       );
       return false;
     }
     if (descriptionController.text.trim().isEmpty) {
       Get.snackbar(
-        'Diqqat',
-        'Iltimos, tasnifni kiriting',
+        'warning'.tr,
+        'description_required'.tr,
         backgroundColor: Colors.orange.withOpacity(0.1),
         colorText: Colors.orange.shade900,
-        icon: const Icon(Icons.warning_amber, color: Colors.orange),
       );
       return false;
     }
     if (formData['categoryId'] == null) {
       Get.snackbar(
-        'Diqqat',
-        'Iltimos, kategoriyani tanlang',
+        'warning'.tr,
+        'category_required'.tr,
         backgroundColor: Colors.orange.withOpacity(0.1),
         colorText: Colors.orange.shade900,
-        icon: const Icon(Icons.warning_amber, color: Colors.orange),
+      );
+      return false;
+    }
+    if (subCategories.isNotEmpty && selectedSubCategories.isEmpty) {
+      Get.snackbar(
+        'warning'.tr,
+        'select_at_least_one_subcategory'.tr,
+        backgroundColor: Colors.orange.withOpacity(0.1),
+        colorText: Colors.orange.shade900,
       );
       return false;
     }
@@ -242,19 +326,144 @@ class CreatePostController extends GetxController {
   bool validateStep2() {
     if ((formData['region'] as String?)?.isEmpty ?? true) {
       Get.snackbar(
-        'Diqqat',
-        'Iltimos, viloyatni tanlang',
+        'warning'.tr,
+        'region_required'.tr,
         backgroundColor: Colors.orange.withOpacity(0.1),
         colorText: Colors.orange.shade900,
-        icon: const Icon(Icons.warning_amber, color: Colors.orange),
+      );
+      return false;
+    }
+    if ((formData['district'] as String?)?.isEmpty ?? true) {
+      Get.snackbar(
+        'warning'.tr,
+        'district_required'.tr,
+        backgroundColor: Colors.orange.withOpacity(0.1),
+        colorText: Colors.orange.shade900,
       );
       return false;
     }
     return true;
   }
 
+  bool validateStep3() {
+    if (formData['postType'] == 'employee_needed') {
+      if ((formData['salaryType'] as String?)?.isEmpty ?? true) {
+        Get.snackbar(
+          'warning'.tr,
+          'salary_type_required'.tr,
+          backgroundColor: Colors.orange.withOpacity(0.1),
+          colorText: Colors.orange.shade900,
+        );
+        return false;
+      }
+      if (requirementsMainController.text.trim().isEmpty) {
+        Get.snackbar(
+          'warning'.tr,
+          'requirements_required'.tr,
+          backgroundColor: Colors.orange.withOpacity(0.1),
+          colorText: Colors.orange.shade900,
+        );
+        return false;
+      }
+      if (formData['salaryType'] == 'freelance' &&
+          durationDaysController.text.trim().isEmpty) {
+        Get.snackbar(
+          'warning'.tr,
+          'duration_required'.tr,
+          backgroundColor: Colors.orange.withOpacity(0.1),
+          colorText: Colors.orange.shade900,
+        );
+        return false;
+      }
+    } else if (formData['postType'] == 'job_needed') {
+      if (skillsController.text.trim().isEmpty) {
+        Get.snackbar(
+          'warning'.tr,
+          'skills_required'.tr,
+          backgroundColor: Colors.orange.withOpacity(0.1),
+          colorText: Colors.orange.shade900,
+        );
+        return false;
+      }
+      if (experienceController.text.trim().isEmpty) {
+        Get.snackbar(
+          'warning'.tr,
+          'experience_required'.tr,
+          backgroundColor: Colors.orange.withOpacity(0.1),
+          colorText: Colors.orange.shade900,
+        );
+        return false;
+      }
+    } else if (formData['postType'] == 'one_time_job') {
+      if (durationDaysController.text.trim().isEmpty) {
+        Get.snackbar(
+          'warning'.tr,
+          'duration_required'.tr,
+          backgroundColor: Colors.orange.withOpacity(0.1),
+          colorText: Colors.orange.shade900,
+        );
+        return false;
+      }
+    } else if (formData['postType'] == 'service_offering') {
+      if (skillsController.text.trim().isEmpty) {
+        Get.snackbar(
+          'warning'.tr,
+          'skills_required'.tr,
+          backgroundColor: Colors.orange.withOpacity(0.1),
+          colorText: Colors.orange.shade900,
+        );
+        return false;
+      }
+      if (experienceController.text.trim().isEmpty) {
+        Get.snackbar(
+          'warning'.tr,
+          'experience_required'.tr,
+          backgroundColor: Colors.orange.withOpacity(0.1),
+          colorText: Colors.orange.shade900,
+        );
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /// ✅ YANGI: UserId olish - Supabase Auth bilan
+  /// ✅ FAQAT UserId olish - HECH QANDAY TEKSHIRUVSIZ
+  /// ✅ FAQAT STORAGE'DAN UserId olish
+  String? _getUserId() {
+    // Method 1: Storage (ENG MUHIM!)
+    final storageUserId = storage.read('userId');
+    if (storageUserId != null) return storageUserId.toString();
+
+    // Method 2: AuthController
+    try {
+      final authController = Get.find<AuthController>();
+      return authController.getCurrentUserId();
+    } catch (e) {
+      return null;
+    }
+  }
+
   Future<void> submitPost() async {
-    // Show loading dialog
+    final userId = _getUserId();
+
+    if (userId == null || userId.isEmpty) {
+      Get.snackbar('Xatolik', 'Tizimga kiring');
+      Get.offAllNamed('/login');
+      return;
+    }
+
+    // TELEFON RAQAM
+    String? phoneNumber;
+    final rawPhone = phoneNumberController.text.trim();
+    if (rawPhone.isNotEmpty) {
+      final digitsOnly = rawPhone.replaceAll(RegExp(r'[^\d]'), '');
+      if (digitsOnly.length == 9) {
+        phoneNumber = '+998$digitsOnly';
+        await _savePhoneNumber(phoneNumber);
+      }
+    }
+
     Get.dialog(
       WillPopScope(
         onWillPop: () async => false,
@@ -270,9 +479,12 @@ class CreatePostController extends GetxController {
               children: [
                 const CircularProgressIndicator(),
                 const SizedBox(height: 16),
-                const Text(
-                  'E\'lon yuklanmoqda...',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                Text(
+                  'uploading_post'.tr,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -283,50 +495,83 @@ class CreatePostController extends GetxController {
     );
 
     try {
-      final userId = supabase.auth.currentUser?.id;
-      if (userId == null) {
-        Get.back(); // Close loading dialog
-        Get.snackbar(
-          'Xato',
-          'Iltimos, tizimga kiring',
-          backgroundColor: Colors.red.withOpacity(0.1),
-          colorText: Colors.red.shade900,
-          icon: const Icon(Icons.error_outline, color: Colors.red),
-        );
-        return;
-      }
+      String fullLocation = formData['region'] as String;
+      if ((formData['district'] as String?)?.isNotEmpty ?? false)
+        fullLocation += ', ${formData['district']}';
+      if ((formData['village'] as String?)?.isNotEmpty ?? false)
+        fullLocation += ', ${formData['village']}';
 
-      // E'lonni yaratish
-      final postResponse = await supabase.from('posts').insert({
+      int salaryMin =
+          int.tryParse(
+            salaryMinController.text.replaceAll(RegExp(r'\s'), ''),
+          ) ??
+          0;
+      int salaryMax =
+          int.tryParse(
+            salaryMaxController.text.replaceAll(RegExp(r'\s'), ''),
+          ) ??
+          0;
+
+      // ✅ FAQAT 1 TA POST YARATISH
+      final insertData = {
         'user_id': userId,
+        'post_type': formData['postType'],
         'title': titleController.text.trim(),
         'description': descriptionController.text.trim(),
         'category_id': formData['categoryId'],
-        'sub_category_id': formData['subCategoryId'],
-        'location': '${formData['region']}, ${formData['district']}'.trim(),
-        'salary_min': formData['salaryMin'] ?? 0,
-        'salary_max': formData['salaryMax'] ?? 0,
+        // ❌ 'sub_category_id' yo'q artiq!
+        'location': fullLocation,
+        'salary_type': formData['salaryType'],
+        'salary_min': salaryMin,
+        'salary_max': salaryMax,
         'requirements_main': requirementsMainController.text.trim().isEmpty
             ? null
             : requirementsMainController.text.trim(),
         'requirements_basic': requirementsBasicController.text.trim().isEmpty
             ? null
             : requirementsBasicController.text.trim(),
+        'duration_days': durationDaysController.text.trim().isEmpty
+            ? null
+            : int.tryParse(durationDaysController.text),
+        'skills': skillsController.text.trim().isEmpty
+            ? null
+            : skillsController.text.trim(),
+        'experience': experienceController.text.trim().isEmpty
+            ? null
+            : experienceController.text.trim(),
+        'phone_number': phoneNumber,
         'status': 'pending',
         'is_active': true,
         'created_at': DateTime.now().toIso8601String(),
-      }).select();
+      };
+
+      final postResponse = await supabase
+          .from('posts')
+          .insert(insertData)
+          .select();
 
       if (postResponse.isNotEmpty) {
         final postId = postResponse[0]['id'];
 
-        // Rasmlarni yuklash
+        // ✅ SUB-KATEGORIYALARNI ALOHIDA JADVALGA QO'SHISH
+        if (selectedSubCategories.isNotEmpty) {
+          final subCategoryInserts = selectedSubCategories.map((subCatId) {
+            return {
+              'post_id': postId,
+              'sub_category_id': subCatId,
+              'created_at': DateTime.now().toIso8601String(),
+            };
+          }).toList();
+
+          await supabase.from('post_subcategories').insert(subCategoryInserts);
+        }
+
+        // Rasmlar
         if (selectedImages.isNotEmpty) {
           for (var i = 0; i < selectedImages.length; i++) {
             final image = selectedImages[i];
             final fileName =
                 'post_${postId}_${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
-
             await supabase.storage
                 .from('post-images')
                 .upload(
@@ -337,11 +582,9 @@ class CreatePostController extends GetxController {
                     upsert: false,
                   ),
                 );
-
             final imageUrl = supabase.storage
                 .from('post-images')
                 .getPublicUrl(fileName);
-
             await supabase.from('post_images').insert({
               'post_id': postId,
               'image_url': imageUrl,
@@ -350,176 +593,91 @@ class CreatePostController extends GetxController {
           }
         }
 
-        Get.back(); // Close loading dialog
-
-        // Success dialog
-        await Get.dialog(
-          WillPopScope(
-            onWillPop: () async => false,
-            child: AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              contentPadding: EdgeInsets.zero,
-              content: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Colors.green.shade50, Colors.white],
-                  ),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.check_circle_outline,
-                        size: 64,
-                        color: Colors.green.shade600,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Muvaffaqiyatli!',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'E\'loningiz muvaffaqiyatli yuborildi',
-                      style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 24),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.blue.withOpacity(0.2)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                Icons.info_outline,
-                                size: 20,
-                                color: Colors.blue.shade700,
-                              ),
-                              const SizedBox(width: 8),
-                              const Text(
-                                'Keyingi qadamlar',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          _buildDialogStep(
-                            '1',
-                            'Moderatorlar e\'loningizni ko\'rib chiqadi',
-                          ),
-                          const SizedBox(height: 8),
-                          _buildDialogStep(
-                            '2',
-                            'Tasdiqlangandan keyin ommaga ko\'rinadi',
-                          ),
-                          const SizedBox(height: 8),
-                          _buildDialogStep(
-                            '3',
-                            'Jarayon 24 soatgacha davom etishi mumkin',
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Get.back(); // Close dialog
-                          Get.offAllNamed('/home'); // Go to home
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          'Bosh Sahifaga',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          barrierDismissible: false,
-        );
+        Get.back();
+        await _showSuccessDialog();
       }
     } catch (e) {
-      print('Xato: $e');
-      Get.back(); // Close loading dialog
-
+      Get.back();
       Get.snackbar(
-        'Xato',
-        'E\'lon yaratishda xatolik: ${e.toString()}',
+        'error'.tr,
+        e.toString(),
         backgroundColor: Colors.red.withOpacity(0.1),
         colorText: Colors.red.shade900,
-        icon: const Icon(Icons.error_outline, color: Colors.red),
         duration: const Duration(seconds: 4),
       );
     }
   }
 
-  Widget _buildDialogStep(String number, String text) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 24,
-          height: 24,
-          decoration: BoxDecoration(
-            color: Colors.blue.shade100,
-            shape: BoxShape.circle,
+  Future<void> _showSuccessDialog() async {
+    await Get.dialog(
+      WillPopScope(
+        onWillPop: () async => false,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
-          child: Center(
-            child: Text(
-              number,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue.shade700,
-              ),
+          content: Container(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.check_circle_outline,
+                    size: 64,
+                    color: Colors.green.shade600,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'success'.tr,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'post_submitted_success'.tr,
+                  style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Get.back();
+                      Get.offAllNamed('/home');
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'home'.tr,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(child: Text(text, style: const TextStyle(fontSize: 14))),
-      ],
+      ),
+      barrierDismissible: false,
     );
   }
 }

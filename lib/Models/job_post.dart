@@ -25,7 +25,7 @@ class JobPost {
   final String? salaryType;
   final String? skills;
   final String? experience;
-
+  final String? phoneNumber;
   // ✅ KATEGORIYA VA SUB-KATEGORIYA NOMLARI
   final String? categoryName;
   final String? subCategoryName;
@@ -54,6 +54,7 @@ class JobPost {
     this.sharesCount,
     this.durationDays,
     this.postType,
+    this.phoneNumber,
     this.salaryType,
     this.skills,
     this.experience,
@@ -153,6 +154,7 @@ class JobPost {
       requirementsMain: json['requirements_main']?.toString(),
       requirementsBasic: json['requirements_basic']?.toString(),
       status: json['status']?.toString() ?? 'approved',
+      phoneNumber: json['phone_number'] as String?,
       isActive: json['is_active'] == true,
       sharesCount: _parseInt(json['shares_count']),
       durationDays: _parseInt(json['duration_days']),
@@ -212,6 +214,7 @@ class JobPost {
       'post_type': postType,
       'salary_type': salaryType,
       'skills': skills,
+      'phone_number': phoneNumber,
       'experience': experience,
     };
   }

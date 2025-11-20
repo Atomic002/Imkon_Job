@@ -8,6 +8,7 @@ class CustomTextField extends StatelessWidget {
   final IconData icon;
   final bool obscureText;
   final Widget? suffixIcon;
+  final String? prefix;
   final int maxLines;
   final TextInputType keyboardType;
 
@@ -19,6 +20,7 @@ class CustomTextField extends StatelessWidget {
     required this.icon,
     this.obscureText = false,
     this.suffixIcon,
+    this.prefix,
     this.maxLines = 1,
     this.keyboardType = TextInputType.text,
   }) : super(key: key);
@@ -53,6 +55,13 @@ class CustomTextField extends StatelessWidget {
                 color: AppConstants.borderColor,
                 width: 1.5,
               ),
+            ),
+            prefixText: prefix, // ✅ YANGI
+            prefixStyle: const TextStyle(
+              // ✅ YANGI
+              color: Colors.black87,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppConstants.radiusMedium),

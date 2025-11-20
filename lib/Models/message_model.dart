@@ -3,14 +3,17 @@ class MessageModel {
   final String id;
   final String chatId;
   final String senderId;
-  final String? messageText;
+  String? messageText;
   final String? attachmentUrl;
-  final bool isRead;
+  bool isRead;
   final DateTime createdAt;
+  bool isEdited;
+  final String? replyToId;
 
-  // Lokatsiya uchun
-  final double? latitude;
-  final double? longitude;
+  // Additional data
+  String? senderName;
+  String? senderAvatar;
+  MessageModel? replyToMessage;
 
   MessageModel({
     required this.id,
@@ -20,8 +23,11 @@ class MessageModel {
     this.attachmentUrl,
     required this.isRead,
     required this.createdAt,
-    this.latitude,
-    this.longitude,
+    this.isEdited = false,
+    this.replyToId,
+    this.senderName,
+    this.senderAvatar,
+    this.replyToMessage,
   });
 
   factory MessageModel.fromJson(Map<String, dynamic> json) {
@@ -33,8 +39,8 @@ class MessageModel {
       attachmentUrl: json['attachment_url'],
       isRead: json['is_read'] ?? false,
       createdAt: DateTime.parse(json['created_at']),
-      latitude: json['latitude'],
-      longitude: json['longitude'],
+      isEdited: json['is_edited'] ?? false,
+      replyToId: json['reply_to_id'],
     );
   }
 
@@ -47,10 +53,8 @@ class MessageModel {
       'attachment_url': attachmentUrl,
       'is_read': isRead,
       'created_at': createdAt.toIso8601String(),
-      'latitude': latitude,
-      'longitude': longitude,
+      'is_edited': isEdited,
+      'reply_to_id': replyToId,
     };
   }
-
-  bool get isLocation => latitude != null && longitude != null;
 }

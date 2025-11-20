@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart'; // ✅ Yangi import
 import 'package:version1/Screens/home/user_profile_screen.dart';
 import '../Models/job_post.dart';
 import '../config/constants.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PostCard extends StatefulWidget {
   final JobPost post;
@@ -988,10 +989,7 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
                       ),
                       const SizedBox(height: 20),
                     ],
-                    _buildDetailedStatsRow(),
-                    const SizedBox(height: 24),
-                    _buildApplyButton(context),
-                    const SizedBox(height: 16),
+                    _buildContactAndApplySection(context),
                   ],
                 ),
               ),
@@ -1386,6 +1384,133 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
         ),
       ],
     );
+  }
+
+  Widget _buildContactAndApplySection(BuildContext context) {
+    return Column(
+      children: [
+        const SizedBox(height: 24),
+        _buildDetailedStatsRow(),
+
+        // ✅ TELEFON RAQAM VA INFO
+        if (widget.post.phoneNumber != null &&
+            widget.post.phoneNumber!.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: OutlinedButton.icon(
+              onPressed: () async {
+                try {
+                  final phoneUrl = 'tel:${widget.post.phoneNumber}';
+                  if (await canLaunchUrl(Uri.parse(phoneUrl))) {
+                    await launchUrl(Uri.parse(phoneUrl));
+                  } else {
+                    Get.snackbar(
+                      'error'.tr,
+                      'phone_call_error'.tr,
+                      snackPosition: SnackPosition.BOTTOM,
+                      backgroundColor: Colors.red.withOpacity(0.9),
+                      colorText: Colors.white,
+                      icon: const Icon(
+                        Icons.error_outline,
+                        color: Colors.white,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  print('Phone call error: $e');
+                  Get.snackbar(
+                    'error'.tr,
+                    'phone_call_error'.tr,
+                    snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: Colors.red.withOpacity(0.9),
+                    colorText: Colors.white,
+                  );
+                }
+              },
+              icon: const Icon(Icons.phone, color: Colors.green, size: 22),
+              label: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    widget.post.phoneNumber!,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.green,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '(${_formatPhoneNumber(widget.post.phoneNumber!)})',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.green.shade600,
+                    ),
+                  ),
+                ],
+              ),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.green, width: 2),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(
+                    AppConstants.radiusMedium,
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ] else ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.blue.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue.withOpacity(0.3)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, size: 20, color: Colors.blue.shade700),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'contact_via_chat'.tr,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.blue.shade900,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+
+        // ✅ APPLY BUTTON
+        _buildApplyButton(context),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  String _formatPhoneNumber(String phone) {
+    // +998901234567 => 90 123 45 67
+    final digitsOnly = phone.replaceAll(RegExp(r'[^\d]'), '');
+    if (digitsOnly.length == 12 && digitsOnly.startsWith('998')) {
+      final localNumber = digitsOnly.substring(3);
+      return '${localNumber.substring(0, 2)} ${localNumber.substring(2, 5)} ${localNumber.substring(5, 7)} ${localNumber.substring(7)}';
+    }
+    return phone;
   }
 
   Widget _buildApplyButton(BuildContext context) {

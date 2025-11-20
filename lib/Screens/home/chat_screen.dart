@@ -19,7 +19,7 @@ class ChatScreen extends StatelessWidget {
         foregroundColor: AppConstants.textPrimary,
         elevation: 0,
         title: Text(
-          'chats'.tr, // ✅ Dinamik til
+          'chats'.tr,
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
         ),
         actions: [
@@ -46,7 +46,7 @@ class ChatScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'no_chats'.tr, // ✅ Dinamik til
+                  'no_chats'.tr,
                   style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                 ),
                 const SizedBox(height: 24),
@@ -61,7 +61,7 @@ class ChatScreen extends StatelessWidget {
                     ),
                   ),
                   icon: const Icon(Icons.person_add),
-                  label: Text('start_chat'.tr), // ✅ Dinamik til
+                  label: Text('start_chat'.tr),
                 ),
               ],
             ),
@@ -100,6 +100,8 @@ class ChatScreen extends StatelessWidget {
           },
         );
       },
+      onLongPress: () =>
+          _showChatOptions(chat, controller), // ✅ Long press menu
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
@@ -198,7 +200,7 @@ class ChatScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    chat.lastMessage ?? 'no_messages'.tr, // ✅ Dinamik til
+                    chat.lastMessage ?? 'no_messages'.tr,
                     style: TextStyle(
                       fontSize: 14,
                       color: chat.unreadCount > 0
@@ -220,6 +222,90 @@ class ChatScreen extends StatelessWidget {
     );
   }
 
+  // ✅ Chat uchun menyu
+  void _showChatOptions(chat, ChatController controller) {
+    Get.bottomSheet(
+      Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              ListTile(
+                leading: CircleAvatar(
+                  backgroundImage: chat.otherUserAvatar != null
+                      ? NetworkImage(chat.otherUserAvatar!)
+                      : null,
+                  child: chat.otherUserAvatar == null
+                      ? Text(chat.otherUserName![0])
+                      : null,
+                ),
+                title: Text(
+                  chat.otherUserName ?? 'User',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.person, color: Colors.blue),
+                title: Text('view_profile'.tr),
+                onTap: () {
+                  Get.back();
+                  Get.toNamed(
+                    '/other_profile',
+                    arguments: {'userId': chat.otherUserId},
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: Text('delete_chat'.tr),
+                onTap: () {
+                  Get.back();
+                  _confirmDeleteChat(chat, controller);
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ✅ Chatni o'chirishni tasdiqlash
+  void _confirmDeleteChat(chat, ChatController controller) {
+    Get.dialog(
+      AlertDialog(
+        title: Text('delete_chat'.tr),
+        content: Text('delete_chat_confirm'.tr),
+        actions: [
+          TextButton(onPressed: () => Get.back(), child: Text('cancel'.tr)),
+          ElevatedButton(
+            onPressed: () async {
+              Get.back();
+              await controller.deleteChat(chat.id);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: Text('delete'.tr),
+          ),
+        ],
+      ),
+    );
+  }
+
   String _formatTime(DateTime dateTime) {
     final now = DateTime.now();
     final difference = now.difference(dateTime);
@@ -227,7 +313,7 @@ class ChatScreen extends StatelessWidget {
     if (difference.inDays == 0) {
       return DateFormat('HH:mm').format(dateTime);
     } else if (difference.inDays == 1) {
-      return 'yesterday'.tr; // ✅ Dinamik til
+      return 'yesterday'.tr;
     } else if (difference.inDays < 7) {
       return DateFormat('EEEE').format(dateTime);
     } else {

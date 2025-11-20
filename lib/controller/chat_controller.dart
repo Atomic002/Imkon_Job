@@ -1,58 +1,67 @@
-// lib/Controllers/chat_controller.dart
-import 'package:geolocator/geolocator.dart';
+// lib/controller/chat_controller.dart
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:version1/Models/chat_models.dart';
 import 'package:version1/Models/message_model.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:flutter/services.dart'; // ✅ Clipboard uchun
 
 class ChatController extends GetxController {
   final supabase = Supabase.instance.client;
 
+  // Observable lists
   final RxList<ChatModel> chats = <ChatModel>[].obs;
   final RxList<MessageModel> currentMessages = <MessageModel>[].obs;
-  final RxBool isLoading = false.obs;
-  final RxBool isSending = false.obs;
+  final RxMap<String, List<MessageReaction>> messageReactions =
+      <String, List<MessageReaction>>{}.obs;
 
-  String? currentChatId; // ✅ Hozirgi ochiq chat ID
+  // Loading states
+  final isLoading = false.obs;
+  final isSending = false.obs;
+  final isDeleting = false.obs;
 
-  RealtimeChannel? _chatChannel;
-  RealtimeChannel? _messageChannel;
+  // Editing state
+  final RxString editingMessageId = ''.obs;
+  final RxString editingText = ''.obs;
+
+  // Reply state
+  final Rx<MessageModel?> replyingTo = Rx<MessageModel?>(null);
+
+  // Current chat ID
+  String? currentChatId;
+
+  // Realtime subscription
+  RealtimeChannel? _messagesSubscription;
+  RealtimeChannel? _chatsSubscription;
 
   @override
   void onInit() {
     super.onInit();
     loadChats();
-    setupRealtimeListeners();
+    _subscribeToChatsUpdates();
   }
 
   @override
   void onClose() {
-    _chatChannel?.unsubscribe();
-    _messageChannel?.unsubscribe();
+    _messagesSubscription?.unsubscribe();
+    _chatsSubscription?.unsubscribe();
     super.onClose();
   }
 
-  // Chatlarni yuklash
+  // ==================== CHAT OPERATIONS ====================
+
+  /// Load all chats for current user
   Future<void> loadChats() async {
     try {
-      final currentUserId = supabase.auth.currentUser?.id;
-      if (currentUserId == null) return;
-
-      if (chats.isEmpty) {
-        isLoading.value = true;
-      }
+      isLoading.value = true;
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return;
 
       final response = await supabase
           .from('chats')
-          .select('''
-            id,
-            user1_id,
-            user2_id,
-            last_message,
-            last_message_time,
-            created_at
-          ''')
-          .or('user1_id.eq.$currentUserId,user2_id.eq.$currentUserId')
+          .select('*')
+          .or('user1_id.eq.$userId,user2_id.eq.$userId')
           .order('last_message_time', ascending: false);
 
       final List<ChatModel> loadedChats = [];
@@ -60,39 +69,50 @@ class ChatController extends GetxController {
       for (var chatData in response) {
         final chat = ChatModel.fromJson(chatData);
 
-        final otherUserId = chat.user1Id == currentUserId
+        // Determine other user
+        final otherUserId = chat.user1Id == userId
             ? chat.user2Id
             : chat.user1Id;
-
-        final userResponse = await supabase
-            .from('users')
-            .select('id, first_name, last_name, username, profile_photo_url')
-            .eq('id', otherUserId)
-            .single();
-
         chat.otherUserId = otherUserId;
-        chat.otherUserName =
-            '${userResponse['first_name'] ?? ''} ${userResponse['last_name'] ?? ''}'
-                .trim();
-        if (chat.otherUserName!.isEmpty) {
-          chat.otherUserName = userResponse['username'] ?? 'User';
+
+        // Load other user info
+        try {
+          final userData = await supabase
+              .from('users')
+              .select('username, first_name, profile_photo_url')
+              .eq('id', otherUserId)
+              .maybeSingle(); // ✅ single() o'rniga maybeSingle()
+
+          if (userData != null) {
+            chat.otherUserName = userData['first_name'] ?? userData['username'];
+            chat.otherUserAvatar = userData['profile_photo_url'];
+          } else {
+            chat.otherUserName = 'Unknown User';
+          }
+        } catch (e) {
+          print('⚠️ User not found: $otherUserId');
+          chat.otherUserName = 'Deleted User';
         }
-        chat.otherUserAvatar = userResponse['profile_photo_url'];
 
-        final unreadResponse = await supabase
-            .from('messages')
-            .select('id')
-            .eq('chat_id', chat.id)
-            .eq('is_read', false)
-            .neq('sender_id', currentUserId);
+        // Count unread messages
+        try {
+          final unreadCount = await supabase
+              .from('messages')
+              .select('id')
+              .eq('chat_id', chat.id)
+              .eq('is_read', false)
+              .neq('sender_id', userId);
 
-        chat.unreadCount = unreadResponse.length;
+          chat.unreadCount = unreadCount.count ?? 0;
+        } catch (e) {
+          print('⚠️ Unread count error: $e');
+          chat.unreadCount = 0;
+        }
 
         loadedChats.add(chat);
       }
 
       chats.value = loadedChats;
-      print('✅ ${loadedChats.length} ta chat yuklandi');
     } catch (e) {
       print('❌ Load chats error: $e');
     } finally {
@@ -100,11 +120,71 @@ class ChatController extends GetxController {
     }
   }
 
-  // Xabarlarni yuklash
+  /// Create or get existing chat
+  Future<String?> createOrGetChat(String otherUserId) async {
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return null;
+
+      // Check if chat exists
+      final existing = await supabase
+          .from('chats')
+          .select('id')
+          .or(
+            'and(user1_id.eq.$userId,user2_id.eq.$otherUserId),and(user1_id.eq.$otherUserId,user2_id.eq.$userId)',
+          )
+          .maybeSingle();
+
+      if (existing != null) {
+        return existing['id'];
+      }
+
+      // Create new chat
+      final newChat = await supabase
+          .from('chats')
+          .insert({'user1_id': userId, 'user2_id': otherUserId})
+          .select('id')
+          .single();
+
+      await loadChats();
+      return newChat['id'];
+    } catch (e) {
+      print('❌ Create chat error: $e');
+      return null;
+    }
+  }
+
+  /// Delete chat
+  Future<void> deleteChat(String chatId) async {
+    try {
+      await supabase.from('chats').delete().eq('id', chatId);
+      chats.removeWhere((chat) => chat.id == chatId);
+
+      Get.snackbar(
+        'success'.tr,
+        'chat_deleted'.tr,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        icon: const Icon(Icons.check_circle, color: Colors.white),
+      );
+    } catch (e) {
+      print('❌ Delete chat error: $e');
+      Get.snackbar(
+        'error'.tr,
+        'delete_chat_error'.tr,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  // ==================== MESSAGE OPERATIONS ====================
+
+  /// Load messages for specific chat
   Future<void> loadMessages(String chatId) async {
     try {
       isLoading.value = true;
-      currentChatId = chatId; // ✅ Hozirgi chatni saqlaymiz
+      currentChatId = chatId;
 
       final response = await supabase
           .from('messages')
@@ -113,12 +193,17 @@ class ChatController extends GetxController {
           .order('created_at', ascending: true);
 
       currentMessages.value = response
-          .map<MessageModel>((json) => MessageModel.fromJson(json))
+          .map((e) => MessageModel.fromJson(e))
           .toList();
 
-      print('✅ ${currentMessages.length} ta xabar yuklandi');
+      // Mark as read
+      await _markMessagesAsRead(chatId);
 
-      await markMessagesAsRead(chatId);
+      // Load reactions
+      await _loadReactionsForMessages();
+
+      // Subscribe to new messages
+      _subscribeToMessages(chatId);
     } catch (e) {
       print('❌ Load messages error: $e');
     } finally {
@@ -126,7 +211,7 @@ class ChatController extends GetxController {
     }
   }
 
-  // ✅ YANGILANGAN - Xabar yuborish (darhol ko'rinadi)
+  /// Send message
   Future<void> sendMessage({
     required String chatId,
     String? messageText,
@@ -136,207 +221,360 @@ class ChatController extends GetxController {
   }) async {
     try {
       isSending.value = true;
-      final currentUserId = supabase.auth.currentUser?.id;
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return;
 
-      if (currentUserId == null) return;
+      String? finalAttachment = attachmentUrl;
+      if (latitude != null && longitude != null) {
+        finalAttachment = 'location:$latitude,$longitude';
+      }
 
-      final now = DateTime.now();
-      final messageId =
-          supabase.auth.currentUser!.id + now.millisecondsSinceEpoch.toString();
+      // Check message length
+      if (messageText != null && messageText.length > 300) {
+        Get.snackbar(
+          'error'.tr,
+          'message_too_long'.tr,
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+        );
+        return;
+      }
 
       final messageData = {
         'chat_id': chatId,
-        'sender_id': currentUserId,
+        'sender_id': userId,
         'message_text': messageText,
-        'attachment_url': attachmentUrl,
-        'is_read': false,
-        'created_at': now.toIso8601String(),
+        'attachment_url': finalAttachment,
+        'reply_to_id': replyingTo.value?.id,
       };
 
-      // Agar lokatsiya bo'lsa
-      if (latitude != null && longitude != null) {
-        messageData['attachment_url'] = 'location:$latitude,$longitude';
-        messageData['message_text'] = null;
-      }
+      await supabase.from('messages').insert(messageData);
 
-      // ✅ AVVAL LOCAL GA QO'SHAMIZ (Darhol ko'rinadi)
-      final tempMessage = MessageModel(
-        id: messageId,
-        chatId: chatId,
-        senderId: currentUserId,
-        messageText: messageText,
-        attachmentUrl: latitude != null && longitude != null
-            ? 'location:$latitude,$longitude'
-            : attachmentUrl,
-        isRead: false,
-        createdAt: now,
-      );
-
-      currentMessages.add(tempMessage);
-
-      // ✅ KEYIN DATABASE GA YUBORIRAMIZ
-      final insertedMessage = await supabase
-          .from('messages')
-          .insert(messageData)
-          .select()
-          .single();
-
-      // ✅ Temp message ni real message bilan almashtiramiz
-      final index = currentMessages.indexWhere((m) => m.id == messageId);
-      if (index != -1) {
-        currentMessages[index] = MessageModel.fromJson(insertedMessage);
-      }
-
-      // Chatni yangilash
+      // Update chat's last message
       await supabase
           .from('chats')
           .update({
-            'last_message': messageText ?? '📍 Lokatsiya',
-            'last_message_time': now.toIso8601String(),
+            'last_message': messageText ?? 'Location',
+            'last_message_time': DateTime.now().toIso8601String(),
           })
           .eq('id', chatId);
 
-      print('✅ Xabar yuborildi');
+      // Clear reply state
+      replyingTo.value = null;
+
+      // ✅ Reload messages avtomatik ishlaydi realtime orqali
     } catch (e) {
       print('❌ Send message error: $e');
-
-      // Xato bo'lsa, temp message ni o'chiramiz
-      currentMessages.removeWhere(
-        (m) =>
-            m.senderId == supabase.auth.currentUser?.id &&
-            m.createdAt.isAfter(
-              DateTime.now().subtract(const Duration(seconds: 5)),
-            ),
-      );
-
       Get.snackbar(
-        'Xato',
-        'Xabar yuborishda xato',
-        snackPosition: SnackPosition.BOTTOM,
+        'error'.tr,
+        'send_message_error'.tr,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
       );
     } finally {
       isSending.value = false;
     }
   }
 
-  // Xabarlarni o'qilgan deb belgilash
-  Future<void> markMessagesAsRead(String chatId) async {
+  /// Edit message
+  Future<void> editMessage(String messageId, String newText) async {
     try {
-      final currentUserId = supabase.auth.currentUser?.id;
-      if (currentUserId == null) return;
+      if (newText.isEmpty) {
+        Get.snackbar(
+          'error'.tr,
+          'message_empty'.tr,
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+        );
+        return;
+      }
+
+      if (newText.length > 300) {
+        Get.snackbar(
+          'error'.tr,
+          'message_too_long'.tr,
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+        );
+        return;
+      }
+
+      await supabase
+          .from('messages')
+          .update({'message_text': newText, 'is_edited': true})
+          .eq('id', messageId);
+
+      // Update local
+      final index = currentMessages.indexWhere((m) => m.id == messageId);
+      if (index != -1) {
+        currentMessages[index].messageText = newText;
+        currentMessages[index].isEdited = true;
+        currentMessages.refresh();
+      }
+
+      editingMessageId.value = '';
+      editingText.value = '';
+
+      Get.snackbar(
+        'success'.tr,
+        'message_edited'.tr,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        icon: const Icon(Icons.check_circle, color: Colors.white),
+      );
+    } catch (e) {
+      print('❌ Edit message error: $e');
+      Get.snackbar(
+        'error'.tr,
+        'edit_message_error'.tr,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  /// Delete message
+  Future<void> deleteMessage(String messageId) async {
+    try {
+      isDeleting.value = true;
+
+      await supabase.from('messages').delete().eq('id', messageId);
+
+      currentMessages.removeWhere((m) => m.id == messageId);
+
+      Get.snackbar(
+        'success'.tr,
+        'message_deleted'.tr,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        icon: const Icon(Icons.check_circle, color: Colors.white),
+      );
+    } catch (e) {
+      print('❌ Delete message error: $e');
+      Get.snackbar(
+        'error'.tr,
+        'delete_message_error'.tr,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    } finally {
+      isDeleting.value = false;
+    }
+  }
+
+  /// Copy message text
+  void copyMessage(String text) {
+    Clipboard.setData(ClipboardData(text: text)); // ✅ To'g'ri ishlaydi
+    Get.snackbar(
+      'success'.tr,
+      'message_copied'.tr,
+      backgroundColor: Colors.green,
+      colorText: Colors.white,
+      icon: const Icon(Icons.check_circle, color: Colors.white),
+      duration: const Duration(seconds: 1),
+    );
+  }
+
+  /// Forward message
+  Future<void> forwardMessage(String messageId, String targetChatId) async {
+    try {
+      final message = currentMessages.firstWhere((m) => m.id == messageId);
+
+      await sendMessage(
+        chatId: targetChatId,
+        messageText: message.messageText,
+        attachmentUrl: message.attachmentUrl,
+      );
+
+      Get.snackbar(
+        'success'.tr,
+        'message_forwarded'.tr,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        icon: const Icon(Icons.check_circle, color: Colors.white),
+      );
+    } catch (e) {
+      print('❌ Forward message error: $e');
+    }
+  }
+
+  /// Set reply-to message
+  void setReplyTo(MessageModel message) {
+    replyingTo.value = message;
+  }
+
+  /// Cancel reply
+  void cancelReply() {
+    replyingTo.value = null;
+  }
+
+  /// Start editing
+  void startEditing(MessageModel message) {
+    editingMessageId.value = message.id;
+    editingText.value = message.messageText ?? '';
+  }
+
+  /// Cancel editing
+  void cancelEditing() {
+    editingMessageId.value = '';
+    editingText.value = '';
+  }
+
+  // ==================== REACTIONS ====================
+
+  /// Add/remove reaction
+  Future<void> toggleReaction(String messageId, String emoji) async {
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return;
+
+      // Check if user already reacted with this emoji
+      final existing = await supabase
+          .from('message_reactions')
+          .select('id')
+          .eq('message_id', messageId)
+          .eq('user_id', userId)
+          .eq('emoji', emoji) // ✅ Aniq emoji tekshirish
+          .maybeSingle();
+
+      if (existing != null) {
+        // Remove reaction
+        await supabase
+            .from('message_reactions')
+            .delete()
+            .eq('id', existing['id']);
+      } else {
+        // Add reaction
+        await supabase.from('message_reactions').insert({
+          'message_id': messageId,
+          'user_id': userId,
+          'emoji': emoji,
+        });
+      }
+
+      // Reload reactions for this message
+      await _loadReactionsForMessage(messageId);
+    } catch (e) {
+      print('❌ Toggle reaction error: $e');
+    }
+  }
+
+  /// Load reactions for all messages
+  Future<void> _loadReactionsForMessages() async {
+    try {
+      final messageIds = currentMessages.map((m) => m.id).toList();
+      if (messageIds.isEmpty) return;
+
+      final response = await supabase
+          .from('message_reactions')
+          .select('*')
+          .inFilter('message_id', messageIds);
+
+      final Map<String, List<MessageReaction>> reactions = {};
+
+      for (var data in response) {
+        final reaction = MessageReaction.fromJson(data);
+        if (!reactions.containsKey(reaction.messageId)) {
+          reactions[reaction.messageId] = [];
+        }
+        reactions[reaction.messageId]!.add(reaction);
+      }
+
+      messageReactions.value = reactions;
+    } catch (e) {
+      print('❌ Load reactions error: $e');
+    }
+  }
+
+  /// Load reactions for single message
+  Future<void> _loadReactionsForMessage(String messageId) async {
+    try {
+      final response = await supabase
+          .from('message_reactions')
+          .select('*')
+          .eq('message_id', messageId);
+
+      final reactions = response
+          .map((e) => MessageReaction.fromJson(e))
+          .toList();
+      messageReactions[messageId] = reactions;
+      messageReactions.refresh(); // ✅ UI yangilansin
+    } catch (e) {
+      print('❌ Load reaction error: $e');
+    }
+  }
+
+  // ==================== READ STATUS ====================
+
+  /// Mark messages as read
+  Future<void> _markMessagesAsRead(String chatId) async {
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return;
 
       await supabase
           .from('messages')
           .update({'is_read': true})
           .eq('chat_id', chatId)
-          .neq('sender_id', currentUserId)
+          .neq('sender_id', userId)
           .eq('is_read', false);
 
-      print('✅ Xabarlar o\'qilgan deb belgilandi');
+      // Update local
+      for (var message in currentMessages) {
+        if (message.senderId != userId) {
+          message.isRead = true;
+        }
+      }
+      currentMessages.refresh();
+
+      // ✅ Chat ro'yxatidagi unread countni yangilash
+      await loadChats();
     } catch (e) {
-      print('❌ Mark messages as read error: $e');
+      print('❌ Mark read error: $e');
     }
   }
 
-  // ✅ YANGILANGAN - Realtime listeners
-  void setupRealtimeListeners() {
-    final currentUserId = supabase.auth.currentUser?.id;
-    if (currentUserId == null) return;
+  // ==================== LOCATION ====================
 
-    print('📡 Realtime listeners sozlanmoqda...');
-
-    // ✅ Xabarlar uchun listener (BIRINCHI)
-    _messageChannel = supabase
-        .channel('messages-realtime')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.insert,
-          schema: 'public',
-          table: 'messages',
-          callback: (payload) async {
-            print('📨 Yangi xabar keldi: ${payload.newRecord}');
-
-            try {
-              final newMessage = MessageModel.fromJson(payload.newRecord);
-
-              // ✅ Agar bu chat ochiq bo'lsa VA bu mening xabarim bo'lmasa
-              if (currentChatId == newMessage.chatId &&
-                  newMessage.senderId != currentUserId) {
-                // Agar xabar mavjud bo'lmasa, qo'shamiz
-                if (!currentMessages.any((m) => m.id == newMessage.id)) {
-                  currentMessages.add(newMessage);
-                  print('✅ Yangi xabar qo\'shildi');
-
-                  // Xabarni darhol o'qilgan deb belgilaymiz
-                  await markMessagesAsRead(newMessage.chatId);
-                }
-              }
-
-              // Chatlar ro'yxatini yangilaymiz (background)
-              loadChats();
-            } catch (e) {
-              print('❌ Xabarni parse qilishda xato: $e');
-            }
-          },
-        )
-        .subscribe((status, error) {
-          if (status == RealtimeSubscribeStatus.subscribed) {
-            print('✅ Messages channel subscribe bo\'ldi');
-          } else if (error != null) {
-            print('❌ Messages channel xato: $error');
-          }
-        });
-
-    // ✅ Chatlar uchun listener
-    _chatChannel = supabase
-        .channel('chats-realtime')
-        .onPostgresChanges(
-          event: PostgresChangeEvent.update,
-          schema: 'public',
-          table: 'chats',
-          callback: (payload) {
-            print('📨 Chat yangilandi');
-            loadChats();
-          },
-        )
-        .subscribe((status, error) {
-          if (status == RealtimeSubscribeStatus.subscribed) {
-            print('✅ Chats channel subscribe bo\'ldi');
-          } else if (error != null) {
-            print('❌ Chats channel xato: $error');
-          }
-        });
-  }
-
-  // Lokatsiyani olish
+  /// Get current location
   Future<Map<String, double>?> getCurrentLocation() async {
     try {
-      print('📍 Lokatsiya olinmoqda...');
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        Get.snackbar(
+          'error'.tr,
+          'location_service_disabled'.tr,
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+        );
+        return null;
+      }
 
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
         if (permission == LocationPermission.denied) {
-          print('❌ Lokatsiya ruxsati berilmadi');
+          Get.snackbar(
+            'error'.tr,
+            'location_permission_denied'.tr,
+            backgroundColor: Colors.red,
+            colorText: Colors.white,
+          );
           return null;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        print('❌ Lokatsiya ruxsati butunlay bekor qilingan');
         Get.snackbar(
-          'Ruxsat kerak',
-          'Lokatsiyani yuborish uchun sozlamalardan ruxsat bering',
-          snackPosition: SnackPosition.BOTTOM,
+          'error'.tr,
+          'location_permission_permanently_denied'.tr,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
         );
         return null;
       }
 
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-
-      print('✅ Lokatsiya olindi: ${position.latitude}, ${position.longitude}');
-
+      final position = await Geolocator.getCurrentPosition();
       return {'latitude': position.latitude, 'longitude': position.longitude};
     } catch (e) {
       print('❌ Get location error: $e');
@@ -344,9 +582,117 @@ class ChatController extends GetxController {
     }
   }
 
-  // ✅ Chat screen dan chiqqanda
+  // ==================== REALTIME SUBSCRIPTIONS ====================
+
+  void _subscribeToMessages(String chatId) {
+    _messagesSubscription?.unsubscribe();
+
+    _messagesSubscription = supabase
+        .channel('messages:$chatId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'messages',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'chat_id',
+            value: chatId,
+          ),
+          callback: (payload) async {
+            final newMessage = MessageModel.fromJson(payload.newRecord);
+
+            // ✅ Duplicate message qo'shmaslik
+            if (!currentMessages.any((m) => m.id == newMessage.id)) {
+              currentMessages.add(newMessage);
+              await _markMessagesAsRead(chatId);
+            }
+          },
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.update,
+          schema: 'public',
+          table: 'messages',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'chat_id',
+            value: chatId,
+          ),
+          callback: (payload) {
+            final updatedMessage = MessageModel.fromJson(payload.newRecord);
+            final index = currentMessages.indexWhere(
+              (m) => m.id == updatedMessage.id,
+            );
+            if (index != -1) {
+              currentMessages[index] = updatedMessage;
+              currentMessages.refresh();
+            }
+          },
+        )
+        .onPostgresChanges(
+          event: PostgresChangeEvent.delete,
+          schema: 'public',
+          table: 'messages',
+          callback: (payload) {
+            final deletedId = payload.oldRecord['id'];
+            currentMessages.removeWhere((m) => m.id == deletedId);
+          },
+        )
+        .subscribe();
+  }
+
+  void _subscribeToChatsUpdates() {
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
+    _chatsSubscription = supabase
+        .channel('chats:$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'chats',
+          callback: (payload) => loadChats(),
+        )
+        .subscribe();
+  }
+
   void clearCurrentChat() {
     currentChatId = null;
     currentMessages.clear();
+    messageReactions.clear();
+    replyingTo.value = null;
+    editingMessageId.value = '';
+    _messagesSubscription?.unsubscribe();
+  }
+}
+
+extension on PostgrestList {
+  get count => null;
+}
+
+// ==================== MESSAGE REACTION MODEL ====================
+
+class MessageReaction {
+  final String id;
+  final String messageId;
+  final String userId;
+  final String emoji;
+  final DateTime createdAt;
+
+  MessageReaction({
+    required this.id,
+    required this.messageId,
+    required this.userId,
+    required this.emoji,
+    required this.createdAt,
+  });
+
+  factory MessageReaction.fromJson(Map<String, dynamic> json) {
+    return MessageReaction(
+      id: json['id'],
+      messageId: json['message_id'],
+      userId: json['user_id'],
+      emoji: json['emoji'],
+      createdAt: DateTime.parse(json['created_at']),
+    );
   }
 }
