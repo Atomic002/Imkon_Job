@@ -614,10 +614,10 @@ class AppTranslations extends Translations {
       'about_haqida': 'Haqida',
       'about_app': 'Ilova haqida',
       'no_bio': 'Haqida ma\'lumot yo\'q',
-      'creators': 'Yaratuvchilar',
+      'creators': 'Yaratuvchi',
       'release_date': 'Chiqarilgan sana',
       'app_description':
-          'JobHub - ish izlash va ish berish uchun eng qulay platforma.',
+          'Imkon Job — ish topish va xodim qidirishni osonlashtiradigan zamonaviy platforma.Bu yerda siz professional rezyume yaratishingiz, ish beruvchilar bilan tez bog‘lanishingiz va eng so‘nggi vakansiyalarni birinchi bo‘lib ko‘rishingiz mumkin.',
 
       // Privacy & Security
       // ignore: equal_keys_in_map
@@ -1329,7 +1329,7 @@ class AppTranslations extends Translations {
       'creators': 'Создатели',
       'release_date': 'Дата выпуска',
       'app_description':
-          'JobHub - самая удобная платформа для поиска работы и найма сотрудников.',
+          'Imkon Job — современная платформа для удобного поиска работы и сотрудников.Здесь вы можете создать профессиональное резюме, быстро связаться с работодателями и первыми получать доступ к актуальным вакансиям.',
 
       // Privacy & Security
       // ignore: equal_keys_in_map
@@ -2195,7 +2195,7 @@ class AppTranslations extends Translations {
       'creators': 'Creators',
       'release_date': 'Release Date',
       'app_description':
-          'JobHub - the most convenient platform for job search and hiring.',
+          'Imkon Job is a modern platform designed to simplify job searching and hiring.Create a professional resume, connect with employers instantly, and be the first to access the latest job opportunities.',
       'chats': 'Chats',
       'no_chats': 'No chats yet',
       'start_chat': 'Start chat',

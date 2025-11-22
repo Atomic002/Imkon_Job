@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:get_storage/get_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:version1/Screens/splash/splash_screen.dart';
 import 'package:version1/config/routes.dart';
@@ -11,8 +10,6 @@ import 'package:version1/controller/auth_controller.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await GetStorage.init();
 
   // Supabase init
   await Supabase.initialize(

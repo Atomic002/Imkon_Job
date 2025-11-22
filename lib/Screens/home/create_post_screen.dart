@@ -65,6 +65,8 @@ class CreatePostController extends GetxController {
   final categories = <Map<String, dynamic>>[].obs;
   final subCategories = <Map<String, dynamic>>[].obs;
   final selectedSubCategories = <int>[].obs;
+  final selectedSubCategoryName = ''.obs;
+  final selectedSubCategoryId = Rxn<int>();
   final savedPhoneNumbers = <String>[].obs;
 
   final titleController = TextEditingController();
@@ -457,12 +459,23 @@ class CreatePostController extends GetxController {
         colorText: Colors.red,
       );
     }
+    formData.refresh();
   }
 
   void toggleSubCategory(int subCatId) {
     if (selectedSubCategories.contains(subCatId)) {
       selectedSubCategories.remove(subCatId);
     } else {
+      selectedSubCategories.add(subCatId);
+    }
+    formData['subCategoryIds'] = selectedSubCategories.toList();
+    formData.refresh();
+  }
+
+  void selectSubCategory(int subCatId, String subCatName) {
+    selectedSubCategoryId.value = subCatId;
+    selectedSubCategoryName.value = subCatName;
+    if (!selectedSubCategories.contains(subCatId)) {
       selectedSubCategories.add(subCatId);
     }
     formData['subCategoryIds'] = selectedSubCategories.toList();
@@ -1236,7 +1249,7 @@ class _Step1BasicInfo extends StatelessWidget {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _SubCategorySelectorButton(controller: controller),
+                  SubCategorySelectorButton(controller: controller),
                   const SizedBox(height: 20),
                 ],
               );
@@ -1532,14 +1545,19 @@ class _CategorySelectorButton extends StatelessWidget {
 }
 
 // ==================== SUB-CATEGORY SELECTOR BUTTON ====================
-class _SubCategorySelectorButton extends StatelessWidget {
-  final CreatePostController controller;
-  const _SubCategorySelectorButton({required this.controller});
+
+// ==================== SUB-CATEGORY SELECTOR ====================
+class SubCategorySelectorButton extends StatelessWidget {
+  final dynamic controller;
+
+  const SubCategorySelectorButton({super.key, required this.controller});
 
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final selectedCount = controller.selectedSubCategories.length;
+      final selectedName = controller.selectedSubCategoryName.value;
+      final hasSelection = selectedName.isNotEmpty;
+
       return GestureDetector(
         onTap: () => _showSubCategoryBottomSheet(context),
         child: Container(
@@ -1548,8 +1566,8 @@ class _SubCategorySelectorButton extends StatelessWidget {
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: selectedCount == 0 ? Colors.grey[300]! : Colors.blue,
-              width: selectedCount == 0 ? 1 : 2,
+              color: hasSelection ? Colors.blue : Colors.grey[300]!,
+              width: hasSelection ? 2 : 1,
             ),
             boxShadow: [
               BoxShadow(
@@ -1563,7 +1581,7 @@ class _SubCategorySelectorButton extends StatelessWidget {
             children: [
               Icon(
                 Icons.subdirectory_arrow_right,
-                color: selectedCount == 0 ? Colors.grey[600] : Colors.blue,
+                color: hasSelection ? Colors.blue : Colors.grey[600],
                 size: 22,
               ),
               const SizedBox(width: 12),
@@ -1572,7 +1590,7 @@ class _SubCategorySelectorButton extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'subcategory'.tr + ' *',
+                      'Sub-kategoriya *',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey[600],
@@ -1581,38 +1599,24 @@ class _SubCategorySelectorButton extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      selectedCount == 0
-                          ? 'select_subcategories'.tr
-                          : '$selectedCount ${'selected'.tr}',
+                      hasSelection ? selectedName : 'Sub-kategoriya tanlang',
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
-                        color: selectedCount == 0
-                            ? Colors.grey[400]
-                            : Colors.black87,
+                        color: hasSelection ? Colors.black87 : Colors.grey[400],
                       ),
                     ),
                   ],
                 ),
               ),
-              if (selectedCount > 0)
+              if (hasSelection)
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(
                     color: Colors.blue,
-                    borderRadius: BorderRadius.circular(12),
+                    shape: BoxShape.circle,
                   ),
-                  child: Text(
-                    '$selectedCount',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
-                    ),
-                  ),
+                  child: const Icon(Icons.check, color: Colors.white, size: 16),
                 ),
               const SizedBox(width: 8),
               Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
@@ -1625,9 +1629,8 @@ class _SubCategorySelectorButton extends StatelessWidget {
 
   void _showSubCategoryBottomSheet(BuildContext context) {
     final searchController = TextEditingController();
-    // ✅ TO'G'RI:
     final filteredSubCategories = <Map<String, dynamic>>[].obs;
-    filteredSubCategories.value = controller.subCategories.toList();
+    filteredSubCategories.value = List.from(controller.subCategories);
 
     Get.bottomSheet(
       Container(
@@ -1638,6 +1641,7 @@ class _SubCategorySelectorButton extends StatelessWidget {
         ),
         child: Column(
           children: [
+            // HEADER
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -1666,18 +1670,18 @@ class _SubCategorySelectorButton extends StatelessWidget {
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      Expanded(
+                      const Expanded(
                         child: Text(
-                          'select_subcategories'.tr,
-                          style: const TextStyle(
+                          'Sub-kategoriya tanlang',
+                          style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
-                      TextButton(
+                      IconButton(
+                        icon: const Icon(Icons.close),
                         onPressed: () => Get.back(),
-                        child: Text('done'.tr),
                       ),
                     ],
                   ),
@@ -1685,7 +1689,7 @@ class _SubCategorySelectorButton extends StatelessWidget {
                   TextField(
                     controller: searchController,
                     decoration: InputDecoration(
-                      hintText: 'search_subcategory'.tr,
+                      hintText: 'Qidirish...',
                       prefixIcon: const Icon(Icons.search),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -1707,8 +1711,9 @@ class _SubCategorySelectorButton extends StatelessWidget {
                     ),
                     onChanged: (value) {
                       if (value.isEmpty) {
-                        filteredSubCategories.value = controller.subCategories
-                            .toList();
+                        filteredSubCategories.value = List.from(
+                          controller.subCategories,
+                        );
                       } else {
                         filteredSubCategories.value = controller.subCategories
                             .where(
@@ -1724,20 +1729,51 @@ class _SubCategorySelectorButton extends StatelessWidget {
                 ],
               ),
             ),
+
+            // LIST
             Expanded(
-              child: Obx(
-                () => ListView.builder(
+              child: Obx(() {
+                if (filteredSubCategories.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 64,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Hech narsa topilmadi',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
+                return ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: filteredSubCategories.length,
                   itemBuilder: (context, index) {
                     final subCategory = filteredSubCategories[index];
-                    final isSelected = controller.selectedSubCategories
-                        .contains(subCategory['id']);
+                    final isSelected =
+                        controller.selectedSubCategoryId.value ==
+                        subCategory['id'];
+
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: GestureDetector(
                         onTap: () {
-                          controller.toggleSubCategory(subCategory['id']);
+                          controller.selectSubCategory(
+                            subCategory['id'],
+                            subCategory['name'],
+                          );
+                          Get.back(); // Yopish
                         },
                         child: Container(
                           padding: const EdgeInsets.all(16),
@@ -1755,30 +1791,33 @@ class _SubCategorySelectorButton extends StatelessWidget {
                           ),
                           child: Row(
                             children: [
+                              // RADIO BUTTON
                               Container(
                                 width: 24,
                                 height: 24,
                                 decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? Colors.blue
-                                      : Colors.transparent,
+                                  shape: BoxShape.circle,
                                   border: Border.all(
                                     color: isSelected
                                         ? Colors.blue
                                         : Colors.grey[400]!,
                                     width: 2,
                                   ),
-                                  borderRadius: BorderRadius.circular(6),
+                                  color: isSelected
+                                      ? Colors.blue
+                                      : Colors.transparent,
                                 ),
                                 child: isSelected
                                     ? const Icon(
-                                        Icons.check,
+                                        Icons.circle,
                                         color: Colors.white,
-                                        size: 16,
+                                        size: 12,
                                       )
                                     : null,
                               ),
                               const SizedBox(width: 12),
+
+                              // TEXT
                               Expanded(
                                 child: Text(
                                   subCategory['name'],
@@ -1793,14 +1832,22 @@ class _SubCategorySelectorButton extends StatelessWidget {
                                   ),
                                 ),
                               ),
+
+                              // CHECK ICON
+                              if (isSelected)
+                                const Icon(
+                                  Icons.check_circle,
+                                  color: Colors.blue,
+                                  size: 24,
+                                ),
                             ],
                           ),
                         ),
                       ),
                     );
                   },
-                ),
-              ),
+                );
+              }),
             ),
           ],
         ),

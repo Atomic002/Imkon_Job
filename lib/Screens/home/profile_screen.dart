@@ -1354,7 +1354,7 @@ class ProfileScreen extends StatelessWidget {
               Icon(Icons.info_outline, size: 16, color: Colors.grey[600]),
               const SizedBox(width: 8),
               Text(
-                'ImkonJob v1.0.0',
+                'ImkonJob v1.0.2',
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.grey[600],
@@ -1365,7 +1365,7 @@ class ProfileScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Yaratuvchilar: Rahmatillo Ganiyev & Islomhon',
+            'Yaratuvchi: Rahmatillo Ganiyev',
             style: TextStyle(fontSize: 11, color: Colors.grey[500]),
           ),
         ],
@@ -2840,19 +2840,11 @@ class ProfileScreen extends StatelessWidget {
                       _showPrivacyDialog(context);
                     },
                   ),
-                  _buildSettingItem(
-                    Icons.security_outlined,
-                    'security'.tr,
-                    '',
-                    onTap: () {
-                      Get.back();
-                      _showSecurityDialog(context);
-                    },
-                  ),
+
                   _buildSettingItem(
                     Icons.info_outline,
                     'about_app'.tr,
-                    'v1.0.0',
+                    'v1.0.2',
                     onTap: () {
                       Get.back();
                       _showAboutDialog(context);
@@ -3058,106 +3050,6 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  void _showSecurityDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            const Icon(Icons.security, color: Colors.green),
-            const SizedBox(width: 12),
-            Text('security'.tr),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildSecurityOption(
-                Icons.lock_outline,
-                'change_password'.tr,
-                'set_new_password'.tr,
-                () {
-                  Get.back();
-                  Get.snackbar(
-                    'coming_soon'.tr,
-                    'feature_coming_soon'.tr,
-                    backgroundColor: AppConstants.primaryColor,
-                    colorText: Colors.white,
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-              _buildSecurityOption(
-                Icons.verified_user,
-                'two_factor_auth'.tr,
-                'extra_security'.tr,
-                () {
-                  Get.back();
-                  Get.snackbar(
-                    'coming_soon'.tr,
-                    'feature_coming_soon'.tr,
-                    backgroundColor: AppConstants.primaryColor,
-                    colorText: Colors.white,
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Get.back(), child: Text('close'.tr)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSecurityOption(
-    IconData icon,
-    String title,
-    String subtitle,
-    VoidCallback onTap,
-  ) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey[300]!),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: AppConstants.primaryColor),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
-                  ),
-                  Text(
-                    subtitle,
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-          ],
-        ),
-      ),
-    );
-  }
-
   void _showAboutDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -3190,7 +3082,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               const Text(
-                'JobHub',
+                'Imkon Job',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -3199,7 +3091,7 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               const Text(
-                'v1.0.0',
+                'v1.0.2',
                 style: TextStyle(
                   fontSize: 14,
                   color: AppConstants.textSecondary,
@@ -3228,8 +3120,6 @@ class ProfileScreen extends StatelessWidget {
                       '• Rahmatillo Ganiyev',
                       style: TextStyle(fontSize: 13),
                     ),
-                    const Text('• Islomhon', style: TextStyle(fontSize: 13)),
-                    const SizedBox(height: 12),
                     Text(
                       'release_date'.tr + ':',
                       style: const TextStyle(
@@ -3239,7 +3129,7 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      '25 Oktabr 2025',
+                      '22 Noyabr 2025',
                       style: TextStyle(fontSize: 13),
                     ),
                   ],
@@ -3249,7 +3139,7 @@ class ProfileScreen extends StatelessWidget {
               Text(
                 'app_description'.tr,
                 style: const TextStyle(
-                  fontSize: 12,
+                  fontSize: 15,
                   color: AppConstants.textSecondary,
                   height: 1.5,
                 ),

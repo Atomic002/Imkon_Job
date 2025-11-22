@@ -294,9 +294,9 @@ class ChatScreen extends StatelessWidget {
         actions: [
           TextButton(onPressed: () => Get.back(), child: Text('cancel'.tr)),
           ElevatedButton(
-            onPressed: () async {
+            onPressed: () {
               Get.back();
-              await controller.deleteChat(chat.id);
+              controller.deleteChat(chat.id);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: Text('delete'.tr),

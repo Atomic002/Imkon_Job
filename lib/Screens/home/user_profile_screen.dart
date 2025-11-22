@@ -133,14 +133,6 @@ class _OtherUserProfilePageState extends State<OtherUserProfilePage>
     } catch (e) {
       print('Load user data error: $e');
       setState(() => isLoading = false);
-
-      Get.snackbar(
-        'Xato',
-        'Foydalanuvchi ma\'lumotlarini yuklashda xato',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.redAccent,
-        colorText: Colors.white,
-      );
     }
   }
 
