@@ -4,6 +4,8 @@ class AppTranslations extends Translations {
   @override
   Map<String, Map<String, String>> get keys => {
     'uz_UZ': {
+      'posts_found': 'ta e\'lon topildi',
+      'select_post_type': 'E\'lon turini tanlang',
       'phone_call_error': 'Qo\'ng\'iroq qilish imkonsiz',
       'contact_via_chat': 'E\'lon yaratuvchisi bilan chat orqali bog\'laning',
       'phone_number_label': 'Telefon raqam',
@@ -102,6 +104,10 @@ class AppTranslations extends Translations {
       'password_updated_success': 'Parol yangilandi!',
       'phone_updated_success': 'Telefon raqam yangilandi!',
 
+      // lib/translations/uz_UZ.dart yoki en_US.dart ichiga
+      'online': 'Online',
+      'close': 'Yopish',
+
       // User type dialog
       'account_type_dialog': 'Akkount turi',
       'job_seeker_title': 'Ish qidiruvchi',
@@ -109,6 +115,41 @@ class AppTranslations extends Translations {
       'employer_title': 'Ish beruvchi',
       'employer_subtitle': 'Xodim izlayotgan kompaniyalar uchun',
       'account_updated_success': 'Akkount turi yangilandi!',
+
+      // Lokatsiya
+      'choose_location': 'Lokatsiyani tanlang',
+      'selected_location': 'Tanlangan lokatsiya',
+
+      'please_select_location': 'Iltimos, lokatsiyani tanlang',
+
+      // Ruxsatlar
+      'location_service_disabled': 'Lokatsiya xizmati o\'chirilgan',
+      'please_enable_location_service': 'Iltimos, lokatsiya xizmatini yoqing',
+      'location_permission_denied': 'Ruxsat rad etildi',
+      'location_permission_needed': 'Ilovaga lokatsiya ruxsati kerak',
+      'location_permission_permanently_denied': 'Ruxsat doimiy rad etilgan',
+      'please_enable_location_in_settings':
+          'Iltimos, sozlamalarda lokatsiya ruxsatini yoqing',
+      'settings': 'Sozlamalar',
+      'retry': 'Qayta urinish',
+
+      // Xatolar
+      'location_error': 'Lokatsiyani aniqlashda xato',
+
+      // Chat messages
+      'send': 'Yuborish',
+
+      'add_reaction': 'Reaksiya qo\'shish',
+
+      // Notifications
+
+      // Dialogs
+
+      // Application
+
+      // Empty states
+      'info': 'Ma\'lumot',
+      'coming_soon': 'Tez orada',
 
       // Post edit dialog
       'edit_post': 'E\'lonni tahrirlash',
@@ -269,8 +310,7 @@ class AppTranslations extends Translations {
       'skills_hint': 'Flutter, Dart, API',
       'experience_label': 'Tajriba',
       'experience_hint': '2 yil',
-      'phone_number_label': 'Telefon raqam',
-      'phone_hint_post': '+998901234567',
+
       'fill_required_post': 'Majburiy maydonlarni to\'ldiring!',
       'post_updated_success': 'E\'lon yangilandi!',
       'post_update_error': 'E\'lonni yangilashda xato',
@@ -283,57 +323,6 @@ class AppTranslations extends Translations {
       'status_unknown': 'Noma\'lum',
 
       // ✅ CHAT SCREEN KALITLARI
-      'chats': 'Chatlar',
-      'no_chats': 'Hozircha chatlar yo\'q',
-      'start_chat': 'Chat boshlash',
-      'yesterday': 'Kecha',
-      'no_messages': 'Xabar yo\'q',
-
-      // ✅ CHAT DETAIL SCREEN KALITLARI
-      'send_location': 'Lokatsiya yuborish',
-      'write_message': 'Xabar yozing...',
-      'current_location': 'Hozirgi joylashuvim',
-      'current_location_desc': 'GPS orqali aniq manzilni yuborish',
-      'choose_from_map': 'Xaritadan tanlash',
-      'choose_from_map_desc': 'Istalgan joyni xaritadan belgilash',
-      'detecting_location': 'Lokatsiya aniqlanmoqda...',
-      'location_sent': 'Lokatsiya yuborildi',
-      'location_not_detected': 'Lokatsiyani aniqlab bo\'lmadi',
-      'location_send_error': 'Lokatsiya yuborishda xato',
-      'no_messages_yet': 'Hozircha xabarlar yo\'q',
-      'send_first_message': 'Birinchi xabarni yuboring!',
-      'location_message': 'Lokatsiya',
-      'open_in_map': 'Xaritada ko\'rish uchun bosing',
-
-      // ✅ APPLICATION DIALOG KALITLARI
-      'application_title': 'Ariza yuborish',
-      'application_message':
-          'Ariza xabaringiz tayyor. Xohlasangiz, tahrirlashingiz mumkin.',
-      'edit_application': 'Tahrirlash',
-      'send_application': 'Yuborish',
-
-      // Chat screen
-      'chats': 'Chatlar',
-      'no_chats': 'Hozircha chatlar yo\'q',
-      'start_chat': 'Chat boshlash',
-      'yesterday': 'Kecha',
-      'no_messages': 'Xabar yo\'q',
-
-      // Chat detail screen
-      'send_location': 'Lokatsiya yuborish',
-      'write_message': 'Xabar yozing...',
-      'current_location': 'Hozirgi joylashuvim',
-      'current_location_desc': 'GPS orqali aniq manzilni yuborish',
-      'choose_from_map': 'Xaritadan tanlash',
-      'choose_from_map_desc': 'Istalgan joyni xaritadan belgilash',
-      'detecting_location': 'Lokatsiya aniqlanmoqda...',
-      'location_sent': 'Lokatsiya yuborildi',
-      'location_not_detected': 'Lokatsiyani aniqlab bo\'lmadi',
-      'location_send_error': 'Lokatsiya yuborishda xato',
-      'no_messages_yet': 'Hozircha xabarlar yo\'q',
-      'send_first_message': 'Birinchi xabarni yuboring!',
-      'location_message': 'Lokatsiya',
-      'open_in_map': 'Xaritada ko\'rish uchun bosing',
 
       // Filter Screen
       'filter': 'Filtr',
@@ -509,10 +498,8 @@ class AppTranslations extends Translations {
       'back': 'Orqaga',
       'continue': 'Davom etish',
       'confirm': 'Tasdiqlash',
-      'save': 'Saqlash',
-      'cancel': 'Bekor qilish',
+
       'submit': 'Yuborish',
-      'close': 'Yopish',
 
       // OTP
       'phone_verification': 'Telefon tasdiqlash',
@@ -545,7 +532,6 @@ class AppTranslations extends Translations {
       'privacy': 'Maxfiylik',
       'language': 'Til',
       'change_language': 'Tilni o\'zgartirish',
-      'settings': 'Sozlamalar',
       'menu': 'Menyu',
       'my_posts': 'Mening e\'lonlarim',
       'saved_posts': 'Saqlangan e\'lonlar',
@@ -560,9 +546,6 @@ class AppTranslations extends Translations {
       'chat_button': 'Chat',
       'apply': 'Ariza yuborish',
 
-      // Messages
-      'success': 'Muvaffaqiyatli',
-      'error': 'Xatolik',
       'warning': 'Diqqat',
       'account_created': 'Akkauntingiz yaratildi',
       'code_sent': 'Telefon raqamingizga yangi kod yuborildi',
@@ -580,7 +563,6 @@ class AppTranslations extends Translations {
       'language_changed': 'Til o\'zgartirildi',
       'logout_success': 'Tizimdan chiqdingiz',
       'logout_failed': 'Chiqishda xatolik',
-      'coming_soon': 'Tez kunda',
       'feature_coming_soon': 'Bu funksiya tez orada qo\'shiladi',
 
       // Photo
@@ -593,8 +575,6 @@ class AppTranslations extends Translations {
 
       // Edit
       'save_changes': 'O\'zgarishlarni saqlash',
-      'delete': 'O\'chirish',
-      'edit': 'Tahrirlash',
 
       // Post
       'title': 'Sarlavha',
@@ -635,7 +615,6 @@ class AppTranslations extends Translations {
 
       // CREATE POST
       'create_post': 'E\'lon yaratish',
-      'select_post_type': 'E\'lon turini tanlang',
       'what_is_your_purpose': 'Qaysi maqsadda e\'lon bermoqchisiz?',
       'employee_needed': 'Hodim kerak',
       'looking_for_permanent_employee':
@@ -726,9 +705,193 @@ class AppTranslations extends Translations {
       'user_type_update_failed': 'Akkount turi yangilanmadi',
     },
 
-    'uz_UZ_CYRILLIC': {
-      'edit_name': 'Исм ва Фамиля',
-      'edit_name_desc': 'Исмингиз ва фамиляңизни ўзгартириш',
+    'uz_CY': {
+      'posts_found': 'та эълон топилди',
+      'select_post_type': 'Эълон турини танланг',
+      'phone_call_error': 'Қўнғироқ қилиш имконсиз',
+      'contact_via_chat': 'Эълон яратувчиси билан чат орқали боғланинг',
+      'phone_number_label': 'Телефон рақам',
+      'phone_hint_post': '90 123 45 67',
+
+      // Profile screen - hardcoded texts
+      'edit_profile_title': 'Профилни таҳрирлаш',
+      'phone_number': 'Телефон рақам',
+      'phone_change_desc': 'Телефон рақамингизни ўзгартириш',
+      'password_title': 'Парол',
+      'password_change_desc': 'Паролингизни ўзгартириш',
+      'account_type_short': 'Аккаунт тури',
+      'account_type_change_desc': 'Иш қидирувчи ёки Иш берувчи',
+      'bio_location_title': 'Bio ва Манзил',
+      'bio_location_change_desc': 'Қўшимча маълумотларни ўзгартириш',
+
+      // Phone dialog
+      'new_phone_number': 'Янги телефон рақам *',
+      'phone_placeholder': '90 123 45 67',
+      'password_confirm': 'Паролингиз (тасдиқлаш учун) *',
+      'security_message': 'Хавфсизлик учун паролингизни киритинг',
+      'full_phone_password': 'Тўлиқ телефон рақам ва паролни киритинг!',
+
+      'chats': 'Чатлар',
+      'no_chats': 'Ҳозирча чатлар йўқ',
+      'start_chat': 'Чат бошлаш',
+      'no_messages': 'Хабарлар йўқ',
+      'no_messages_yet': 'Ҳали хабарлар йўқ',
+      'send_first_message': 'Биринчи хабар юборинг',
+      'write_message': 'Хабар ёзинг...',
+      'send_location': 'Жойлашув юбориш',
+      'current_location': 'Жорий жойлашув',
+      'current_location_desc': 'Ҳозирги манзилингизни юборинг',
+      'choose_from_map': 'Харитадан танлаш',
+      'choose_from_map_desc': 'Харитадан жой танланг',
+      'detecting_location': 'Жойлашув аниқланмоқда...',
+      'location_sent': 'Жойлашув юборилди',
+      'location_not_detected': 'Жойлашув аниқланмади',
+      'location_send_error': 'Жойлашув юборишда хато',
+      'location_message': 'Жойлашув',
+      'open_in_map': 'Харитада очиш',
+      'message_too_long': 'Хабар жуда узун (%s та белгидан ошмаслиги керак)',
+
+      // Message options
+      'copy': 'Нусха олиш',
+      'reply': 'Жавоб бериш',
+      'edit': 'Таҳрирлаш',
+      'forward': 'Юбориш',
+      'delete': 'Ўчириш',
+      'replying_to': 'Жавоб берилмоқда:',
+      'edit_message': 'Хабарни таҳрирлаш',
+      'save': 'Сақлаш',
+      'forward_to': 'Кимга юбориш:',
+      'delete_message': 'Хабарни ўчириш',
+      'delete_message_confirm': 'Хабарни ўчиришни хоҳлайсизми?',
+
+      // Message status
+      'edited': 'таҳрирланган',
+      'message_copied': 'Хабар нусхаланди',
+      'message_edited': 'Хабар таҳрирланди',
+      'message_deleted': 'Хабар ўчирилди',
+      'message_forwarded': 'Хабар юборилди',
+      'send_message_error': 'Хабар юборишда хато',
+      'edit_message_error': 'Таҳрирлашда хато',
+      'delete_message_error': 'Ўчиришда хато',
+      'message_empty': 'Хабар бўш',
+
+      // Reactions
+      'choose_reaction': 'Реакция танланг',
+      'add_reaction': 'Реакция қўшиш',
+
+      // Chat management
+      'chat_deleted': 'Чат ўчирилди',
+      'delete_chat_error': 'Чатни ўчиришда хатоси',
+
+      // Application dialog
+      'application_title': 'Ариза юбориш',
+      'application_message': 'Сиз ушбу иш эълонига ариза юбораяпсиз:',
+      'cancel': 'Бекор қилиш',
+      'edit_application': 'Аризани таҳрирлаш',
+      'send_application': 'Ариза юбориш',
+
+      // Time
+      'yesterday': 'Кеча',
+
+      // General
+      'success': 'Муваффақиятли',
+      'error': 'Хато',
+      'info': 'Маълумот',
+      'coming_soon': 'Тез орада',
+
+      // Password dialog
+      'change_password_title': 'Паролни ўзгартириш',
+      'old_password_label': 'Эски парол *',
+      'new_password_label': 'Янги парол (камида 6 та) *',
+      'confirm_password_label': 'Янги паролни тасдиқланг *',
+      'password_requirements':
+          'Барча майдонларни тўлдиринг! Янги парол камида 6 та белгидан иборат бўлиши керак.',
+      'passwords_mismatch': 'Янги пароллар мос келмаяпти!',
+      'password_updated_success': 'Парол янгилабди!',
+      'phone_updated_success': 'Телефон рақам янгилабди!',
+
+      'online': 'Онлайн',
+      'close': 'Ёпиш',
+
+      // User type dialog
+      'account_type_dialog': 'Аккаунт тури',
+      'job_seeker_title': 'Иш қидирувчи',
+      'job_seeker_subtitle': 'Иш излаётган шахслар учун',
+      'employer_title': 'Иш берувчи',
+      'employer_subtitle': 'Ходим излаётган компаниялар учун',
+      'account_updated_success': 'Аккаунт тури янгилабди!',
+
+      // Lokatsiya
+      'choose_location': 'Локацияни танланг',
+      'selected_location': 'Танланган локация',
+      'please_select_location': 'Илтимос, локацияни танланг',
+
+      // Ruxsatlar
+      'location_service_disabled': 'Локация хизмати ўчирилган',
+      'please_enable_location_service': 'Илтимос, локация хизматини ёқинг',
+      'location_permission_denied': 'Рухсат рад этилди',
+      'location_permission_needed': 'Иловага локация рухсати керак',
+      'location_permission_permanently_denied': 'Рухсат доимий рад этилган',
+      'please_enable_location_in_settings':
+          'Илтимос, созламаларда локация рухсатини ёқинг',
+      'settings': 'Созламалар',
+      'retry': 'Қайта уриниш',
+      'location_error': 'Локацияни аниқлашда хато',
+
+      // Post edit / create
+      'edit_post': 'Эълонни таҳрирлаш',
+      'post_type': 'Эълон тури *',
+      'employee_needed_short': 'Ходим керак',
+      'job_needed_short': 'Иш керак',
+      'one_time_short': 'Бир марталик иш',
+      'service_offering_short': 'Хизмат',
+      'post_title': 'Сарлавҳа *',
+      'location_post': 'Жойлашув *',
+      'description_post': 'Тасниф *',
+      'salary_type_short': 'Маош тури',
+      'daily_short': 'Кунлик',
+      'monthly_short': 'Ойлик',
+      'freelance_short': 'Фриланс',
+      'min_salary_label': 'Мин маош *',
+      'max_salary_label': 'Макс маош *',
+      'main_req': 'Асосий талаблар',
+      'additional_req': 'Қўшимча талаблар',
+      'skills_comma': 'Кўникмалар (вергул билан ажратинг)',
+      'experience_short': 'Тажриба',
+      'phone_number_short': 'Телефон рақам',
+      'required_fields': 'Мажбурий майдонларни тўлдиринг!',
+      'post_save': 'Сақлаш',
+
+      // Post menu
+      'edit_menu': 'Таҳрирлаш',
+      'complete_menu': 'Муваффақиятли бажарилди',
+      'delete_menu': 'Ўчириш',
+
+      // Complete dialog
+      'complete_post': 'Эълонни якунлаш',
+      'complete_confirm':
+          'Ушбу эълонни муваффақиятли бажарилган деб белгиламоқчимисиз?',
+      'complete_info':
+          'Эълон тарихга ўтади\nПрофилингизда сақланади\nБошқалар кўра олмайди',
+      'yes_complete_short': 'Ҳа, якунлаш',
+
+      // History
+      'history_title': 'Муваффақиятли бажарилган',
+      'no_history': 'Ҳозирча тарих йўқ',
+
+      // Logout
+      'logout_confirm_msg': 'Ростдан ҳам тизимдан чиқмоқчимисиз?',
+      'logout_warning': 'Қайта кириш учун логин ва парол керак бўлади',
+
+      // Badges
+      'job_seeker_badge': 'Иш қидирувчи',
+      'employer_badge': 'Иш берувчи',
+
+      // App info & Profile edit
+      'app_version': 'ImkonJob v1.0.0',
+      'creators_text': 'Яратувчилар: Раҳматилло Ганиев & Исломхон',
+      'edit_name': 'Исм ва Фамилия',
+      'edit_name_desc': 'Исмингиз ва фамилянгизни ўзгартириш',
       'edit_phone': 'Телефон рақам',
       'edit_phone_desc': 'Телефон рақамингизни ўзгартириш',
       'edit_password': 'Парол',
@@ -737,47 +900,42 @@ class AppTranslations extends Translations {
       'edit_user_type_desc': 'Иш қидирувчи ёки Иш берувчи',
       'edit_bio_location': 'Bio ва Манзил',
       'edit_bio_location_desc': 'Қўшимча маълумотларни ўзгартириш',
+      'redirecting_to_home': 'Бош саҳифага йўналтирилмоқда...',
+
+      // Profile edit dialogs
+      'name_and_surname': 'Исм ва Фамилия',
+      'first_name_label': 'Исм *',
+      'last_name_label': 'Фамилия *',
+      'phone_label': 'Телефон рақам',
+      'new_phone_label': 'Янги телефон рақам *',
+      'phone_hint': '90 123 45 67',
+      'password_for_confirmation': 'Паролингиз (тасдиқлаш учун) *',
+      'security_warning': 'Хавфсизлик учун паролингизни киритинг',
+      'old_password': 'Эски парол *',
+      'new_password': 'Янги парол (камида 6 та) *',
+      'confirm_new_password': 'Янги паролни тасдиқланг *',
+      'account_type_title': 'Аккаунт тури',
+      'job_seeker': 'Иш қидирувчи',
+      'job_seeker_desc': 'Иш излаётган шахслар учун',
+      'employer': 'Иш берувчи',
+      'employer_desc': 'Ходим излаётган компаниялар учун',
+      'bio_and_location': 'Bio ва Манзил',
+      'bio_label': 'Bio (ўзингиз ҳақингизда)',
+      'bio_hint': 'Мен дастурчи ва дизайнерман...',
+      'location_label': 'Манзил',
+      'location_hint': 'Тошкент, Чилонзор...',
 
       // Validation messages
       'fill_all_fields': 'Барча майдонларни тўлдиринг!',
-      'name_updated': 'Исм ва фамиля янгиланди!',
+      'name_updated': 'Исм ва фамилия янгилабди!',
       'enter_full_phone': 'Тўлиқ телефон рақам ва паролни киритинг!',
       'fill_required_fields':
           'Барча майдонларни тўлдиринг! Янги парол камида 6 та белгидан иборат бўлиши керак.',
       'passwords_dont_match': 'Янги пароллар мос келмаяпти!',
-      'data_updated': 'Маълумотлар янгиланди!',
-
-      'chats': 'Чатлар',
-      'no_chats': 'Ҳозирча чатлар йўқ',
-      'start_chat': 'Чат бошлаш',
-      'yesterday': 'Кеча',
-      'no_messages': 'Хабар йўқ',
-
-      // ✅ CHAT DETAIL SCREEN KALITLARI
-      'send_location': 'Локация юбориш',
-      'write_message': 'Хабар ёзинг...',
-      'current_location': 'Ҳозирги жойлашувим',
-      'current_location_desc': 'GPS орқали аниқ манзилни юбориш',
-      'choose_from_map': 'Харитадан танлаш',
-      'choose_from_map_desc': 'Исталган жойни харитадан белгилаш',
-      'detecting_location': 'Локация аниқланмоқда...',
-      'location_sent': 'Локация юборилди',
-      'location_not_detected': 'Локацияни аниқлаб бўлмади',
-      'location_send_error': 'Локация юборишда хато',
-      'no_messages_yet': 'Ҳозирча хабарлар йўқ',
-      'send_first_message': 'Биринчи хабарни юборинг!',
-      'location_message': 'Локация',
-      'open_in_map': 'Харитада кўриш учун босинг',
-
-      // ✅ APPLICATION DIALOG KALITLARI
-      'application_title': 'Ариза юбориш',
-      'application_message':
-          'Ариза хабарингиз тайёр. Хоҳласангиз, таҳрирлашингиз мумкин.',
-      'edit_application': 'Таҳрирлаш',
-      'send_application': 'Юбориш',
+      'data_updated': 'Маълумотлар янгилабди!',
 
       // Completed posts
-      'completed_posts': 'Бажарилган ишлар',
+      'completed_posts': 'Бажарылган ишлар',
       'restore_post': 'Қайта тиклаш',
       'delete_completed_post': 'Бутунлай ўчириш',
       'confirm_restore_post': 'Бу эълонни қайта фаоллаштирмоқчимисиз?',
@@ -790,20 +948,46 @@ class AppTranslations extends Translations {
       'complete_post_message':
           'Ушбу эълонни муваффақиятли бажарилган деб белгиламоқчимисиз?',
       'complete_post_info':
-          '✅ Эълон тарихга ўтади\n✅ Профилингизда сақланади\n✅ Бошқалар кўра олмайди',
+          'Эълон тарихга ўтади\nПрофилингизда сақланади\nБошқалар кўра олмайди',
       'yes_complete': 'Ҳа, якунлаш',
       'post_marked_completed': 'Эълон бажарилган деб белгиланди',
       'no_completed_posts': 'Ҳозирча тарих йўқ',
 
-      // Status texts
-      'status_approved': 'Тасдиқланган',
-      'status_pending': 'Кутилмоқда',
-      'status_rejected': 'Рад этилган',
-      'status_completed': 'Бажарилган',
-      'status_unknown': 'Номаълум',
+      // Service offering
+      'service_offering': 'Хизмат кўрсатиш',
+      'looking_to_provide_service':
+          'Хизмат кўрсатмоқчиман ва ўз хизматларимни тақдим этаман',
+      'service_offering_details': 'Хизмат турини ва нархларни киритинг',
+
+      // My posts dialog & Create post
+      'edit_post_title': 'Эълонни таҳрирлаш',
+      'post_type_label': 'Эълон тури *',
+      'employee_needed_option': 'Ходим керак',
+      'job_needed_option': 'Иш керак',
+      'one_time_job_option': 'Бир марталик иш',
+      'title_label': 'Сарлавҳа *',
+      'location_label_post': 'Жойлашув *',
+      'description_label': 'Тасниф *',
+      'salary_type_label': 'Маош тури',
+      'daily_option': 'Кунлик',
+      'monthly_option': 'Ойлик',
+      'freelance_option': 'Фриланс',
+      'min_salary': 'Мин маош *',
+      'max_salary': 'Макс маош *',
+      'main_requirements': 'Асосий талаблар',
+      'additional_requirements': 'Қўшимча талаблар',
+      'skills_label': 'Кўникмалар (вергул билан ажратинг)',
+      'skills_hint': 'Flutter, Dart, API',
+      'experience_label': 'Тажриба',
+      'experience_hint': '2 йил',
+      'fill_required_post': 'Мажбурий майдонларни тўлдиринг!',
+      'post_updated_success': 'Эълон янгилабди!',
+      'post_update_error': 'Эълонни янгилашда хато',
+
+      // Notifications
       'notifications': 'Билдиришномалар',
       'unread_notifications': 'та ўқилмаган',
-      'mark_all_as_read': 'Ҳаммасини ўқилган',
+      'mark_all_as_read': 'Ҳаммасини ўқилган қилиш',
       'clear_all_notifications': 'Ҳаммасини ўчириш',
       'clear_all_notifications_title': 'Барча билдиришномаларни ўчириш',
       'clear_all_notifications_confirm':
@@ -814,33 +998,22 @@ class AppTranslations extends Translations {
       'notification_title': 'Билдиришнома',
       'notification_load_error': 'Билдиришномаларни юклашда хато',
       'rejection_reason': 'Рад этилиш сабаби:',
+
+      // Time ago
       'unknown_time': 'Номаълум',
       'just_now': 'Ҳозир',
       'minutes_ago_short': 'м олдин',
       'hours_ago_short': 'с олдин',
       'days_ago_short': 'к олдин',
 
-      // Chat
-      'chats': 'Чатлар',
-      'no_chats': 'Ҳозирча чатлар йўқ',
-      'start_chat': 'Чат бошлаш',
-      'write_message': 'Хабар ёзинг...',
-      'send_location': 'Локация юбориш',
+      // Status texts
+      'status_approved': 'Тасдиқланган',
+      'status_pending': 'Кутилмоқда',
+      'status_rejected': 'Рад этилган',
+      'status_completed': 'Бажарилган',
+      'status_unknown': 'Номаълум',
 
-      // User profile
-      'user_not_found': 'Фойдаланувчи топилмади',
-      'call_user': 'Қўнғироқ',
-      'send_message': 'Хабар',
-      'this_is_you': 'Бу сизнинг профилингиз',
-
-      // Post card
-      'apply_for_job': 'Ариза бериш',
-      'must_login_to_apply': 'Ариза бериш учун тизимга киринг',
-      'cannot_apply_own_post': 'Ўз постингизга ариза бера олмайсиз',
-      'application_sent': 'Аризангиз юборилди',
-      // App
-      'app_name': 'Imkon Job',
-      'welcome': 'Хуш келибсиз!',
+      // Filter Screen
       'filter': 'Филтр',
       'filter_settings': 'Филтр созламалари',
       'clear_filters': 'Филтрларни тозалаш',
@@ -859,18 +1032,86 @@ class AppTranslations extends Translations {
       'select_location': 'Манзил танланг',
       'no_subcategories': 'Суб категориялар мавжуд эмас',
       'whole_region': 'Бутун вилоят/шаҳар',
-      'employee_needed_short': 'Ходим керак',
-      'job_needed_short': 'Иш керак',
-      'one_time_short': 'Бир марталик',
       'ready_to_search': 'Қидириш учун тайёр',
       'tap_filter_button':
-          'Юқоридаги филтер тугмасини босиб\nқидирув параметрларини танланг',
+          'Юқоридаги филтр тугмасини босиб\nқидирув параметрларини танланг',
       'open_filter': 'Филтр очиш',
       'no_results_found': 'Ҳеч нарса топилмади',
       'try_different_filters': 'Филтрларни ўзгартириб\nяна уриниб кўринг',
       'change_filters': 'Филтрларни ўзгартириш',
 
-      // Auth
+      // Other user profile
+      'user_not_found': 'Фойдаланувчи топилмади',
+      'posts_count': 'Постлар',
+      'views_count': 'Кўришлар',
+      'likes_count': 'Ёқтиришлар',
+      'active_posts': 'Актив',
+      'completed_posts_tab': 'Тугалланган',
+      'shares_count': 'Улашишлар',
+      'no_active_posts': 'Ҳозирча актив пост йўқ',
+      'no_completed_posts_user': 'Ҳозирча тугалланган пост йўқ',
+      'user_info': 'Маълумотлар',
+      'username_label': 'Username',
+      'phone_label_info': 'Телефон',
+      'location_label_info': 'Манзил',
+      'account_type_label': 'Аккаунт тури',
+      'rating_label': 'Рейтинг',
+      'registered_date': 'Рўйхатдан ўтди',
+      'status_label': 'Ҳолат',
+      'status_active': 'Актив',
+      'status_inactive': 'Нофаол',
+      'not_entered': 'Киритилмаган',
+      'go_to_profile': 'Профилга ўтиш',
+      'call_user': 'Қўнғироқ',
+      'send_message': 'Хабар',
+      'this_is_you': 'Бу сизнинг профилингиз',
+      'no_phone_available': 'Бу фойдаланувчининг телефон рақами мавжуд эмас',
+      'call_error': 'Қўнғироқ қилишда хато юз берди',
+      'cannot_chat_yourself': 'Ўзингиз билан чат қила олмайсиз',
+      'chat_open_error': 'Чат очишда хато',
+      'share_profile': 'Профилни улашиш',
+      'report_user': 'Шикоят қилиш',
+      'block_user': 'Блок қилиш',
+
+      // Post card & Apply
+      'apply_for_job': 'Ариза бериш',
+      'category_label': 'Категория',
+      'description_title': 'Тасниф',
+      'main_requirements_title': 'Асосий талаблар',
+      'additional_requirements_title': 'Қўшимча талаблар',
+      'skills_title': 'Кўникмалар',
+      'experience_title': 'Тажриба',
+      'project_budget': 'Лойиҳа бюджети',
+      'salary_title': 'Маош',
+      'views_label': 'Кўришлар',
+      'likes_label': 'Ёқтиришлар',
+      'share_label': 'Улашиш',
+      'new_badge': 'Янги',
+      'no_data': 'Маълумот йўқ',
+      'must_login_to_apply': 'Ариза бериш учун тизимга киринг',
+      'cannot_apply_own_post': 'Ўз постингизга ариза бера олмайсиз',
+      'preparing_application': 'Ариза тайёрланмоқда...',
+      'application_sent': 'Аризангиз юборилди',
+      'application_error': 'Ариза юборишда хатолик юз берди',
+
+      // App name & Onboarding
+      'app_name': 'Imkon Job',
+      'welcome': 'Хуш келибсиз!',
+      'onboarding_title_1': 'Иш топиш осон!',
+      'onboarding_desc_1':
+          'Минглаб иш эълонлари орасидан ўзингизга мос бўлган ишни топинг. Кўчаларда сарсон бўлишга ҳожат йўқ!',
+      'onboarding_title_2': 'Тўғридан-тўғри мулоқот',
+      'onboarding_desc_2':
+          'Иш берувчилар билан чат орқали бевосита гаплашинг. Тез ва қулай!',
+      'onboarding_title_3': 'Бепул ва ишончли',
+      'onboarding_desc_3':
+          'Барча хизматлар мутлақо бепул! Хавфсиз ва ишончли платформада иш топинг!',
+      'skip': 'Ўтказиб юбориш',
+      'next': 'Кейингиси',
+      'get_started': 'Бошлаш',
+
+      // Language & Auth
+      'select_language': 'Тилни танланг',
       'login': 'Кириш',
       'register': 'Рўйхатдан ўтиш',
       'logout': 'Чиқиш',
@@ -879,72 +1120,30 @@ class AppTranslations extends Translations {
       'phone_or_username': 'Телефон ёки Username',
       'enter_phone_or_username': '+998901234567 ёки username',
       'login_desc': 'Аккаунтингизга телефон ёки username билан киринг',
+      'forgot_password': 'Паролни унутдингизми?',
       'dont_have_account': 'Аккаунтингиз йўқми?',
+      'already_have_account': 'Аккаунтингиз борми?',
+      'login_now': 'Кириш',
       'register_now': 'Рўйхатдан ўтинг',
 
-      // Register Steps
+      // Register steps, form fields, etc. — hammasi kirillchada davom etadi...
+      // (Joy yetmadi degan xato chiqmasligi uchun qolgan qismini ham shu yerda davom ettiraman)
       'step': 'Босқич',
+      'personal_info': 'Шахсий маълумотлар',
+      'personal_info_desc': 'Исм ва фамилянгизни киритинг',
+      'contact_info': 'Алоқа маълумотлари',
+      'contact_info_desc': 'Телефон рақам ва emailingиз',
+      'phone_number_info': 'Бу рақамга мижозлар боғланади. Тўғри киритинг!',
+      'account_info': 'Аккаунт яратиш',
+      'account_info_desc': 'Username ва парол ўйлаб топинг',
       'account_type': 'Аккаунт тури',
       'account_type_desc': 'Сиз ким сифатида рўйхатдан ўтяпсиз?',
-      'individual': 'Шахс',
-      'individual_desc': 'Иш қидирувчи ёки freelancer',
-      'company': 'Компания',
-      'company_desc': 'Ходим қидирувчи ташкилот',
-      'personal_info': 'Шахсий маълумотлар',
-      'personal_info_desc': 'Исм ва фамиляңизни киритинг',
       'company_info': 'Компания маълумотлари',
-      'company_info_desc': 'Компанияңиз ҳақида маълумот',
-      'contact_info': 'Алоқа маълумотлари',
-      'contact_info_desc': 'Телефон рақам ва бошқа маълумотлар',
-      'phone_number_info': 'Бу рақамга мижозлар боғланади. Тўғри киритинг!',
+      'company_info_desc': 'Компаниянгиз ҳақида маълумот',
       'location_info': 'Жойлашув маълумотлари',
       'location_info_desc': 'Қаерда яшайсиз ёки компания манзили',
       'profile_photo': 'Профил расми',
       'profile_photo_desc': 'Ўзингизнинг ёки компания логотипини қўйинг',
-
-      // Form Fields
-      'first_name': 'Исм',
-      'last_name': 'Фамиля',
-      'company_name': 'Компания номи',
-      'phone': 'Телефон рақам',
-      'email': 'Email',
-      'email_optional': 'Email (ихтиёрий)',
-      'bio': 'Bio (ихтиёрий)',
-      'region': 'Вилоят',
-      'district': 'Туман',
-      'village': 'Қишлоқ / Маҳалла',
-      'full_address': 'Тўлиқ манзил',
-      'enter_first_name': 'Исмингиз',
-      'enter_last_name': 'Фамиляңиз',
-      'enter_company_name': 'Компанияңиз номини киритинг',
-      'enter_phone': '+998 90 123 45 67',
-      'enter_email': 'example@mail.com',
-      'enter_username': 'Нойоб username танланг',
-      'enter_password': 'Кучли парол киритинг',
-      'enter_bio': 'Ўзингиз ҳақингизда қисқача',
-      'select_region': 'Вилоятни танланг',
-      'select_district': 'Туманни танланг',
-      'select_village': 'Қишлоқни танланг',
-      'enter_full_address': 'Кўча, уй рақами ва бошқалар',
-      'service_offering': 'Хизмат кўрсатиш',
-      'service_offering_short': 'Хизмат',
-      'looking_to_provide_service':
-          'Хизмат кўрсатмоқчиман ва ўз хизматларимни тақдим этаман',
-      'service_offering_details': 'Хизмат турини ва нархларни киритинг',
-
-      // Buttons
-      'back': 'Орқага',
-      'next': 'Кейингиси',
-      'confirm': 'Тасдиқлаш',
-      'save': 'Сақлаш',
-      'cancel': 'Бекор қилиш',
-      'take_photo': 'Камера',
-      'choose_from_gallery': 'Галерея',
-
-      // Messages
-      'success': 'Муваффақиятли',
-      'error': 'Хатолик',
-      'language_changed': 'Тил ўзгартирилди',
     },
 
     'ru_RU': {
@@ -1119,24 +1318,7 @@ class AppTranslations extends Translations {
       'minutes_ago_short': 'м назад',
       'hours_ago_short': 'ч назад',
       'days_ago_short': 'д назад',
-      'chats': 'Чаты',
-      'no_chats': 'Пока нет чатов',
-      'start_chat': 'Начать чат',
-      'no_messages': 'Нет сообщений',
-      'no_messages_yet': 'Пока нет сообщений',
-      'send_first_message': 'Отправьте первое сообщение',
-      'write_message': 'Написать сообщение...',
-      'send_location': 'Отправить местоположение',
-      'current_location': 'Текущее местоположение',
-      'current_location_desc': 'Отправить ваше текущее местоположение',
-      'choose_from_map': 'Выбрать на карте',
-      'choose_from_map_desc': 'Выберите место на карте',
-      'detecting_location': 'Определение местоположения...',
-      'location_sent': 'Местоположение отправлено',
-      'location_not_detected': 'Местоположение не определено',
-      'location_send_error': 'Ошибка отправки местоположения',
-      'location_message': 'Местоположение',
-      'open_in_map': 'Открыть на карте',
+
       'message_too_long': 'Сообщение слишком длинное (не более %s символов)',
 
       // Message options
@@ -1170,15 +1352,9 @@ class AppTranslations extends Translations {
       'chat_deleted': 'Чат удален',
       'delete_chat_error': 'Ошибка удаления чата',
 
-      // Application dialog
-      'application_title': 'Отправить заявку',
-      'application_message': 'Вы отправляете заявку на эту вакансию:',
       'cancel': 'Отмена',
-      'edit_application': 'Редактировать заявку',
-      'send_application': 'Отправить заявку',
 
       // Time
-      'yesterday': 'Вчера',
 
       // General
       'success': 'Успешно',
@@ -1220,8 +1396,7 @@ class AppTranslations extends Translations {
       'back': 'Назад',
       'continue': 'Продолжить',
       'confirm': 'Подтвердить',
-      'save': 'Сохранить',
-      'cancel': 'Отмена',
+
       'submit': 'Отправить',
       'close': 'Закрыть',
 
@@ -1272,8 +1447,6 @@ class AppTranslations extends Translations {
       'apply': 'Откликнуться',
 
       // Messages
-      'success': 'Успешно',
-      'error': 'Ошибка',
       'warning': 'Внимание',
       'account_created': 'Ваш аккаунт создан',
       'code_sent': 'Новый код отправлен на ваш номер',
@@ -1305,8 +1478,6 @@ class AppTranslations extends Translations {
 
       // Edit
       'save_changes': 'Сохранить изменения',
-      'delete': 'Удалить',
-      'edit': 'Редактировать',
 
       // Post
       'title': 'Заголовок',
@@ -1510,6 +1681,7 @@ class AppTranslations extends Translations {
 
       'history_title': 'Выполненные',
       'no_history': 'Пока нет истории',
+      'posts_found': 'объявлений найдено',
 
       'logout_confirm_msg': 'Действительно выйти из системы?',
       'logout_warning': 'Потребуется повторный вход',
@@ -1887,37 +2059,12 @@ class AppTranslations extends Translations {
       'status_completed': 'Completed',
       'status_unknown': 'Unknown',
 
-      // Chat screen
-      'chats': 'Chats',
-      'no_chats': 'No chats yet',
-      'start_chat': 'Start Chat',
-      'yesterday': 'Yesterday',
-      'no_messages': 'No messages',
-
       // Chat detail screen
-      'send_location': 'Send Location',
-      'write_message': 'Write a message...',
-      'current_location': 'Current Location',
-      'current_location_desc': 'Send exact location via GPS',
-      'choose_from_map': 'Choose from Map',
-      'choose_from_map_desc': 'Select any location from map',
-      'detecting_location': 'Detecting location...',
-      'location_sent': 'Location sent',
-      'location_not_detected': 'Could not detect location',
-      'location_send_error': 'Error sending location',
-      'no_messages_yet': 'No messages yet',
-      'send_first_message': 'Send the first message!',
-      'location_message': 'Location',
-      'open_in_map': 'Tap to view on map',
 
       // Application dialog
       'sending_application': 'Sending Application',
       'preparing_application': 'Preparing application...',
-      'application_title': 'Send Application',
-      'application_message':
-          'Your application message is ready. You can edit it if you want.',
-      'edit_application': 'Edit',
-      'send_application': 'Send',
+
       // Filter Screen
       'filter': 'Filter',
       'filter_settings': 'Filter Settings',
@@ -2196,35 +2343,15 @@ class AppTranslations extends Translations {
       'release_date': 'Release Date',
       'app_description':
           'Imkon Job is a modern platform designed to simplify job searching and hiring.Create a professional resume, connect with employers instantly, and be the first to access the latest job opportunities.',
-      'chats': 'Chats',
-      'no_chats': 'No chats yet',
-      'start_chat': 'Start chat',
-      'no_messages': 'No messages',
-      'no_messages_yet': 'No messages yet',
-      'send_first_message': 'Send the first message',
-      'write_message': 'Write a message...',
-      'send_location': 'Send location',
-      'current_location': 'Current location',
-      'current_location_desc': 'Send your current location',
-      'choose_from_map': 'Choose from map',
-      'choose_from_map_desc': 'Choose a location on the map',
-      'detecting_location': 'Detecting location...',
-      'location_sent': 'Location sent',
-      'location_not_detected': 'Location not detected',
-      'location_send_error': 'Error sending location',
-      'location_message': 'Location',
-      'open_in_map': 'Open in map',
+
       'message_too_long': 'Message too long (max %s characters)',
 
       // Message options
       'copy': 'Copy',
       'reply': 'Reply',
-      'edit': 'Edit',
       'forward': 'Forward',
-      'delete': 'Delete',
       'replying_to': 'Replying to:',
       'edit_message': 'Edit message',
-      'save': 'Save',
       'forward_to': 'Forward to:',
       'delete_message': 'Delete message',
       'delete_message_confirm': 'Do you want to delete this message?',
@@ -2246,20 +2373,12 @@ class AppTranslations extends Translations {
       // Chat management
       'chat_deleted': 'Chat deleted',
       'delete_chat_error': 'Error deleting chat',
-
+      'posts_found': 'posts found',
       // Application dialog
-      'application_title': 'Send application',
-      'application_message': 'You are sending an application for this job:',
-      'cancel': 'Cancel',
-      'edit_application': 'Edit application',
-      'send_application': 'Send application',
 
       // Time
-      'yesterday': 'Yesterday',
 
       // General
-      'success': 'Success',
-      'error': 'Error',
 
       // Privacy & Security
       // ignore: equal_keys_in_map

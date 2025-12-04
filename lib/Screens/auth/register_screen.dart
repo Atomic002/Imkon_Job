@@ -1,8 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_application_2/controller/register_controller.dart';
 import 'package:get/get.dart';
-import 'package:version1/controller/register_controller.dart';
 
 class RegisterScreen extends StatelessWidget {
   const RegisterScreen({super.key});

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:version1/config/constants.dart';
+import 'package:flutter_application_2/config/constants.dart';
 
 class UzbekPhoneField extends StatelessWidget {
   final TextEditingController controller;

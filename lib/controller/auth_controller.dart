@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_2/Models/user_model.dart';
+import 'package:flutter_application_2/Services/connective_service.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:version1/Models/user_model.dart';
 
 class AuthController extends GetxController {
   final phoneController = TextEditingController();
@@ -24,14 +25,40 @@ class AuthController extends GetxController {
     _checkSession();
   }
 
-  /// ✅ Session tekshirish - Supabase Auth
+  /// ✅ Session tekshirish - FAQAT INTERNET BO'LGANDA
   Future<void> _checkSession() async {
     try {
       print('🔍 ===== SESSION CHECK START =====');
 
       await Future.delayed(const Duration(milliseconds: 100));
 
-      // Supabase session tekshirish
+      // 🌐 INTERNET TEKSHIRISH (xavfsiz)
+      final connectivityService = Get.isRegistered<ConnectivityService>()
+          ? Get.find<ConnectivityService>()
+          : null;
+
+      if (connectivityService == null) {
+        print('⚠️ ConnectivityService not ready - waiting...');
+        await Future.delayed(const Duration(milliseconds: 500));
+        return _checkSession(); // Retry
+      }
+
+      if (!connectivityService.isConnected.value) {
+        print('⚠️ No internet - skipping auth check');
+        print('📱 Will check when internet is available');
+
+        // ✅ Internet qaytganda tekshirish
+        ever(connectivityService.isConnected, (isConnected) {
+          if (isConnected) {
+            print('✅ Internet restored - checking session...');
+            _checkSession();
+          }
+        });
+
+        return;
+      }
+
+      // ✅ Supabase session tekshirish
       final session = supabase.auth.currentSession;
       print('   Session: ${session?.user.id}');
 
@@ -67,6 +94,16 @@ class AuthController extends GetxController {
       }
     } catch (e) {
       print('❌ Session check error: $e');
+
+      // ✅ Internet xatosi bo'lsa, logout QILMAYDI
+      if (e.toString().contains('SocketException') ||
+          e.toString().contains('Failed host lookup')) {
+        print('⚠️ Network error - keeping session');
+        return;
+      }
+
+      // Boshqa xatolar uchun logout
+      await logout();
     }
   }
 
@@ -74,6 +111,17 @@ class AuthController extends GetxController {
   Future<void> _loadUser(String userId) async {
     try {
       print('📥 Loading user: $userId');
+
+      // 🌐 Internet tekshirish (xavfsiz)
+      final connectivityService = Get.isRegistered<ConnectivityService>()
+          ? Get.find<ConnectivityService>()
+          : null;
+
+      if (connectivityService != null &&
+          !connectivityService.isConnected.value) {
+        print('⚠️ No internet - cannot load user data');
+        throw Exception('No internet connection');
+      }
 
       final userData = await supabase
           .from('users')
@@ -89,6 +137,16 @@ class AuthController extends GetxController {
       print('   Phone: ${currentUser.value?.phoneNumber}');
     } catch (e) {
       print('❌ Load user error: $e');
+
+      // ✅ Faqat internet xatosi bo'lsa, logout QILMAYDI
+      if (e.toString().contains('SocketException') ||
+          e.toString().contains('Failed host lookup') ||
+          e.toString().contains('No internet connection')) {
+        print('⚠️ Network error - will retry when online');
+        return;
+      }
+
+      // Boshqa xatolar uchun logout
       await logout();
     }
   }
@@ -105,7 +163,17 @@ class AuthController extends GetxController {
 
   /// ✅ LOGIN - Supabase Auth bilan
   Future<void> login() async {
-    final password = passwordController.text.trim();
+    // 🌐 Internet tekshirish (xavfsiz)
+    final connectivityService = Get.isRegistered<ConnectivityService>()
+        ? Get.find<ConnectivityService>()
+        : null;
+
+    if (connectivityService != null && !connectivityService.isConnected.value) {
+      _showError('Internet yo\'q. Iltimos, internetga ulaning');
+      return;
+    }
+
+    late final password = passwordController.text.trim();
 
     String identifier = '';
     if (loginType.value == 'phone') {
@@ -190,7 +258,11 @@ class AuthController extends GetxController {
       Get.offAllNamed('/home');
     } catch (e) {
       print('❌ Login error: $e');
-      if (e.toString().contains('Invalid login credentials')) {
+
+      if (e.toString().contains('SocketException') ||
+          e.toString().contains('Failed host lookup')) {
+        _showError('Internet bilan bog\'lanishda xatolik');
+      } else if (e.toString().contains('Invalid login credentials')) {
         _showError('Username yoki parol noto\'g\'ri');
       } else {
         _showError('Login xatosi: ${e.toString()}');
@@ -206,10 +278,20 @@ class AuthController extends GetxController {
       isLoading.value = true;
       print('👋 ===== LOGOUT START =====');
 
-      // Supabase session'ni o'chirish
-      await supabase.auth.signOut();
+      // 🌐 Internet bo'lsa Supabase'dan logout (xavfsiz)
+      final connectivityService = Get.isRegistered<ConnectivityService>()
+          ? Get.find<ConnectivityService>()
+          : null;
 
-      // Local storage tozalash
+      if (connectivityService != null &&
+          connectivityService.isConnected.value) {
+        await supabase.auth.signOut();
+        print('✅ Supabase logout successful');
+      } else {
+        print('⚠️ No internet - local logout only');
+      }
+
+      // Local storage tozalash (har doim)
       await storage.remove('userId');
       await storage.remove('username');
       await storage.remove('userType');
@@ -222,6 +304,8 @@ class AuthController extends GetxController {
       Get.offAllNamed('/login');
     } catch (e) {
       print('❌ Logout error: $e');
+
+      // Xato bo'lsa ham local data tozalash
       await storage.erase();
       currentUser.value = null;
       Get.offAllNamed('/login');
@@ -276,6 +360,17 @@ class AuthController extends GetxController {
   }
 
   Future<void> refreshUser() async {
+    // 🌐 Internet tekshirish (xavfsiz)
+    final connectivityService = Get.isRegistered<ConnectivityService>()
+        ? Get.find<ConnectivityService>()
+        : null;
+
+    if (connectivityService != null && !connectivityService.isConnected.value) {
+      print('⚠️ No internet - cannot refresh user');
+      _showError('Internet yo\'q');
+      return;
+    }
+
     final userId = getCurrentUserId();
     if (userId != null) {
       await _loadUser(userId);

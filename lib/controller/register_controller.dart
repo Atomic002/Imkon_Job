@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_application_2/controller/auth_controller.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:version1/controller/auth_controller.dart';
 import 'dart:io';
 
 class RegisterController extends GetxController {
@@ -383,10 +383,7 @@ class RegisterController extends GetxController {
 
 class PhoneInputFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, newValue) {
     final text = newValue.text;
     String digitsOnly = text.replaceAll(RegExp(r'\D'), '');
 

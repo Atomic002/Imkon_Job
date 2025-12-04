@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_2/Models/job_post.dart';
+import 'package:flutter_application_2/config/constants.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:version1/Models/job_post.dart';
-import 'package:version1/config/constants.dart';
+
 import 'package:url_launcher/url_launcher.dart';
 
 class OtherUserProfilePage extends StatefulWidget {

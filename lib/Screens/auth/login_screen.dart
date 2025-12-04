@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_application_2/Widgets/custom_button.dart';
+import 'package:flutter_application_2/controller/auth_controller.dart';
 import 'package:get/get.dart';
-import 'package:version1/Widgets/custom_button.dart';
-import 'package:version1/controller/auth_controller.dart';
+
 import '../../config/constants.dart';
 
 class LoginScreen extends StatelessWidget {

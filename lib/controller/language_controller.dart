@@ -13,10 +13,10 @@ class LanguageController extends GetxController {
       'locale': const Locale('uz', 'UZ'),
     },
     {
-      'code': 'uz_UZ_CYRILLIC',
+      'code': 'uz_CY',
       'name': 'Ўзбекча (Кирилл)',
       'flag': '🇺🇿',
-      'locale': const Locale('uz', 'UZ'),
+      'locale': const Locale('uz', 'CY'), // ✅ ALOHIDA LOCALE
     },
     {
       'code': 'ru_RU',
@@ -49,8 +49,11 @@ class LanguageController extends GetxController {
         (l) => l['code'] == savedLang,
         orElse: () => languages[0],
       );
+
+      // ✅ CRITICAL: Locale va Translations keyini sinxronlashtirish
       Get.updateLocale(lang['locale'] as Locale);
-      print('✅ Loaded language: $savedLang');
+
+      print('✅ Loaded language: $savedLang with locale: ${lang['locale']}');
     } catch (e) {
       print('❌ Load language error: $e');
     }
@@ -61,6 +64,8 @@ class LanguageController extends GetxController {
     try {
       selectedLanguage.value = code;
       final lang = languages.firstWhere((l) => l['code'] == code);
+
+      // ✅ IMPORTANT: Locale o'zgartirish
       Get.updateLocale(lang['locale'] as Locale);
 
       // Tilni saqlash
@@ -76,7 +81,7 @@ class LanguageController extends GetxController {
         duration: const Duration(seconds: 2),
       );
 
-      print('✅ Language changed to: $code');
+      print('✅ Language changed to: $code with locale: ${lang['locale']}');
     } catch (e) {
       print('❌ Change language error: $e');
       Get.snackbar(
@@ -109,6 +114,15 @@ class LanguageController extends GetxController {
 
   // Kirill yoki Lotin ekanligini tekshirish
   bool isCyrillic() {
-    return selectedLanguage.value == 'uz_UZ_CYRILLIC';
+    return selectedLanguage.value == 'uz_CY';
+  }
+
+  // ✅ QO'SHIMCHA: Joriy tilni olish (locale)
+  Locale getCurrentLocale() {
+    final lang = languages.firstWhere(
+      (l) => l['code'] == selectedLanguage.value,
+      orElse: () => languages[0],
+    );
+    return lang['locale'] as Locale;
   }
 }

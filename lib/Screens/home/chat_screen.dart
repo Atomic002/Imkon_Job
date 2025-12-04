@@ -1,9 +1,9 @@
 // lib/Screens/home/chat_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_application_2/config/constants.dart';
+import 'package:flutter_application_2/controller/chat_controller.dart';
 import 'package:get/get.dart';
-import 'package:version1/config/constants.dart';
 import 'package:intl/intl.dart';
-import 'package:version1/controller/chat_controller.dart';
 
 class ChatScreen extends StatelessWidget {
   const ChatScreen({Key? key}) : super(key: key);

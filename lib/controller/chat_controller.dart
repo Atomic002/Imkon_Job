@@ -1,11 +1,12 @@
 // lib/controller/chat_controller.dart
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_application_2/Models/chat_models.dart';
+import 'package:flutter_application_2/Models/message_model.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:version1/Models/chat_models.dart';
-import 'package:version1/Models/message_model.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:flutter/services.dart'; // ✅ Clipboard uchun
 
 class ChatController extends GetxController {
   final supabase = Supabase.instance.client;
@@ -15,6 +16,12 @@ class ChatController extends GetxController {
   final RxList<MessageModel> currentMessages = <MessageModel>[].obs;
   final RxMap<String, List<MessageReaction>> messageReactions =
       <String, List<MessageReaction>>{}.obs;
+
+  // Total unread count
+  final RxInt totalUnreadCount = 0.obs;
+
+  // Online users tracking
+  final RxMap<String, bool> onlineUsers = <String, bool>{}.obs;
 
   // Loading states
   final isLoading = false.obs;
@@ -31,27 +38,118 @@ class ChatController extends GetxController {
   // Current chat ID
   String? currentChatId;
 
-  // Realtime subscription
+  // Realtime subscriptions
   RealtimeChannel? _messagesSubscription;
   RealtimeChannel? _chatsSubscription;
+  RealtimeChannel? _presenceSubscription;
+  RealtimeChannel? _reactionsSubscription;
 
   @override
   void onInit() {
     super.onInit();
     loadChats();
     _subscribeToChatsUpdates();
+    _subscribeToPresence();
+    _startUnreadCountRefresh();
+  }
+
+  Timer? _unreadCountTimer;
+
+  void _startUnreadCountRefresh() {
+    _unreadCountTimer?.cancel();
+    _unreadCountTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      _updateTotalUnreadCount();
+    });
+  }
+
+  Future<void> _updateTotalUnreadCount() async {
+    try {
+      final userId = supabase.auth.currentUser?.id;
+      if (userId == null) return;
+
+      int totalUnread = 0;
+      for (var chat in chats) {
+        try {
+          final unreadData = await supabase
+              .from('messages')
+              .select('id')
+              .eq('chat_id', chat.id)
+              .eq('is_read', false)
+              .neq('sender_id', userId);
+
+          totalUnread += unreadData.length;
+        } catch (e) {
+          print('⚠️ Update unread count error: $e');
+        }
+      }
+
+      totalUnreadCount.value = totalUnread;
+    } catch (e) {
+      print('❌ Update total unread error: $e');
+    }
   }
 
   @override
   void onClose() {
+    _unreadCountTimer?.cancel();
     _messagesSubscription?.unsubscribe();
     _chatsSubscription?.unsubscribe();
+    _presenceSubscription?.unsubscribe();
+    _reactionsSubscription?.unsubscribe();
     super.onClose();
   }
 
+  // ==================== PRESENCE (ONLINE STATUS) ====================
+
+  void _subscribeToPresence() {
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
+    try {
+      _presenceSubscription = supabase
+          .channel('online_users')
+          .onPresenceSync((payload) {
+            try {
+              final state = _presenceSubscription?.presenceState();
+              if (state != null && state.isNotEmpty) {
+                final Map<String, bool> newOnlineUsers = {};
+
+                state.forEach(
+                  (userId, presences) {
+                        if (presences is List && presences.isNotEmpty) {
+                          final presence = presences.first;
+                          if (presence is Map<String, dynamic>) {
+                            final uid = presence['user_id'] as String?;
+                            if (uid != null) {
+                              newOnlineUsers[uid] = true;
+                            }
+                          }
+                        }
+                      }
+                      as void Function(SinglePresenceState element),
+                );
+
+                onlineUsers.value = newOnlineUsers;
+              }
+            } catch (e) {
+              print('⚠️ Presence sync error: $e');
+            }
+          })
+          .subscribe((status, error) async {
+            if (status == RealtimeSubscribeStatus.subscribed) {
+              await _presenceSubscription?.track({'user_id': userId});
+              print('✅ Presence tracking started');
+            }
+          });
+    } catch (e) {
+      print('❌ Presence setup error: $e');
+    }
+  }
+
+  bool isUserOnline(String userId) => onlineUsers[userId] ?? false;
+
   // ==================== CHAT OPERATIONS ====================
 
-  /// Load all chats for current user
   Future<void> loadChats() async {
     try {
       isLoading.value = true;
@@ -65,23 +163,21 @@ class ChatController extends GetxController {
           .order('last_message_time', ascending: false);
 
       final List<ChatModel> loadedChats = [];
+      int totalUnread = 0;
 
       for (var chatData in response) {
         final chat = ChatModel.fromJson(chatData);
-
-        // Determine other user
         final otherUserId = chat.user1Id == userId
             ? chat.user2Id
             : chat.user1Id;
         chat.otherUserId = otherUserId;
 
-        // Load other user info
         try {
           final userData = await supabase
               .from('users')
               .select('username, first_name, profile_photo_url')
               .eq('id', otherUserId)
-              .maybeSingle(); // ✅ single() o'rniga maybeSingle()
+              .maybeSingle();
 
           if (userData != null) {
             chat.otherUserName = userData['first_name'] ?? userData['username'];
@@ -90,22 +186,20 @@ class ChatController extends GetxController {
             chat.otherUserName = 'Unknown User';
           }
         } catch (e) {
-          print('⚠️ User not found: $otherUserId');
           chat.otherUserName = 'Deleted User';
         }
 
-        // Count unread messages
         try {
-          final unreadCount = await supabase
+          final unreadData = await supabase
               .from('messages')
               .select('id')
               .eq('chat_id', chat.id)
               .eq('is_read', false)
               .neq('sender_id', userId);
 
-          chat.unreadCount = unreadCount.count ?? 0;
+          chat.unreadCount = unreadData.length;
+          totalUnread += unreadData.length;
         } catch (e) {
-          print('⚠️ Unread count error: $e');
           chat.unreadCount = 0;
         }
 
@@ -113,6 +207,7 @@ class ChatController extends GetxController {
       }
 
       chats.value = loadedChats;
+      totalUnreadCount.value = totalUnread;
     } catch (e) {
       print('❌ Load chats error: $e');
     } finally {
@@ -120,13 +215,11 @@ class ChatController extends GetxController {
     }
   }
 
-  /// Create or get existing chat
   Future<String?> createOrGetChat(String otherUserId) async {
     try {
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) return null;
 
-      // Check if chat exists
       final existing = await supabase
           .from('chats')
           .select('id')
@@ -139,7 +232,6 @@ class ChatController extends GetxController {
         return existing['id'];
       }
 
-      // Create new chat
       final newChat = await supabase
           .from('chats')
           .insert({'user1_id': userId, 'user2_id': otherUserId})
@@ -154,11 +246,11 @@ class ChatController extends GetxController {
     }
   }
 
-  /// Delete chat
   Future<void> deleteChat(String chatId) async {
     try {
       await supabase.from('chats').delete().eq('id', chatId);
       chats.removeWhere((chat) => chat.id == chatId);
+      await loadChats();
 
       Get.snackbar(
         'success'.tr,
@@ -180,7 +272,6 @@ class ChatController extends GetxController {
 
   // ==================== MESSAGE OPERATIONS ====================
 
-  /// Load messages for specific chat
   Future<void> loadMessages(String chatId) async {
     try {
       isLoading.value = true;
@@ -196,14 +287,10 @@ class ChatController extends GetxController {
           .map((e) => MessageModel.fromJson(e))
           .toList();
 
-      // Mark as read
       await _markMessagesAsRead(chatId);
-
-      // Load reactions
       await _loadReactionsForMessages();
-
-      // Subscribe to new messages
       _subscribeToMessages(chatId);
+      _subscribeToReactions(chatId);
     } catch (e) {
       print('❌ Load messages error: $e');
     } finally {
@@ -211,7 +298,6 @@ class ChatController extends GetxController {
     }
   }
 
-  /// Send message
   Future<void> sendMessage({
     required String chatId,
     String? messageText,
@@ -229,7 +315,6 @@ class ChatController extends GetxController {
         finalAttachment = 'location:$latitude,$longitude';
       }
 
-      // Check message length
       if (messageText != null && messageText.length > 300) {
         Get.snackbar(
           'error'.tr,
@@ -250,7 +335,6 @@ class ChatController extends GetxController {
 
       await supabase.from('messages').insert(messageData);
 
-      // Update chat's last message
       await supabase
           .from('chats')
           .update({
@@ -259,10 +343,7 @@ class ChatController extends GetxController {
           })
           .eq('id', chatId);
 
-      // Clear reply state
       replyingTo.value = null;
-
-      // ✅ Reload messages avtomatik ishlaydi realtime orqali
     } catch (e) {
       print('❌ Send message error: $e');
       Get.snackbar(
@@ -276,23 +357,12 @@ class ChatController extends GetxController {
     }
   }
 
-  /// Edit message
   Future<void> editMessage(String messageId, String newText) async {
     try {
-      if (newText.isEmpty) {
+      if (newText.isEmpty || newText.length > 300) {
         Get.snackbar(
           'error'.tr,
-          'message_empty'.tr,
-          backgroundColor: Colors.orange,
-          colorText: Colors.white,
-        );
-        return;
-      }
-
-      if (newText.length > 300) {
-        Get.snackbar(
-          'error'.tr,
-          'message_too_long'.tr,
+          newText.isEmpty ? 'message_empty'.tr : 'message_too_long'.tr,
           backgroundColor: Colors.orange,
           colorText: Colors.white,
         );
@@ -304,7 +374,6 @@ class ChatController extends GetxController {
           .update({'message_text': newText, 'is_edited': true})
           .eq('id', messageId);
 
-      // Update local
       final index = currentMessages.indexWhere((m) => m.id == messageId);
       if (index != -1) {
         currentMessages[index].messageText = newText;
@@ -320,26 +389,16 @@ class ChatController extends GetxController {
         'message_edited'.tr,
         backgroundColor: Colors.green,
         colorText: Colors.white,
-        icon: const Icon(Icons.check_circle, color: Colors.white),
       );
     } catch (e) {
       print('❌ Edit message error: $e');
-      Get.snackbar(
-        'error'.tr,
-        'edit_message_error'.tr,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
     }
   }
 
-  /// Delete message
   Future<void> deleteMessage(String messageId) async {
     try {
       isDeleting.value = true;
-
       await supabase.from('messages').delete().eq('id', messageId);
-
       currentMessages.removeWhere((m) => m.id == messageId);
 
       Get.snackbar(
@@ -347,74 +406,33 @@ class ChatController extends GetxController {
         'message_deleted'.tr,
         backgroundColor: Colors.green,
         colorText: Colors.white,
-        icon: const Icon(Icons.check_circle, color: Colors.white),
       );
     } catch (e) {
       print('❌ Delete message error: $e');
-      Get.snackbar(
-        'error'.tr,
-        'delete_message_error'.tr,
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-      );
     } finally {
       isDeleting.value = false;
     }
   }
 
-  /// Copy message text
   void copyMessage(String text) {
-    Clipboard.setData(ClipboardData(text: text)); // ✅ To'g'ri ishlaydi
+    Clipboard.setData(ClipboardData(text: text));
     Get.snackbar(
       'success'.tr,
       'message_copied'.tr,
       backgroundColor: Colors.green,
       colorText: Colors.white,
-      icon: const Icon(Icons.check_circle, color: Colors.white),
       duration: const Duration(seconds: 1),
     );
   }
 
-  /// Forward message
-  Future<void> forwardMessage(String messageId, String targetChatId) async {
-    try {
-      final message = currentMessages.firstWhere((m) => m.id == messageId);
+  void setReplyTo(MessageModel message) => replyingTo.value = message;
+  void cancelReply() => replyingTo.value = null;
 
-      await sendMessage(
-        chatId: targetChatId,
-        messageText: message.messageText,
-        attachmentUrl: message.attachmentUrl,
-      );
-
-      Get.snackbar(
-        'success'.tr,
-        'message_forwarded'.tr,
-        backgroundColor: Colors.green,
-        colorText: Colors.white,
-        icon: const Icon(Icons.check_circle, color: Colors.white),
-      );
-    } catch (e) {
-      print('❌ Forward message error: $e');
-    }
-  }
-
-  /// Set reply-to message
-  void setReplyTo(MessageModel message) {
-    replyingTo.value = message;
-  }
-
-  /// Cancel reply
-  void cancelReply() {
-    replyingTo.value = null;
-  }
-
-  /// Start editing
   void startEditing(MessageModel message) {
     editingMessageId.value = message.id;
     editingText.value = message.messageText ?? '';
   }
 
-  /// Cancel editing
   void cancelEditing() {
     editingMessageId.value = '';
     editingText.value = '';
@@ -422,29 +440,25 @@ class ChatController extends GetxController {
 
   // ==================== REACTIONS ====================
 
-  /// Add/remove reaction
   Future<void> toggleReaction(String messageId, String emoji) async {
     try {
       final userId = supabase.auth.currentUser?.id;
       if (userId == null) return;
 
-      // Check if user already reacted with this emoji
       final existing = await supabase
           .from('message_reactions')
           .select('id')
           .eq('message_id', messageId)
           .eq('user_id', userId)
-          .eq('emoji', emoji) // ✅ Aniq emoji tekshirish
+          .eq('emoji', emoji)
           .maybeSingle();
 
       if (existing != null) {
-        // Remove reaction
         await supabase
             .from('message_reactions')
             .delete()
             .eq('id', existing['id']);
       } else {
-        // Add reaction
         await supabase.from('message_reactions').insert({
           'message_id': messageId,
           'user_id': userId,
@@ -452,14 +466,12 @@ class ChatController extends GetxController {
         });
       }
 
-      // Reload reactions for this message
       await _loadReactionsForMessage(messageId);
     } catch (e) {
       print('❌ Toggle reaction error: $e');
     }
   }
 
-  /// Load reactions for all messages
   Future<void> _loadReactionsForMessages() async {
     try {
       final messageIds = currentMessages.map((m) => m.id).toList();
@@ -470,14 +482,32 @@ class ChatController extends GetxController {
           .select('*')
           .inFilter('message_id', messageIds);
 
+      final userIds = response.map((r) => r['user_id'] as String).toSet();
+      Map<String, Map<String, dynamic>> usersMap = {};
+
+      if (userIds.isNotEmpty) {
+        final usersData = await supabase
+            .from('users')
+            .select('id, username, first_name')
+            .inFilter('id', userIds.toList());
+
+        for (var user in usersData) {
+          usersMap[user['id']] = user;
+        }
+      }
+
       final Map<String, List<MessageReaction>> reactions = {};
 
       for (var data in response) {
-        final reaction = MessageReaction.fromJson(data);
-        if (!reactions.containsKey(reaction.messageId)) {
-          reactions[reaction.messageId] = [];
+        final userId = data['user_id'] as String;
+        final userData = usersMap[userId];
+
+        if (userData != null) {
+          data['users'] = userData;
         }
-        reactions[reaction.messageId]!.add(reaction);
+
+        final reaction = MessageReaction.fromJson(data);
+        reactions.putIfAbsent(reaction.messageId, () => []).add(reaction);
       }
 
       messageReactions.value = reactions;
@@ -486,7 +516,6 @@ class ChatController extends GetxController {
     }
   }
 
-  /// Load reactions for single message
   Future<void> _loadReactionsForMessage(String messageId) async {
     try {
       final response = await supabase
@@ -494,11 +523,33 @@ class ChatController extends GetxController {
           .select('*')
           .eq('message_id', messageId);
 
-      final reactions = response
-          .map((e) => MessageReaction.fromJson(e))
-          .toList();
+      final userIds = response.map((r) => r['user_id'] as String).toSet();
+      Map<String, Map<String, dynamic>> usersMap = {};
+
+      if (userIds.isNotEmpty) {
+        final usersData = await supabase
+            .from('users')
+            .select('id, username, first_name')
+            .inFilter('id', userIds.toList());
+
+        for (var user in usersData) {
+          usersMap[user['id']] = user;
+        }
+      }
+
+      final reactions = response.map((data) {
+        final userId = data['user_id'] as String;
+        final userData = usersMap[userId];
+
+        if (userData != null) {
+          data['users'] = userData;
+        }
+
+        return MessageReaction.fromJson(data);
+      }).toList();
+
       messageReactions[messageId] = reactions;
-      messageReactions.refresh(); // ✅ UI yangilansin
+      messageReactions.refresh();
     } catch (e) {
       print('❌ Load reaction error: $e');
     }
@@ -506,7 +557,6 @@ class ChatController extends GetxController {
 
   // ==================== READ STATUS ====================
 
-  /// Mark messages as read
   Future<void> _markMessagesAsRead(String chatId) async {
     try {
       final userId = supabase.auth.currentUser?.id;
@@ -519,15 +569,12 @@ class ChatController extends GetxController {
           .neq('sender_id', userId)
           .eq('is_read', false);
 
-      // Update local
       for (var message in currentMessages) {
         if (message.senderId != userId) {
           message.isRead = true;
         }
       }
       currentMessages.refresh();
-
-      // ✅ Chat ro'yxatidagi unread countni yangilash
       await loadChats();
     } catch (e) {
       print('❌ Mark read error: $e');
@@ -536,7 +583,6 @@ class ChatController extends GetxController {
 
   // ==================== LOCATION ====================
 
-  /// Get current location
   Future<Map<String, double>?> getCurrentLocation() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -600,8 +646,6 @@ class ChatController extends GetxController {
           ),
           callback: (payload) async {
             final newMessage = MessageModel.fromJson(payload.newRecord);
-
-            // ✅ Duplicate message qo'shmaslik
             if (!currentMessages.any((m) => m.id == newMessage.id)) {
               currentMessages.add(newMessage);
               await _markMessagesAsRead(chatId);
@@ -640,6 +684,22 @@ class ChatController extends GetxController {
         .subscribe();
   }
 
+  void _subscribeToReactions(String chatId) {
+    _reactionsSubscription?.unsubscribe();
+
+    _reactionsSubscription = supabase
+        .channel('reactions:$chatId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'message_reactions',
+          callback: (payload) async {
+            await _loadReactionsForMessages();
+          },
+        )
+        .subscribe();
+  }
+
   void _subscribeToChatsUpdates() {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) return;
@@ -650,7 +710,9 @@ class ChatController extends GetxController {
           event: PostgresChangeEvent.all,
           schema: 'public',
           table: 'chats',
-          callback: (payload) => loadChats(),
+          callback: (payload) {
+            loadChats();
+          },
         )
         .subscribe();
   }
@@ -662,11 +724,8 @@ class ChatController extends GetxController {
     replyingTo.value = null;
     editingMessageId.value = '';
     _messagesSubscription?.unsubscribe();
+    _reactionsSubscription?.unsubscribe();
   }
-}
-
-extension on PostgrestList {
-  get count => null;
 }
 
 // ==================== MESSAGE REACTION MODEL ====================
@@ -677,6 +736,7 @@ class MessageReaction {
   final String userId;
   final String emoji;
   final DateTime createdAt;
+  String? userName;
 
   MessageReaction({
     required this.id,
@@ -684,15 +744,23 @@ class MessageReaction {
     required this.userId,
     required this.emoji,
     required this.createdAt,
+    this.userName,
   });
 
   factory MessageReaction.fromJson(Map<String, dynamic> json) {
+    String? name;
+    if (json['users'] != null) {
+      final user = json['users'] as Map<String, dynamic>;
+      name = user['first_name'] ?? user['username'];
+    }
+
     return MessageReaction(
       id: json['id'],
       messageId: json['message_id'],
       userId: json['user_id'],
       emoji: json['emoji'],
       createdAt: DateTime.parse(json['created_at']),
+      userName: name,
     );
   }
 }

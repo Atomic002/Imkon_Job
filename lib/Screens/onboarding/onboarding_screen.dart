@@ -30,6 +30,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       title: '',
       description: '',
     ),
+    OnboardingData(
+      image: 'assets/images/Splash_images/image3.png',
+      title: '',
+      description: '',
+    ),
   ];
 
   @override

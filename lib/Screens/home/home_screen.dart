@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_2/Widgets/post_card.dart';
+import 'package:flutter_application_2/controller/home_controller.dart';
+import 'package:flutter_application_2/controller/chat_controller.dart';
 import 'package:get/get.dart';
-import 'package:version1/Widgets/post_card.dart';
-import 'package:version1/controller/home_controller.dart';
 import '../../config/constants.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -9,7 +10,10 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.put(HomeController());
+    // ✅ Get.find() - agar mavjud bo'lsa topadi, yo'qsa xato
+    // ✅ Lekin biz ularni Routes'da init qilamiz
+    final controller = Get.put(HomeController(), tag: 'home');
+    final chatController = Get.put(ChatController(), tag: 'chat');
 
     return Scaffold(
       body: SafeArea(
@@ -18,12 +22,10 @@ class HomeScreen extends StatelessWidget {
             _buildAppBar(controller),
             Expanded(
               child: Obx(() {
-                // Loading state
                 if (controller.isLoading.value && controller.posts.isEmpty) {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                // Empty state
                 if (controller.posts.isEmpty) {
                   return RefreshIndicator(
                     onRefresh: controller.refreshPosts,
@@ -69,7 +71,6 @@ class HomeScreen extends StatelessWidget {
                   );
                 }
 
-                // Posts PageView - Simple vertical scroll
                 return PageView.builder(
                   controller: controller.pageController,
                   scrollDirection: Axis.vertical,
@@ -86,9 +87,7 @@ class HomeScreen extends StatelessWidget {
                       post: post,
                       onLike: () => controller.toggleLike(post.id),
                       isLiked: controller.likedPosts[post.id] ?? false,
-                      onTap: () {
-                        _showPostDetails(context, post, controller);
-                      },
+                      onTap: () => _showPostDetails(context, post, controller),
                     );
                   },
                 );
@@ -97,11 +96,12 @@ class HomeScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNav(context),
+      bottomNavigationBar: _buildBottomNav(context, chatController),
     );
   }
 
-  // ==================== SHOW POST DETAILS ====================
+  // ... qolgan kodlar bir xil ...
+
   void _showPostDetails(
     BuildContext context,
     dynamic post,
@@ -119,7 +119,6 @@ class HomeScreen extends StatelessWidget {
         ),
         child: Column(
           children: [
-            // Handle bar
             Container(
               margin: const EdgeInsets.symmetric(vertical: 12),
               width: 40,
@@ -129,14 +128,12 @@ class HomeScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            // Content
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Title
                     Text(
                       post.title,
                       style: const TextStyle(
@@ -145,13 +142,11 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // Full description and details
                     Text(
                       post.description,
                       style: const TextStyle(fontSize: 15, height: 1.5),
                     ),
                     const SizedBox(height: 24),
-                    // Close button
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
@@ -176,7 +171,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // ==================== APP BAR ====================
   Widget _buildAppBar(HomeController controller) {
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -214,7 +208,6 @@ class HomeScreen extends StatelessWidget {
               'assets/images/Logotip/image.png',
               fit: BoxFit.contain,
               errorBuilder: (context, error, stackTrace) {
-                // Agar rasm topilmasa, default icon
                 return const Icon(
                   Icons.work_rounded,
                   size: 24,
@@ -224,7 +217,6 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          // JobHub text
           const Text(
             'Imknon Job',
             style: TextStyle(
@@ -236,35 +228,20 @@ class HomeScreen extends StatelessWidget {
           const Spacer(),
           IconButton(
             icon: const Icon(Icons.refresh_rounded, size: 26),
-            onPressed: () {
-              controller.refreshPosts();
-            },
+            onPressed: controller.refreshPosts,
             color: AppConstants.textSecondary,
             tooltip: 'Yangilash',
           ),
-          // Notifications
           Stack(
             children: [
               IconButton(
                 icon: const Icon(Icons.notifications_outlined, size: 28),
-                onPressed: () {
-                  try {
-                    Get.toNamed('/notifications');
-                  } catch (e) {
-                    Get.snackbar(
-                      'Xato',
-                      'Bildirishnomalar sahifasi topilmadi',
-                      backgroundColor: Colors.orange,
-                    );
-                  }
-                },
+                onPressed: () => Get.toNamed('/notifications'),
                 color: AppConstants.textSecondary,
               ),
               Obx(() {
                 final count = controller.notificationCount.value;
-                if (count == 0) {
-                  return const SizedBox.shrink();
-                }
+                if (count == 0) return const SizedBox.shrink();
                 return Positioned(
                   right: 8,
                   top: 8,
@@ -297,8 +274,8 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // ==================== BOTTOM NAV ====================
-  Widget _buildBottomNav(BuildContext context) {
+  // ✅ BOTTOM NAV WITH CHAT BADGE
+  Widget _buildBottomNav(BuildContext context, ChatController chatController) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -332,53 +309,21 @@ class HomeScreen extends StatelessWidget {
                 icon: Icons.search_rounded,
                 label: 'search'.tr,
                 isActive: false,
-                onTap: () {
-                  try {
-                    Get.toNamed('/search');
-                  } catch (e) {
-                    Get.snackbar(
-                      'Xato',
-                      'Qidiruv sahifasi topilmadi',
-                      backgroundColor: Colors.orange,
-                      colorText: Colors.white,
-                    );
-                  }
-                },
+                onTap: () => Get.toNamed('/search'),
               ),
               _buildAddButton(),
-              _buildNavItem(
+              _buildNavItemWithBadge(
                 icon: Icons.chat_bubble_rounded,
                 label: 'messages'.tr,
                 isActive: false,
-                onTap: () {
-                  try {
-                    Get.toNamed('/chat');
-                  } catch (e) {
-                    Get.snackbar(
-                      'Xato',
-                      'Chat sahifasi topilmadi',
-                      backgroundColor: Colors.orange,
-                      colorText: Colors.white,
-                    );
-                  }
-                },
+                onTap: () => Get.toNamed('/chat'),
+                badgeCount: chatController.totalUnreadCount,
               ),
               _buildNavItem(
                 icon: Icons.person_rounded,
                 label: 'profile'.tr,
                 isActive: false,
-                onTap: () {
-                  try {
-                    Get.toNamed('/profile');
-                  } catch (e) {
-                    Get.snackbar(
-                      'Xato',
-                      'Profil sahifasi topilmadi',
-                      backgroundColor: Colors.orange,
-                      colorText: Colors.white,
-                    );
-                  }
-                },
+                onTap: () => Get.toNamed('/profile'),
               ),
             ],
           ),
@@ -387,7 +332,6 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // ==================== NAV ITEM ====================
   Widget _buildNavItem({
     required IconData icon,
     required String label,
@@ -429,7 +373,85 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  // ==================== ADD BUTTON ====================
+  // ✅ NAV ITEM WITH BADGE (Chat uchun)
+  Widget _buildNavItemWithBadge({
+    required IconData icon,
+    required String label,
+    required bool isActive,
+    required VoidCallback onTap,
+    required RxInt badgeCount,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppConstants.radiusLarge),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    icon,
+                    color: isActive
+                        ? AppConstants.primaryColor
+                        : AppConstants.textSecondary,
+                    size: 26,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: isActive
+                          ? FontWeight.w600
+                          : FontWeight.normal,
+                      color: isActive
+                          ? AppConstants.primaryColor
+                          : AppConstants.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+              // ✅ UNREAD BADGE
+              Obx(() {
+                final count = badgeCount.value;
+                if (count == 0) return const SizedBox.shrink();
+                return Positioned(
+                  right: -4,
+                  top: -4,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 18,
+                      minHeight: 18,
+                    ),
+                    child: Text(
+                      count > 99 ? '99+' : '$count',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildAddButton() {
     return Container(
       decoration: BoxDecoration(
@@ -446,18 +468,7 @@ class HomeScreen extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () {
-            try {
-              Get.toNamed('/create_post');
-            } catch (e) {
-              Get.snackbar(
-                'Xato',
-                'E\'lon yaratish sahifasi topilmadi',
-                backgroundColor: Colors.orange,
-                colorText: Colors.white,
-              );
-            }
-          },
+          onTap: () => Get.toNamed('/create_post'),
           borderRadius: BorderRadius.circular(AppConstants.radiusLarge),
           child: const Padding(
             padding: EdgeInsets.all(12),

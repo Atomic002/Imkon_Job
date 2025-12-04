@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_application_2/Models/job_post.dart';
+import 'package:flutter_application_2/Models/user_model.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:version1/Models/job_post.dart';
-import 'package:version1/Models/user_model.dart';
 
 class ProfileController extends GetxController {
   final user = Rxn<UserModel>();

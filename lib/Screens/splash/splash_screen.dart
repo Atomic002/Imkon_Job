@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_2/Services/connective_service.dart';
+import 'package:flutter_application_2/controller/auth_controller.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:version1/controller/auth_controller.dart';
 import '../../config/constants.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -17,12 +18,14 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
+  bool _hasNavigated = false;
+  Worker? _connectivityWorker; // ✅ Worker to'g'ri dispose qilish uchun
 
   @override
   void initState() {
     super.initState();
     _setupAnimation();
-    _checkAndNavigate();
+    _initializeApp();
   }
 
   void _setupAnimation() {
@@ -44,55 +47,160 @@ class _SplashScreenState extends State<SplashScreen>
     _controller.forward();
   }
 
-  // ✅ TO'G'RI NAVIGATION LOGIC
-  Future<void> _checkAndNavigate() async {
+  /// ✅ ASOSIY INITIALIZATION
+  Future<void> _initializeApp() async {
     try {
-      // Animation uchun kutish
+      print('🚀 ===== SPLASH START =====');
+
+      // 1️⃣ Minimum splash time (animation uchun)
       await Future.delayed(const Duration(seconds: 2));
 
       if (!mounted) return;
 
-      final prefs = await SharedPreferences.getInstance();
+      // 2️⃣ ConnectivityService tekshirish
+      if (!Get.isRegistered<ConnectivityService>()) {
+        print('⚠️ ConnectivityService not found - waiting...');
+        await Future.delayed(const Duration(milliseconds: 500));
 
-      // 1️⃣ Onboarding ko'rilganmi tekshirish
-      final onboardingShown = prefs.getBool('onboarding_shown') ?? false;
-
-      if (!onboardingShown) {
-        // Birinchi marta - Onboarding ga o'tish
-        print('📱 First time user - showing onboarding');
-        Get.offAllNamed('/onboarding');
-        return;
+        if (!Get.isRegistered<ConnectivityService>()) {
+          print('❌ ConnectivityService still not available');
+          _navigateToRegister();
+          return;
+        }
       }
 
-      // 2️⃣ AuthController initialize
-      await Get.putAsync<AuthController>(() async {
-        return AuthController();
-      });
+      final connectivityService = Get.find<ConnectivityService>();
+      print('✅ ConnectivityService found');
 
-      // 3️⃣ User logged in yoki yo'qligini tekshirish
-      final supabase = Supabase.instance.client;
-      final user = supabase.auth.currentUser;
-
-      if (user != null) {
-        // Logged in - Home ga o'tish
-        print('✅ User logged in: ${user.email}');
-        Get.offAllNamed('/home');
+      // 3️⃣ Internet bor yoki yo'qligini tekshirish
+      if (connectivityService.isConnected.value) {
+        print('✅ Internet available - proceeding...');
+        await _proceedToNextScreen();
       } else {
-        // Not logged in - Register ga o'tish
-        print('❌ User not logged in - showing register');
-        Get.offAllNamed('/register'); // ✅ REGISTER GA O'TADI
+        print('⚠️ No internet - waiting for connection...');
+        _waitForInternet(connectivityService);
       }
-    } catch (e) {
-      print('Navigation error: $e');
-      if (mounted) {
-        // Error bo'lsa Register ga o'tish
-        Get.offAllNamed('/register'); // ✅ REGISTER GA O'TADI
+    } catch (e, stackTrace) {
+      print('❌ Splash initialization error: $e');
+      print('StackTrace: $stackTrace');
+
+      if (mounted && !_hasNavigated) {
+        _navigateToRegister();
       }
     }
   }
 
+  /// ✅ Internet kutish (faqat bir marta navigate)
+  void _waitForInternet(ConnectivityService connectivityService) {
+    if (_hasNavigated) return;
+
+    _connectivityWorker = ever(connectivityService.isConnected, (isConnected) {
+      if (isConnected && !_hasNavigated && mounted) {
+        print('✅ Internet restored - proceeding...');
+        _connectivityWorker?.dispose(); // ✅ Worker'ni to'xtatish
+        _proceedToNextScreen();
+      }
+    });
+  }
+
+  /// ✅ Keyingi screen'ga o'tish
+  Future<void> _proceedToNextScreen() async {
+    if (_hasNavigated || !mounted) return;
+    _hasNavigated = true;
+
+    try {
+      print('📱 Checking navigation route...');
+
+      // 1️⃣ ONBOARDING TEKSHIRISH
+      final prefs = await SharedPreferences.getInstance();
+      final onboardingShown = prefs.getBool('onboarding_shown') ?? false;
+
+      if (!onboardingShown) {
+        print('📱 First launch - showing onboarding');
+        _navigateToOnboarding();
+        return;
+      }
+
+      // 2️⃣ AuthController'ni init qilish (agar hali init qilinmagan bo'lsa)
+      if (!Get.isRegistered<AuthController>()) {
+        print('🔐 Initializing AuthController...');
+        Get.put(AuthController()); // ✅ Oddiy put (async emas!)
+        await Future.delayed(const Duration(milliseconds: 300));
+      }
+
+      // 3️⃣ AUTH TEKSHIRISH
+      final supabase = Supabase.instance.client;
+      final session = supabase.auth.currentSession;
+
+      if (session != null) {
+        final userId = session.user.id;
+        print('✅ Active session found: $userId');
+
+        // User active ekanligini tekshirish
+        try {
+          final userData = await supabase
+              .from('users')
+              .select('is_active')
+              .eq('id', userId)
+              .single();
+
+          if (userData['is_active'] == true) {
+            print('✅ User is active - navigating to home');
+            _navigateToHome();
+          } else {
+            print('⚠️ User is inactive - logging out');
+            await supabase.auth.signOut();
+            _navigateToRegister();
+          }
+        } catch (e) {
+          print('⚠️ User check error: $e');
+          _navigateToHome(); // Xato bo'lsa ham home'ga o'tish
+        }
+      } else {
+        print('❌ No active session - showing register');
+        _navigateToRegister();
+      }
+    } catch (e, stackTrace) {
+      print('❌ Navigation error: $e');
+      print('StackTrace: $stackTrace');
+
+      if (mounted && !_hasNavigated) {
+        _navigateToRegister();
+      }
+    }
+  }
+
+  /// ✅ Navigation metodlari
+  void _navigateToOnboarding() {
+    if (!mounted) return;
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        Get.offAllNamed('/onboarding');
+      }
+    });
+  }
+
+  void _navigateToHome() {
+    if (!mounted) return;
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        Get.offAllNamed('/home');
+      }
+    });
+  }
+
+  void _navigateToRegister() {
+    if (!mounted) return;
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        Get.offAllNamed('/register');
+      }
+    });
+  }
+
   @override
   void dispose() {
+    _connectivityWorker?.dispose(); // ✅ Worker'ni tozalash
     _controller.dispose();
     super.dispose();
   }
@@ -113,6 +221,7 @@ class _SplashScreenState extends State<SplashScreen>
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      // Logo
                       Container(
                         height: 120,
                         width: 120,
@@ -136,7 +245,6 @@ class _SplashScreenState extends State<SplashScreen>
                           'assets/images/Logotip/image.png',
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) {
-                            // Agar rasm topilmasa, default icon
                             return const Icon(
                               Icons.work_rounded,
                               size: 60,
@@ -145,7 +253,10 @@ class _SplashScreenState extends State<SplashScreen>
                           },
                         ),
                       ),
+
                       const SizedBox(height: 30),
+
+                      // App name
                       const Text(
                         'Imkon Job',
                         style: TextStyle(
@@ -155,7 +266,10 @@ class _SplashScreenState extends State<SplashScreen>
                           letterSpacing: 1.5,
                         ),
                       ),
+
                       const SizedBox(height: 10),
+
+                      // Tagline
                       const Text(
                         'Ish topish oson bo\'ldi!',
                         style: TextStyle(
@@ -164,6 +278,38 @@ class _SplashScreenState extends State<SplashScreen>
                           fontWeight: FontWeight.w300,
                         ),
                       ),
+
+                      const SizedBox(height: 30),
+
+                      // Loading indicator
+                      const SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 3,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Status text
+                      Obx(() {
+                        final connectivityService =
+                            Get.find<ConnectivityService>();
+
+                        return Text(
+                          connectivityService.isConnected.value
+                              ? 'Yuklanmoqda...'
+                              : 'Internet kutilmoqda...',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.white70,
+                          ),
+                        );
+                      }),
                     ],
                   ),
                 ),

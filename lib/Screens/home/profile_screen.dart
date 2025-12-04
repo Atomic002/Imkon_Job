@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_2/controller/Profile_Controller.dart';
+import 'package:flutter_application_2/controller/auth_controller.dart';
+import 'package:flutter_application_2/controller/language_controller.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:version1/controller/Profile_Controller.dart';
-import 'package:version1/controller/auth_controller.dart';
-import 'package:version1/controller/language_controller.dart';
+
 import '../../config/constants.dart';
 import 'dart:io';
 

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:carousel_slider/carousel_slider.dart';
+import 'package:flutter_application_2/Screens/home/user_profile_screen.dart';
 import 'package:get/get.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:share_plus/share_plus.dart'; // ✅ Yangi import
-import 'package:version1/Screens/home/user_profile_screen.dart';
 import '../Models/job_post.dart';
 import '../config/constants.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -206,6 +206,8 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
                       _buildLocationCategorySection(),
                       const SizedBox(height: 12),
                       _buildSalarySection(),
+                      const SizedBox(height: 16),
+                      _buildPhoneButton(),
                       const SizedBox(height: 16),
                       _buildStatsSection(),
                     ],
@@ -688,6 +690,8 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
   }
 
   // ✅ YANGILANGAN STATS SECTION (Share bilan)
+  // ✅ _buildStatsSection() dan KEYINGI QISM:
+
   Widget _buildStatsSection() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -749,7 +753,6 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
                 ),
               ),
               const SizedBox(width: 16),
-              // ✅ SHARE BUTTON
               Material(
                 color: Colors.transparent,
                 child: InkWell(
@@ -794,6 +797,21 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
           ),
         ),
       ],
+    );
+  }
+
+  // ✅ TELEFON RAQAM BUTTON (YANGI!)
+  // ✅ TO'G'RI TELEFON QO'NG'IROQ VERSIYASI
+
+  Widget _buildPhoneButton() {
+    if (widget.post.phoneNumber == null || widget.post.phoneNumber!.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    // ✅ ALOHIDA WIDGET SIFATIDA QAYTARAMIZ
+    return PhoneButton(
+      key: ValueKey('phone_${widget.post.id}'), // ✅ Unique key
+      phoneNumber: widget.post.phoneNumber!,
     );
   }
 
@@ -1392,7 +1410,7 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
         const SizedBox(height: 24),
         _buildDetailedStatsRow(),
 
-        // ✅ TELEFON RAQAM VA INFO
+        // ✅ TELEFON RAQAM BUTTON - TO'G'RILANGAN
         if (widget.post.phoneNumber != null &&
             widget.post.phoneNumber!.isNotEmpty) ...[
           const SizedBox(height: 16),
@@ -1402,54 +1420,88 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
             child: OutlinedButton.icon(
               onPressed: () async {
                 try {
-                  final phoneUrl = 'tel:${widget.post.phoneNumber}';
-                  if (await canLaunchUrl(Uri.parse(phoneUrl))) {
-                    await launchUrl(Uri.parse(phoneUrl));
-                  } else {
+                  final phoneNumber = widget.post.phoneNumber!;
+                  final Uri phoneUri = Uri(scheme: 'tel', path: phoneNumber);
+
+                  print('📞 Bottom Sheet - Calling: $phoneUri');
+
+                  // ✅ canLaunchUrl ni o'tkazib yuborish - to'g'ridan launchUrl
+                  try {
+                    final success = await launchUrl(
+                      phoneUri,
+                      mode: LaunchMode.externalApplication,
+                    );
+
+                    if (success) {
+                      HapticFeedback.lightImpact();
+
+                      // ✅ Snackbar ko'rsatish (ixtiyoriy)
+                      if (mounted) {
+                        Get.snackbar(
+                          '✅ Muvaffaqiyatli',
+                          'Telefon ilovasiga o\'tildi',
+                          snackPosition: SnackPosition.TOP,
+                          backgroundColor: Colors.green,
+                          colorText: Colors.white,
+                          duration: const Duration(seconds: 2),
+                          margin: const EdgeInsets.all(16),
+                        );
+                      }
+                    } else {
+                      throw Exception('Launch failed');
+                    }
+                  } catch (launchError) {
+                    print('⚠️ Launch error: $launchError');
+
+                    // ✅ FALLBACK - Raqamni clipboard'ga copy qilish
+                    await Clipboard.setData(ClipboardData(text: phoneNumber));
+
+                    if (mounted) {
+                      Get.snackbar(
+                        'Telefon raqam nusxalandi',
+                        phoneNumber,
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: Colors.blue,
+                        colorText: Colors.white,
+                        icon: const Icon(
+                          Icons.content_copy,
+                          color: Colors.white,
+                        ),
+                        duration: const Duration(seconds: 3),
+                      );
+                    }
+                  }
+                } catch (e) {
+                  print('❌ Phone call error: $e');
+
+                  if (mounted) {
                     Get.snackbar(
-                      'error'.tr,
-                      'phone_call_error'.tr,
+                      'Xato',
+                      'Telefon qilishda muammo: ${e.toString()}',
                       snackPosition: SnackPosition.BOTTOM,
                       backgroundColor: Colors.red.withOpacity(0.9),
                       colorText: Colors.white,
-                      icon: const Icon(
-                        Icons.error_outline,
-                        color: Colors.white,
-                      ),
+                      duration: const Duration(seconds: 2),
                     );
                   }
-                } catch (e) {
-                  print('Phone call error: $e');
-                  Get.snackbar(
-                    'error'.tr,
-                    'phone_call_error'.tr,
-                    snackPosition: SnackPosition.BOTTOM,
-                    backgroundColor: Colors.red.withOpacity(0.9),
-                    colorText: Colors.white,
-                  );
                 }
               },
               icon: const Icon(Icons.phone, color: Colors.green, size: 22),
               label: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    widget.post.phoneNumber!,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.green,
+                  Flexible(
+                    child: Text(
+                      widget.post.phoneNumber!,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.green,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    '(${_formatPhoneNumber(widget.post.phoneNumber!)})',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.green.shade600,
-                    ),
-                  ),
                 ],
               ),
               style: OutlinedButton.styleFrom(
@@ -1482,7 +1534,7 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'contact_via_chat'.tr,
+                    'Telefon raqam ko\'rsatilmagan. Chat orqali bog\'laning.',
                     style: TextStyle(
                       fontSize: 13,
                       color: Colors.blue.shade900,
@@ -1501,16 +1553,6 @@ ${widget.post.description.length > 150 ? widget.post.description.substring(0, 15
         const SizedBox(height: 16),
       ],
     );
-  }
-
-  String _formatPhoneNumber(String phone) {
-    // +998901234567 => 90 123 45 67
-    final digitsOnly = phone.replaceAll(RegExp(r'[^\d]'), '');
-    if (digitsOnly.length == 12 && digitsOnly.startsWith('998')) {
-      final localNumber = digitsOnly.substring(3);
-      return '${localNumber.substring(0, 2)} ${localNumber.substring(2, 5)} ${localNumber.substring(5, 7)} ${localNumber.substring(7)}';
-    }
-    return phone;
   }
 
   Widget _buildApplyButton(BuildContext context) {
@@ -1758,6 +1800,121 @@ class _FullScreenImageViewerState extends State<FullScreenImageViewer> {
               ),
             ),
         ],
+      ),
+    );
+  }
+}
+
+class PhoneButton extends StatefulWidget {
+  final String phoneNumber;
+
+  const PhoneButton({Key? key, required this.phoneNumber}) : super(key: key);
+
+  @override
+  State<PhoneButton> createState() => _PhoneButtonState();
+}
+
+class _PhoneButtonState extends State<PhoneButton> {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () async {
+            try {
+              final Uri phoneUri = Uri(scheme: 'tel', path: widget.phoneNumber);
+
+              print('📞 Calling: $phoneUri');
+
+              try {
+                final success = await launchUrl(
+                  phoneUri,
+                  mode: LaunchMode.externalApplication,
+                );
+
+                if (success) {
+                  HapticFeedback.lightImpact();
+                } else {
+                  throw Exception('Launch failed');
+                }
+              } catch (launchError) {
+                await Clipboard.setData(
+                  ClipboardData(text: widget.phoneNumber),
+                );
+
+                if (mounted) {
+                  Get.snackbar(
+                    'Telefon raqam nusxalandi',
+                    widget.phoneNumber,
+                    snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: Colors.blue,
+                    colorText: Colors.white,
+                    icon: const Icon(Icons.content_copy, color: Colors.white),
+                    duration: const Duration(seconds: 2),
+                  );
+                }
+              }
+            } catch (e) {
+              print('❌ Phone call error: $e');
+            }
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.green.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: Colors.green.withOpacity(0.3),
+                width: 1.5,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.phone, color: Colors.white, size: 16),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        widget.phoneNumber,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                      Text(
+                        'Telefon qilish',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.green.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 14,
+                  color: Colors.green.shade700,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

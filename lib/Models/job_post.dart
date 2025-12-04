@@ -131,6 +131,15 @@ class JobPost {
       }
     }
 
+    String? phoneNumber;
+    if (json['phone_number'] != null) {
+      phoneNumber = json['phone_number'].toString().trim();
+      if (phoneNumber.isEmpty) phoneNumber = null;
+    }
+    if (phoneNumber != null && phoneNumber.isNotEmpty) {
+      print('📞 Phone found: $phoneNumber for post: ${json['title']}');
+    }
+
     // 🐛 DEBUG - Agar kerak bo'lsa commentdan chiqaring
     // print('📊 Category: $categoryName, Sub: $subCategoryName');
     // print('🔍 Raw sub_categories: ${json['sub_categories']}');

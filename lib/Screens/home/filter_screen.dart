@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
+import 'package:flutter_application_2/Widgets/filter_post_card.dart';
+import 'package:flutter_application_2/config/constants.dart';
+import 'package:flutter_application_2/controller/filter_controller.dart';
 import 'package:get/get.dart';
-import 'package:version1/Widgets/filter_post_card.dart';
-import 'package:version1/config/constants.dart';
-import 'package:version1/controller/filter_controller.dart';
+import 'package:flutter/material.dart';
 
 class FilterScreen extends StatelessWidget {
   const FilterScreen({super.key});
@@ -14,7 +14,7 @@ class FilterScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('Qidiruv va Filtr'),
+        title: Text('filter'.tr), // ✅ TARJIMA
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: AppConstants.textPrimary,
@@ -22,14 +22,14 @@ class FilterScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.filter_list_rounded),
             onPressed: () => _showFilterBottomSheet(context, controller),
-            tooltip: 'Filtrlarni sozlash',
+            tooltip: 'filter_settings'.tr, // ✅ TARJIMA
           ),
           Obx(() {
             if (controller.hasActiveFilters()) {
               return IconButton(
                 icon: const Icon(Icons.refresh_rounded, color: Colors.red),
                 onPressed: controller.resetFilters,
-                tooltip: 'Filtrlarni tozalash',
+                tooltip: 'clear_filters'.tr, // ✅ TARJIMA
               );
             }
             return const SizedBox.shrink();
@@ -48,7 +48,7 @@ class FilterScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Qidirilmoqda...',
+                  'searching'.tr, // ✅ TARJIMA
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.grey[600],
@@ -80,9 +80,9 @@ class FilterScreen extends StatelessWidget {
             onPressed: () => _showFilterBottomSheet(context, controller),
             backgroundColor: AppConstants.primaryColor,
             icon: const Icon(Icons.tune, color: Colors.white),
-            label: const Text(
-              'Filtr',
-              style: TextStyle(
+            label: Text(
+              'filter'.tr, // ✅ TARJIMA
+              style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
@@ -127,9 +127,9 @@ class FilterScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Qidiruv Filtri',
-                    style: TextStyle(
+                  Text(
+                    'filter_settings'.tr, // ✅ TARJIMA
+                    style: const TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: AppConstants.textPrimary,
@@ -155,7 +155,7 @@ class FilterScreen extends StatelessWidget {
                       () => TextField(
                         controller: controller.searchController,
                         decoration: InputDecoration(
-                          hintText: 'E\'lon nomini kiriting...',
+                          hintText: 'search_by_title'.tr, // ✅ TARJIMA
                           hintStyle: TextStyle(color: Colors.grey[400]),
                           prefixIcon: const Icon(
                             Icons.search_rounded,
@@ -194,7 +194,10 @@ class FilterScreen extends StatelessWidget {
                     const SizedBox(height: 28),
 
                     // Post Type selector
-                    _buildSectionTitle('📋 E\'lon Turi', required: true),
+                    _buildSectionTitle(
+                      'post_type_filter'.tr,
+                      required: true,
+                    ), // ✅ TARJIMA
                     const SizedBox(height: 12),
                     Obx(() => _buildPostTypeSelector(controller)),
                     const SizedBox(height: 28),
@@ -207,11 +210,11 @@ class FilterScreen extends StatelessWidget {
                           children: [
                             // Category
                             _buildExpandableSection(
-                              title: 'Kategoriya',
+                              title: 'category_filter'.tr, // ✅ TARJIMA
                               icon: Icons.category_rounded,
                               value:
                                   controller.selectedCategory.value?['name'] ??
-                                  'Tanlash',
+                                  'select_option'.tr, // ✅ TARJIMA
                               isSelected:
                                   controller.selectedCategory.value != null,
                               onTap: () =>
@@ -228,13 +231,13 @@ class FilterScreen extends StatelessWidget {
                               Column(
                                 children: [
                                   _buildExpandableSection(
-                                    title: 'Sub-kategoriya',
+                                    title: 'subcategory_filter'.tr, // ✅ TARJIMA
                                     icon: Icons.subdirectory_arrow_right,
                                     value:
                                         controller
                                             .selectedSubCategory
                                             .value?['name'] ??
-                                        'Tanlash',
+                                        'select_option'.tr, // ✅ TARJIMA
                                     isSelected:
                                         controller.selectedSubCategory.value !=
                                         null,
@@ -254,7 +257,7 @@ class FilterScreen extends StatelessWidget {
 
                             // Location
                             _buildExpandableSection(
-                              title: 'Manzil',
+                              title: 'location_filter'.tr, // ✅ TARJIMA
                               icon: Icons.location_on_rounded,
                               value: controller.getLocationDisplay(),
                               isSelected:
@@ -278,7 +281,9 @@ class FilterScreen extends StatelessWidget {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            _buildSectionTitle('🏷️ Aktiv Filtrlar'),
+                            _buildSectionTitle(
+                              'active_filters'.tr,
+                            ), // ✅ TARJIMA
                             const SizedBox(height: 12),
                             _buildActiveFiltersChips(controller),
                             const SizedBox(height: 24),
@@ -319,18 +324,18 @@ class FilterScreen extends StatelessWidget {
                                       color: Colors.white,
                                     ),
                                   )
-                                : const Row(
+                                : Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Icon(
+                                      const Icon(
                                         Icons.search,
                                         color: Colors.white,
                                         size: 24,
                                       ),
-                                      SizedBox(width: 12),
+                                      const SizedBox(width: 12),
                                       Text(
-                                        'Qidirish',
-                                        style: TextStyle(
+                                        'search_button'.tr, // ✅ TARJIMA
+                                        style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
@@ -350,14 +355,17 @@ class FilterScreen extends StatelessWidget {
                             color: Colors.orange.withOpacity(0.3),
                           ),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
-                            Icon(Icons.info_outline, color: Colors.orange),
-                            SizedBox(width: 12),
+                            const Icon(
+                              Icons.info_outline,
+                              color: Colors.orange,
+                            ),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Text(
-                                'Qidirish uchun e\'lon turini tanlang',
-                                style: TextStyle(
+                                'tap_filter_button'.tr, // ✅ TARJIMA
+                                style: const TextStyle(
                                   color: Colors.orange,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -388,7 +396,7 @@ class FilterScreen extends StatelessWidget {
                 controller,
                 'employee_needed',
                 '💼',
-                'Ishchi kerak',
+                'employee_needed_short'.tr, // ✅ TARJIMA
                 controller.selectedPostType.value == 'employee_needed',
               ),
             ),
@@ -398,7 +406,7 @@ class FilterScreen extends StatelessWidget {
                 controller,
                 'job_needed',
                 '👤',
-                'Ish kerak',
+                'job_needed_short'.tr, // ✅ TARJIMA
                 controller.selectedPostType.value == 'job_needed',
               ),
             ),
@@ -412,7 +420,7 @@ class FilterScreen extends StatelessWidget {
                 controller,
                 'one_time_job',
                 '🛠️',
-                'Bir martalik ish',
+                'one_time_short'.tr, // ✅ TARJIMA
                 controller.selectedPostType.value == 'one_time_job',
               ),
             ),
@@ -422,7 +430,7 @@ class FilterScreen extends StatelessWidget {
                 controller,
                 'service_offering',
                 '🤝',
-                'Xizmat',
+                'service_offering_short'.tr, // ✅ TARJIMA
                 controller.selectedPostType.value == 'service_offering',
               ),
             ),
@@ -680,8 +688,6 @@ class FilterScreen extends StatelessWidget {
   }
 
   // ✅ RESULTS LIST
-  // FilterScreen ichidagi _buildResultsList funksiyasini shunday o'zgartiring:
-
   Widget _buildResultsList(FilterController controller) {
     return Column(
       children: [
@@ -694,7 +700,7 @@ class FilterScreen extends StatelessWidget {
             children: [
               Obx(
                 () => Text(
-                  '${controller.filteredPosts.length} ta e\'lon topildi',
+                  '${controller.filteredPosts.length} ${'no_results_found'.tr}', // ✅ TARJIMA (yaxshiroq versiya kerak)
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -718,7 +724,6 @@ class FilterScreen extends StatelessWidget {
             child: ListView.separated(
               padding: const EdgeInsets.all(16),
               itemCount: controller.filteredPosts.length,
-              // ✅ ASOSIY TUZATISH: itemExtent qo'shildi
               separatorBuilder: (context, index) => const SizedBox(height: 16),
               itemBuilder: (context, index) {
                 final post = controller.filteredPosts[index];
@@ -756,9 +761,9 @@ class FilterScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Qidiruv Boshlang!',
-              style: TextStyle(
+            Text(
+              'ready_to_search'.tr, // ✅ TARJIMA
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: AppConstants.textPrimary,
@@ -766,7 +771,7 @@ class FilterScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'E\'lonlarni qidirish uchun\nfiltrlarni sozlang',
+              'tap_filter_button'.tr, // ✅ TARJIMA
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
@@ -784,9 +789,9 @@ class FilterScreen extends StatelessWidget {
                   Icons.filter_list_rounded,
                   color: Colors.white,
                 ),
-                label: const Text(
-                  'Filtrlarni Ochish',
-                  style: TextStyle(
+                label: Text(
+                  'open_filter'.tr, // ✅ TARJIMA
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -831,9 +836,9 @@ class FilterScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Natija Topilmadi',
-              style: TextStyle(
+            Text(
+              'no_results_found'.tr, // ✅ TARJIMA
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: AppConstants.textPrimary,
@@ -841,7 +846,7 @@ class FilterScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Boshqa filtrlarni\nsinab ko\'ring',
+              'try_different_filters'.tr, // ✅ TARJIMA
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
@@ -858,9 +863,9 @@ class FilterScreen extends StatelessWidget {
                     child: OutlinedButton.icon(
                       onPressed: controller.resetFilters,
                       icon: const Icon(Icons.refresh_rounded),
-                      label: const Text(
-                        'Tozalash',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                      label: Text(
+                        'clear_filters'.tr, // ✅ TARJIMA
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.red,
@@ -880,9 +885,9 @@ class FilterScreen extends StatelessWidget {
                       onPressed: () =>
                           _showFilterBottomSheet(context, controller),
                       icon: const Icon(Icons.tune, color: Colors.white),
-                      label: const Text(
-                        'O\'zgartirish',
-                        style: TextStyle(
+                      label: Text(
+                        'change_filters'.tr, // ✅ TARJIMA
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                         ),
@@ -935,9 +940,12 @@ class FilterScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Kategoriya Tanlang',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  Text(
+                    'select_category'.tr, // ✅ TARJIMA
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close_rounded),
@@ -1055,9 +1063,12 @@ class FilterScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Sub-kategoriya Tanlang',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  Text(
+                    'select_subcategory'.tr, // ✅ TARJIMA
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close_rounded),
@@ -1070,9 +1081,10 @@ class FilterScreen extends StatelessWidget {
             Expanded(
               child: Obx(() {
                 if (controller.subCategories.isEmpty) {
-                  return const Center(child: Text('Sub-kategoriya topilmadi'));
+                  return Center(
+                    child: Text('no_subcategories'.tr),
+                  ); // ✅ TARJIMA
                 }
-
                 return ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: controller.subCategories.length,
@@ -1172,9 +1184,9 @@ class FilterScreen extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text(
-                        'Manzil Tanlang',
-                        style: TextStyle(
+                      Text(
+                        'select_location'.tr, // ✅ TARJIMA
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
@@ -1190,13 +1202,11 @@ class FilterScreen extends StatelessWidget {
                 Expanded(
                   child: Obx(() {
                     if (controller.selectedRegion.value == null) {
-                      // Show regions list
                       return ListView.builder(
                         padding: const EdgeInsets.all(16),
                         itemCount: controller.regions.length,
                         itemBuilder: (context, index) {
                           final region = controller.regions[index];
-
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 12),
                             child: InkWell(
@@ -1252,14 +1262,12 @@ class FilterScreen extends StatelessWidget {
                       );
                     }
 
-                    // Show districts list
                     final selectedRegion = controller.selectedRegion.value!;
                     final districts =
                         controller.districts[selectedRegion] ?? [];
 
                     return Column(
                       children: [
-                        // Back button
                         Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 16,
@@ -1294,7 +1302,6 @@ class FilterScreen extends StatelessWidget {
                             ),
                           ),
                         ),
-                        // Whole region option
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: InkWell(
@@ -1322,25 +1329,25 @@ class FilterScreen extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              child: const Row(
+                              child: Row(
                                 children: [
-                                  Icon(
+                                  const Icon(
                                     Icons.my_location,
                                     color: Colors.white,
                                     size: 24,
                                   ),
-                                  SizedBox(width: 12),
+                                  const SizedBox(width: 12),
                                   Expanded(
                                     child: Text(
-                                      'Butun viloyat',
-                                      style: TextStyle(
+                                      'whole_region'.tr, // ✅ TARJIMA
+                                      style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
                                         color: Colors.white,
                                       ),
                                     ),
                                   ),
-                                  Icon(
+                                  const Icon(
                                     Icons.check_circle,
                                     color: Colors.white,
                                     size: 24,
@@ -1356,7 +1363,6 @@ class FilterScreen extends StatelessWidget {
                           child: Divider(),
                         ),
                         const SizedBox(height: 8),
-                        // Districts list
                         Expanded(
                           child: ListView.builder(
                             padding: const EdgeInsets.symmetric(horizontal: 16),

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_2/Widgets/custom_button.dart';
+import 'package:flutter_application_2/controller/otp_controller.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
-import 'package:version1/Widgets/custom_button.dart';
-import 'package:version1/controller/otp_controller.dart';
+
 import '../../config/constants.dart';
 
 class OTPScreen extends StatelessWidget {
